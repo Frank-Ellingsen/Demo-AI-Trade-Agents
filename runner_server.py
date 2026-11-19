@@ -1116,8 +1116,10 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 fetch_plan = {
                     "OSEBX.OL": ("1y", "1d"),
                     "^GSPC": ("1y", "1d"),
+                    "^OMX": ("1y", "1d"),
                     "OSEBX.OL_1d": ("1d", "15m"),
                     "^GSPC_1d": ("1d", "15m"),
+                    "^OMX_1d": ("1d", "15m"),
                     "BZ=F": ("5d", "1d"),
                     "^IXIC": ("5d", "1d"),
                     "NOK=X": ("5d", "1d"),
@@ -1125,7 +1127,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 }
                 fetched: dict[str, dict] = {}
                 try:
-                    with ThreadPoolExecutor(max_workers=8) as ex:
+                    with ThreadPoolExecutor(max_workers=10) as ex:
                         futs = {
                             ex.submit(_fetch_yf, key.replace("_1d", ""), rng, iv): key
                             for key, (rng, iv) in fetch_plan.items()
@@ -1195,9 +1197,10 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 }
 
                 benchmarks = {
-                    "source": "live_yahoo" if ("^GSPC" in fetched or "OSEBX.OL" in fetched) else "fallback",
+                    "source": "live_yahoo" if ("^GSPC" in fetched or "OSEBX.OL" in fetched or "^OMX" in fetched) else "fallback",
                     "inception_date": inception_date_str,
                     "sp500": _build_bench_ranges(fetched.get("^GSPC") or {}, fetched.get("^GSPC_1d")),
+                    "omx": _build_bench_ranges(fetched.get("^OMX") or {}, fetched.get("^OMX_1d")),
                     "obx": _build_bench_ranges(fetched.get("OSEBX.OL") or {}, fetched.get("OSEBX.OL_1d")),
                 }
 

@@ -1134,7 +1134,7 @@
           <div class="card-header">
             <div class="card-title-group">
               <h3>Porteføljeutvikling (<span id="perfRangeLabel">YTD</span>) vs. Benchmark</h3>
-              <p id="perfBenchSubtitle">Sammenligner aktiv AI-styrt portefølje mot S&amp;P 500 &amp; OBX (ankret fra første kjøp)</p>
+              <p id="perfBenchSubtitle">Sammenligner aktiv AI-styrt portefølje mot S&amp;P 500, OMX &amp; OBX (ankret fra første kjøp)</p>
             </div>
             <span class="pill pill-green" id="perfRangeReturnPill">+8.42 % YTD</span>
           </div>
@@ -3831,26 +3831,33 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const useInception = (rangeKey === "YTD" || rangeKey === "1D") && liveBench.sp500 && liveBench.sp500.INCEPTION;
       const benchKey = useInception ? "INCEPTION" : rangeKey;
       const spObj = (liveBench.sp500 || {})[benchKey];
+      const omxObj = (liveBench.omx || {})[benchKey];
       const obxObj = (liveBench.obx || {})[benchKey];
 
       const subEl = document.getElementById("perfBenchSubtitle");
       if (subEl) {
         subEl.textContent = useInception && inceptionDate
-          ? `Sammenligner aktiv AI-styrt portefølje mot S&P 500 & OBX — ankret fra første kjøp (${inceptionDate})`
-          : `Sammenligner aktiv AI-styrt portefølje mot S&P 500 & OBX (${rangeKey} markedsperiode)`;
+          ? `Sammenligner aktiv AI-styrt portefølje mot S&P 500, OMX & OBX — ankret fra første kjøp (${inceptionDate})`
+          : `Sammenligner aktiv AI-styrt portefølje mot S&P 500, OMX & OBX (${rangeKey} markedsperiode)`;
       }
 
       const spNorm = (spObj && Array.isArray(spObj.norm) && spObj.norm.length >= 2) ? spObj.norm : [1.0, 1.0];
+      const omxNorm = (omxObj && Array.isArray(omxObj.norm) && omxObj.norm.length >= 2) ? omxObj.norm : null;
       const obxNorm = (obxObj && Array.isArray(obxObj.norm) && obxObj.norm.length >= 2) ? obxObj.norm : null;
       const nPts = spNorm.length;
 
       const portCurve = [];
       const spCurve = [];
+      const omxCurve = [];
       const obxCurve = [];
       for (let i = 0; i < nPts; i++) {
         const w = nPts > 1 ? i / (nPts - 1) : 1;
         portCurve.push(Number((startEq + diff * w).toFixed(2)));
         spCurve.push(Number((startEq * spNorm[i]).toFixed(2)));
+        if (omxNorm) {
+          const mi = Math.min(omxNorm.length - 1, Math.round(w * (omxNorm.length - 1)));
+          omxCurve.push(Number((startEq * omxNorm[mi]).toFixed(2)));
+        }
         if (obxNorm) {
           const oi = Math.min(obxNorm.length - 1, Math.round(w * (obxNorm.length - 1)));
           obxCurve.push(Number((startEq * obxNorm[oi]).toFixed(2)));
@@ -3858,18 +3865,22 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
 
       const spRet = spObj && spObj.return_pct !== undefined ? `${spObj.return_pct >= 0 ? "+" : ""}${Number(spObj.return_pct).toFixed(1)}%` : "";
+      const omxRet = omxObj && omxObj.return_pct !== undefined ? `${omxObj.return_pct >= 0 ? "+" : ""}${Number(omxObj.return_pct).toFixed(1)}%` : "";
       const obxRet = obxObj && obxObj.return_pct !== undefined ? `${obxObj.return_pct >= 0 ? "+" : ""}${Number(obxObj.return_pct).toFixed(1)}%` : "";
       const spLabel = spRet ? `S&P 500 (${spRet})` : "S&P 500";
+      const omxLabel = omxRet ? `OMX (${omxRet})` : "OMX";
       const obxLabel = obxRet ? `OBX (${obxRet})` : "OBX";
 
       const series = { "Portefølje": portCurve };
       series[spLabel] = spCurve;
+      if (omxCurve.length) series[omxLabel] = omxCurve;
       if (obxCurve.length) series[obxLabel] = obxCurve;
 
       return {
         label: rangeKey,
         pct: pct,
         spLabel,
+        omxLabel,
         obxLabel,
         pill: `${sign}${pct.toFixed(2)} % (${rangeKey} · Faktisk Alpaca Paper)`,
         series
@@ -3894,6 +3905,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const portColor = cfg.pct > 0 ? "#34d399" : (cfg.pct < 0 ? "#f87171" : "#5cc4d6");
       const colorMap = { "Portefølje": portColor };
       colorMap[cfg.spLabel] = "#94a3b8";
+      colorMap[cfg.omxLabel] = "#a78bfa";
       colorMap[cfg.obxLabel] = "#38bdf8";
       renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "", colorMap);
     }
