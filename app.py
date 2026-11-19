@@ -689,7 +689,7 @@ def main() -> None:
                 "NordQuant Terminal (Bloomberg-stil Indeks- & Porteføljedashbord)",
                 "NordicQuant Terminal (Institusjonelt Aksjehandels- & Porteføljedashbord)",
                 "AI-Trading & Strategi-Rådgiver Dashbord (S&P 500, OBX, Alpaca & Saxo)",
-                "OBX 15 Multi-Agent Meglerbord (7-faners fullversjon med Waterfall, Profil×Marked & HITL)",
+                "Multi-Agent Meglerbord (7-faners fullversjon med Waterfall, Profil×Marked & HITL)",
                 "OBX 15 AI-Trading Kontrolltårn & Porteføljeoversikt (Aurora 6-faners Chart.js-versjon)",
                 "Tufte Data-Ink Kontrollpanel (ui/index.html)",
             ],
@@ -712,8 +712,8 @@ def main() -> None:
             adv_dash_path = dash_dir / "AI_Trading_Dashboard_med_Strategi-Rådgiver.html"
             if adv_dash_path.exists():
                 render_embedded_html(adv_dash_path.read_text(encoding="utf-8"), height=1100)
-        elif view_choice.startswith("OBX 15 Multi-Agent"):
-            megler_path = dash_dir / "OBX_15_Multi-Agent_Meglerbord_—_Kontrolltårn___Porteføljeo.html"
+        elif view_choice.startswith("Multi-Agent Meglerbord"):
+            megler_path = dash_dir / "Multi-Agent_Meglerbord_—_Kontrolltårn___Porteføljeo.html"
             if megler_path.exists():
                 render_embedded_html(megler_path.read_text(encoding="utf-8"), height=1100)
         elif view_choice.startswith("OBX 15 AI-Trading"):

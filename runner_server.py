@@ -802,8 +802,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             return
 
         dashboard_routes = {
-            "/meglerbord": "OBX_15_Multi-Agent_Meglerbord_—_Kontrolltårn___Porteføljeo.html",
-            "/cockpit": "OBX_15_Multi-Agent_Meglerbord_—_Kontrolltårn___Porteføljeo.html",
+            "/meglerbord": "Multi-Agent_Meglerbord_—_Kontrolltårn___Porteføljeo.html",
+            "/cockpit": "Multi-Agent_Meglerbord_—_Kontrolltårn___Porteføljeo.html",
             "/kontroltarn": "OBX_15_AI_Trader_-_Kontrolltårn___Porteføljeoversikt.html",
             "/kontrolltarn": "OBX_15_AI_Trader_-_Kontrolltårn___Porteføljeoversikt.html",
             "/aurora": "OBX_15_AI_Trader_-_Kontrolltårn___Porteføljeoversikt.html",

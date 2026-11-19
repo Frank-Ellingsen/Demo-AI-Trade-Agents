@@ -193,7 +193,7 @@ def test_runner_server_and_index_html_api() -> None:
         with urllib.request.urlopen(f"{base_url}/meglerbord", timeout=5) as resp:
             assert resp.status == 200
             megler_html = resp.read().decode("utf-8")
-            assert "OBX 15 Multi-Agent Meglerbord" in megler_html
+            assert "Multi-Agent Meglerbord" in megler_html
             assert "syncLiveDuckDbData" in megler_html
             assert "GJF.OL" in megler_html
 
