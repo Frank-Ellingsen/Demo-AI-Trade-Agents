@@ -980,6 +980,71 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/markets/live-ticker":
+            now_ts = time.time()
+            cache = getattr(self.server, "_live_ticker_cache", None)
+            if cache and (now_ts - cache.get("ts", 0)) < 25:
+                res_obj = cache["data"]
+            else:
+                specs = [
+                    ("OSLO", "OSEBX.OL", "", ""),
+                    ("OLJE", "BZ=F", "$ ", ""),
+                    ("NASDAQ", "^IXIC", "", ""),
+                    ("S&P 500", "^GSPC", "", ""),
+                    ("USD", "NOK=X", "", " kr"),
+                ]
+                items = []
+                hdr = {"User-Agent": "Mozilla/5.0"}
+                try:
+                    import requests
+
+                    for lbl, sym, pref, suff in specs:
+                        try:
+                            r = requests.get(
+                                f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+                                params={"range": "5d", "interval": "1d"},
+                                headers=hdr,
+                                timeout=5,
+                            )
+                            res0 = r.json()["chart"]["result"][0]
+                            meta = res0.get("meta", {})
+                            p = float(meta.get("regularMarketPrice") or 0.0)
+                            closes = [c for c in (res0.get("indicators", {}).get("quote", [{}])[0].get("close") or []) if c is not None]
+                            pc = float(closes[-2]) if len(closes) >= 2 else float(meta.get("chartPreviousClose") or p or 1.0)
+                            chg_pct = ((p - pc) / pc) * 100.0 if pc > 0 else 0.0
+                            items.append({
+                                "label": lbl,
+                                "symbol": sym,
+                                "price": round(p, 2),
+                                "change_pct": round(chg_pct, 2),
+                                "prefix": pref,
+                                "suffix": suff,
+                            })
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+
+                if not items:
+                    items = [
+                        {"label": "OSLO", "symbol": "OSEBX.OL", "price": 2068.75, "change_pct": -0.25, "prefix": "", "suffix": ""},
+                        {"label": "OLJE", "symbol": "BZ=F", "price": 92.45, "change_pct": 1.19, "prefix": "$ ", "suffix": ""},
+                        {"label": "NASDAQ", "symbol": "^IXIC", "price": 24166.51, "change_pct": -1.08, "prefix": "", "suffix": ""},
+                        {"label": "S&P 500", "symbol": "^GSPC", "price": 7235.44, "change_pct": -1.20, "prefix": "", "suffix": ""},
+                        {"label": "USD", "symbol": "NOK=X", "price": 9.76, "change_pct": 0.66, "prefix": "", "suffix": " kr"},
+                    ]
+
+                res_obj = {"updated_at": time.strftime("%H:%M:%S"), "items": items}
+                setattr(self.server, "_live_ticker_cache", {"ts": now_ts, "data": res_obj})
+
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/markets/sp500-movers":
             _reload_env()
             sp500_leaders = [

@@ -897,6 +897,62 @@
       align-items: center;
       justify-content: space-between;
     }
+    /* Permanent Live Index Ticker Bar (Top Menu) */
+    .live-index-bar {
+      position: sticky;
+      top: 0;
+      z-index: 45;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      padding: 8px 20px;
+      background: #0d1520;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+    }
+    .live-index-items {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+    .live-idx-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+    .live-idx-label {
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #f1f5f9;
+    }
+    .live-idx-val {
+      font-family: var(--font-mono);
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+    .live-idx-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .live-idx-pill.up {
+      background: rgba(52, 211, 153, 0.22);
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.45);
+    }
+    .live-idx-pill.down {
+      background: rgba(248, 113, 113, 0.22);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+    }
+
     /* Floating Sidebar Hover Tooltip */
     #sidebarHoverTooltip {
       position: fixed;
@@ -986,6 +1042,14 @@
 
     <!-- Main Right Workspace -->
     <div class="main-workspace">
+
+      <!-- Permanent Live Index Ticker Bar (OSLO, OLJE, NASDAQ, S&P 500, USD) -->
+      <div class="live-index-bar" aria-label="Live Indekser">
+        <div class="live-index-items" id="liveIndexTickerItems">
+          <span class="text-muted" style="font-size:12px;">Laster live indekser (OSLO, OLJE, NASDAQ, S&amp;P 500, USD)...</span>
+        </div>
+        <span id="liveIndexUpdatedAt" style="font-size:11px; color:var(--text-dim); font-family:var(--font-mono);"></span>
+      </div>
 
       <!-- Global Top Bar: Stock Search, 1-Click Trade Access, Notifications -->
       <div class="global-topbar">
@@ -4438,11 +4502,39 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    async function loadLiveIndexTicker() {
+      const box = document.getElementById("liveIndexTickerItems");
+      const upd = document.getElementById("liveIndexUpdatedAt");
+      if (!box) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/markets/live-ticker`);
+        if (!res.ok) return;
+        const d = await res.json();
+        const items = d.items || [];
+        if (!items.length) return;
+        box.innerHTML = items.map(it => {
+          const valFmt = Number(it.price || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const pct = Number(it.change_pct || 0);
+          const pctFmt = (pct > 0 ? "+" : "") + pct.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+          const cls = pct >= 0 ? "up" : "down";
+          return `
+            <span class="live-idx-item">
+              <span class="live-idx-label">${it.label}</span>
+              <span class="live-idx-val">${it.prefix || ""}${valFmt}${it.suffix || ""}</span>
+              <span class="live-idx-pill ${cls}">${pctFmt}</span>
+            </span>
+          `;
+        }).join("");
+        if (upd && d.updated_at) upd.textContent = `Live ${d.updated_at}`;
+      } catch (e) {}
+    }
+
     // Initialiser ved oppstart (Vis kun 01 Overview som ren startside)
     switchCategory("overview");
     try { renderAllSections(); } catch (e) { console.error("renderAllSections:", e); }
     try { syncStrategyOrderPreview(); } catch (e) {}
     checkServerConnection();
+    loadLiveIndexTicker();
     loadRulebookAndFailover();
     loadOmxn40Universe();
     loadSp500Movers();
@@ -4450,6 +4542,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     evaluateTaxFeeFx();
     setInterval(checkServerConnection, 6000);
     setInterval(refreshAlpacaPortfolio, 15000);
+    setInterval(loadLiveIndexTicker, 30000);
   </script>
 </body>
 </html>
