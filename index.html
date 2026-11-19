@@ -1127,22 +1127,22 @@
       <!-- Recommended Dashboard Widgets (Live Alpaca Paper Portfolio) -->
       <div class="kpi-grid">
         <div class="kpi-item highlight-green">
-          <div class="kpi-label">Total Portfolio Value (Alpaca Paper)</div>
+          <div class="kpi-label">Total Porteføljeverdi (Alpaca Paper)</div>
           <div class="kpi-value" id="ovTotalValue">$100,000.00</div>
           <div class="kpi-sub" id="ovTotalSub">Live synkronisert fra paper-api.alpaca.markets</div>
         </div>
         <div class="kpi-item highlight-green">
-          <div class="kpi-label">Today's P&amp;L</div>
+          <div class="kpi-label">Dagens P&amp;L</div>
           <div class="kpi-value" id="ovTodayPnl">$0.00</div>
           <div class="kpi-sub" id="ovTodaySub">0.00 % i dag (Real-time mark-to-market)</div>
         </div>
         <div class="kpi-item highlight-amber">
-          <div class="kpi-label">Available Cash</div>
+          <div class="kpi-label">Tilgjengelig Kontanter</div>
           <div class="kpi-value" id="ovCashValue">$100,000.00</div>
           <div class="kpi-sub" id="ovCashSub">100.0 % av portefølje (Tilgjengelig kapital)</div>
         </div>
         <div class="kpi-item highlight-cyan">
-          <div class="kpi-label">Open Positions</div>
+          <div class="kpi-label">Åpne Posisjoner</div>
           <div class="kpi-value" id="ovPositionsCount">0</div>
           <div class="kpi-sub" id="ovPositionsSub">Ingen åpne posisjoner i Alpaca Paper</div>
         </div>
@@ -1166,8 +1166,8 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title-group">
-                <h3>Top Movers (Dagens Vinnere &amp; Tapere)</h3>
-                <p>Største daglige utslag i overvåkningslisten</p>
+                <h3>Dagens Vinnere &amp; Tapere (Portefølje)</h3>
+                <p>Største urealiserte utslag i dine åpne Alpaca-posisjoner</p>
               </div>
             </div>
             <div class="table-wrap">
@@ -1227,7 +1227,7 @@
           <div class="kpi-sub" id="portEquitySub">Markedsverdi + kontanter</div>
         </div>
         <div class="kpi-item highlight-green">
-          <div class="kpi-label">Realised P&amp;L (Realisert)</div>
+          <div class="kpi-label">Realisert P&amp;L</div>
           <div class="kpi-value" id="portRealizedPnl">$0.00</div>
           <div class="kpi-sub" id="portRealizedSub">Lukkede handler mot startkapital</div>
         </div>
@@ -1237,7 +1237,7 @@
           <div class="kpi-sub" id="portUnrealizedSub">Løpende mark-to-market</div>
         </div>
         <div class="kpi-item">
-          <div class="kpi-label">Tilgjengelig Cash</div>
+          <div class="kpi-label">Tilgjengelig Kontanter</div>
           <div class="kpi-value" id="portCashVal">$100,000.00</div>
           <div class="kpi-sub" id="portCashSub">100.0 % kontantbuffer</div>
         </div>
@@ -1248,8 +1248,8 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title-group">
-              <h3>Holdings Table (Åpne Posisjoner)</h3>
-              <p>Ticker, antall, snittkost, markedsverdi, daglig endring og urealisert P&amp;L</p>
+              <h3>Åpne Posisjoner (Holdings)</h3>
+              <p>Ticker, retning (Long/Short), antall, snittkost, markedsverdi, daglig endring og urealisert P&amp;L</p>
             </div>
             <span class="pill pill-cyan">Alpaca Paper v2</span>
           </div>
@@ -2466,7 +2466,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
               <input type="password" id="setAlpacaSecret" placeholder="Lim inn ny Paper Secret Key (la stå tom for å beholde)">
             </div>
             <div class="field-group">
-              <label for="setAlpacaInitEq">Startkapital for Realised P&amp;L ($ USD)</label>
+              <label for="setAlpacaInitEq">Startkapital for Realisert P&amp;L ($ USD)</label>
               <input type="number" id="setAlpacaInitEq" value="100000" step="1000">
             </div>
           </div>
