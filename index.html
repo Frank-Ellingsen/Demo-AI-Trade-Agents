@@ -1097,9 +1097,9 @@
           </span>
         </div>
         <div class="macro-pills">
-          <span>OBX vs. SMA200: <strong id="macroObx">1 384.2 / 1 318.5 (BULL)</strong></span>
-          <span>VIX: <strong id="macroVix">16.4 (&lt; 25 OK)</strong></span>
-          <span>Brent 2d: <strong id="macroBrent">+1.15 %</strong></span>
+          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="SMA200 er 200-dagers glidende snitt (~1 børsår) for Oslo Børs (OSEBX). Kurs over SMA200 = BULL (langsiktig oppgangstrend, kjøpssignaler tillatt). Kurs under SMA200 = BEAR (nedgangstrend, nye kjøp blokkeres).">OBX vs. SMA200: <strong id="macroObx">2 068,8 / 2 012,0 (BULL)</strong></span>
+          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="VIX («fryktindeksen») måler forventet 30-dagers volatilitet på S&amp;P 500 — ikke et direkte short-signal. VIX < 18: Full Momentum | 18–24: Covered Calls | ≥ 25: Høy uro (Risiko-av / kontantbuffer).">VIX: <strong id="macroVix">25.7 (≥ 25 HØY)</strong></span>
+          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="2-dagers prosentendring i Brent Crude oljepris (BZ=F). Brukes som makrofilter for energisektoren i OBX 15.">Brent 2d: <strong id="macroBrent">-3.26 %</strong></span>
           <span>Aktiv Megler: <strong>Alpaca Paper v2 (Kun US Paper)</strong></span>
         </div>
       </div>
@@ -4420,15 +4420,21 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       tip.id = "sidebarHoverTooltip";
       document.body.appendChild(tip);
 
-      document.querySelectorAll(".sidebar [data-tooltip]").forEach((el) => {
+      document.querySelectorAll("[data-tooltip]").forEach((el) => {
         el.addEventListener("mouseenter", () => {
           const text = el.getAttribute("data-tooltip");
           if (!text) return;
           tip.textContent = text;
           const rect = el.getBoundingClientRect();
-          const topPos = Math.max(10, Math.min(window.innerHeight - 80, rect.top + rect.height / 2 - 20));
-          tip.style.left = `${rect.right + 10}px`;
-          tip.style.top = `${topPos}px`;
+          if (el.closest(".sidebar")) {
+            const topPos = Math.max(10, Math.min(window.innerHeight - 90, rect.top + rect.height / 2 - 20));
+            tip.style.left = `${rect.right + 10}px`;
+            tip.style.top = `${topPos}px`;
+          } else {
+            const leftPos = Math.max(12, Math.min(window.innerWidth - 310, rect.left));
+            tip.style.left = `${leftPos}px`;
+            tip.style.top = `${rect.bottom + 8}px`;
+          }
           tip.classList.add("visible");
         });
         el.addEventListener("mouseleave", () => {
