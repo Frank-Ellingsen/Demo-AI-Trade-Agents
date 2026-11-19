@@ -4060,18 +4060,24 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           if (!items.length) {
             foBox.innerHTML = `<span class="muted">Ingen ventende failover-ordrer i køen.</span>`;
           } else {
-            foBox.innerHTML = items.map(it => `
+            foBox.innerHTML = items.map(it => {
+              const decidedText = it.decided_at
+                ? ` · <span>${it.status === 'APPROVED' ? 'Godkjent' : 'Avvist'}: <strong>${it.decided_at}</strong></span>`
+                : ``;
+              return `
               <div style="border-bottom: 1px solid var(--border); padding: 8px 0; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
                 <div>
                   <strong>${it.symbol}</strong> (${it.qty} stk @ $${Number(it.limit).toFixed(2)})
                   <span class="pill ${it.status === 'APPROVED' ? 'pill-green' : it.status === 'REJECTED' ? 'pill-red' : 'pill-amber'}">${it.status}</span>
+                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Opprettet: ${it.created_at || '-'}${decidedText}</div>
                 </div>
                 <div style="display:flex; gap:6px;">
                   <a href="${it.approve_url}" target="_blank" class="btn btn-success btn-sm">✅ Godkjenn</a>
                   <a href="${it.reject_url}" target="_blank" class="btn btn-outline btn-sm">❌ Avvis</a>
                 </div>
               </div>
-            `).join("");
+            `;
+            }).join("");
           }
         }
       } catch (err) {

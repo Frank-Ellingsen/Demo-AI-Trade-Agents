@@ -54,6 +54,7 @@ def list_pending_approvals() -> List[Dict[str, Any]]:
                 "reason": data.get("reason", ""),
                 "status": data.get("status", "PENDING"),
                 "created_at": data.get("created_at"),
+                "decided_at": data.get("decided_at"),
                 "approve_url": data.get("approve_url", ""),
                 "reject_url": data.get("reject_url", ""),
             }
@@ -70,17 +71,20 @@ def process_approval_action(trade_id: Optional[str], token: Optional[str], actio
     if not token or trade.get("token") != token:
         return 403, "<h1>Ugyldig sikkerhetstoken</h1><p>Godkjenningslenken kunne ikke verifiseres.</p>"
 
+    now_ts = time.strftime("%Y-%m-%d %H:%M:%S")
     if action == "approve":
         trade["status"] = "APPROVED"
+        trade["decided_at"] = now_ts
         return (
             200,
-            f"<h1>✅ Ordre Godkjent!</h1><p><b>{trade['symbol']}</b> ({trade['qty']} stk @ ${trade['limit']:.2f}) er godkjent via failover.</p>",
+            f"<h1>✅ Ordre Godkjent!</h1><p><b>{trade['symbol']}</b> ({trade['qty']} stk @ ${trade['limit']:.2f}) er godkjent via failover kl. <b>{now_ts}</b>.</p>",
         )
     if action == "reject":
         trade["status"] = "REJECTED"
+        trade["decided_at"] = now_ts
         return (
             200,
-            f"<h1>❌ Ordre Avvist!</h1><p><b>{trade['symbol']}</b> ({trade['qty']} stk) er kansellert.</p>",
+            f"<h1>❌ Ordre Avvist!</h1><p><b>{trade['symbol']}</b> ({trade['qty']} stk) er kansellert kl. <b>{now_ts}</b>.</p>",
         )
     return 400, "<h1>Ukjent handling</h1>"
 
