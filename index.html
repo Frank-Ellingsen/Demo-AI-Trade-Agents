@@ -4463,7 +4463,19 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           filterOmxn40("ALL");
         }
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="muted">Start runner_server.py for å laste de 40 OMXN40-selskapene.</td></tr>`;
+        OMXN40_STOCKS = [
+          { ticker: "NOVO-B.CO", name: "Novo Nordisk B", country: "DK", exchange: "Nasdaq Copenhagen", currency: "DKK", sector: "Healthcare" },
+          { ticker: "DSV.CO", name: "DSV", country: "DK", exchange: "Nasdaq Copenhagen", currency: "DKK", sector: "Industrials" },
+          { ticker: "ATCO-A.ST", name: "Atlas Copco A", country: "SE", exchange: "Nasdaq Stockholm", currency: "SEK", sector: "Industrials" },
+          { ticker: "VOLV-B.ST", name: "Volvo B", country: "SE", exchange: "Nasdaq Stockholm", currency: "SEK", sector: "Industrials" },
+          { ticker: "INVE-B.ST", name: "Investor B", country: "SE", exchange: "Nasdaq Stockholm", currency: "SEK", sector: "Financials" },
+          { ticker: "SEB-A.ST", name: "SEB A", country: "SE", exchange: "Nasdaq Stockholm", currency: "SEK", sector: "Financials" },
+          { ticker: "NDA-FI.HE", name: "Nordea Bank", country: "FI", exchange: "Nasdaq Helsinki", currency: "EUR", sector: "Financials" },
+          { ticker: "KNEBV.HE", name: "Kone B", country: "FI", exchange: "Nasdaq Helsinki", currency: "EUR", sector: "Industrials" },
+          { ticker: "EQNR.OL", name: "Equinor", country: "NO", exchange: "Oslo Børs", currency: "NOK", sector: "Energy" },
+          { ticker: "DNB.OL", name: "DNB Bank", country: "NO", exchange: "Oslo Børs", currency: "NOK", sector: "Financials" },
+        ];
+        filterOmxn40("ALL");
       }
     }
 
@@ -4668,7 +4680,27 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         upTb.innerHTML = renderRows(d.top_up);
         dnTb.innerHTML = renderRows(d.top_down);
       } catch (err) {
-        upTb.innerHTML = `<tr><td colspan="4" class="text-muted">Kunne ikke laste S&amp;P 500 movers.</td></tr>`;
+        if (srcEl) srcEl.textContent = "Demo Snapshot";
+        const demoUp = [
+          { ticker: "NVDA", price: 145.20, prev_close: 142.10, change_pct: 2.18 },
+          { ticker: "MSFT", price: 426.80, prev_close: 422.05, change_pct: 1.13 },
+          { ticker: "META", price: 565.00, prev_close: 559.10, change_pct: 1.06 },
+          { ticker: "AMZN", price: 205.00, prev_close: 203.20, change_pct: 0.89 },
+          { ticker: "AAPL", price: 229.10, prev_close: 227.20, change_pct: 0.84 },
+        ];
+        const demoDn = [
+          { ticker: "TSLA", price: 340.00, prev_close: 347.50, change_pct: -2.16 },
+          { ticker: "AMD", price: 148.00, prev_close: 150.20, change_pct: -1.46 },
+          { ticker: "PLTR", price: 61.20, prev_close: 62.10, change_pct: -1.45 },
+          { ticker: "XOM", price: 120.00, prev_close: 121.10, change_pct: -0.91 },
+          { ticker: "JPM", price: 240.00, prev_close: 241.50, change_pct: -0.62 },
+        ];
+        const renderFallback = (list) => list.map(r => {
+          const cls = r.change_pct >= 0 ? "text-green" : "text-red";
+          return `<tr><td><strong>${r.ticker}</strong></td><td class="num">$${r.price.toFixed(2)}</td><td class="num text-muted">$${r.prev_close.toFixed(2)}</td><td class="num ${cls}"><strong>${r.change_pct >= 0 ? "+" : ""}${r.change_pct.toFixed(2)} %</strong></td></tr>`;
+        }).join("");
+        upTb.innerHTML = renderFallback(demoUp);
+        dnTb.innerHTML = renderFallback(demoDn);
       }
     }
 
@@ -4761,8 +4793,88 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           SUITE_STATE.live_benchmarks = d.benchmarks;
           try { setPerfRange(ACTIVE_PERF_RANGE); } catch (e) {}
         }
-      } catch (e) {}
+      } catch (e) {
+        // Static GitHub Pages / offline preview fallback with realistic snapshot + YTD sparklines
+        const demoItems = [
+          { label: "OSLO", price: 2068.75, change_pct: -0.25, ytd_pct: 21.9, prefix: "", suffix: "", ytd_spark: [1697,1720,1745,1738,1770,1805,1822,1815,1850,1880,1905,1930,1955,1948,1985,2010,2035,2058,2074,2068.75] },
+          { label: "OLJE", price: 90.16, change_pct: -1.95, ytd_pct: 48.4, prefix: "$ ", suffix: "", ytd_spark: [60.8,62.5,64.0,66.2,68.5,71.0,73.4,72.1,75.8,78.2,80.5,82.1,84.0,85.6,87.2,89.4,91.8,92.4,91.9,90.16] },
+          { label: "NASDAQ", price: 24073.76, change_pct: -1.46, ytd_pct: 3.6, prefix: "", suffix: "", ytd_spark: [23235,23410,23180,23520,23690,23450,23710,23890,23620,23940,24110,24280,24150,24390,24510,24420,24600,24480,24430,24073.76] },
+          { label: "S&P 500", price: 7219.07, change_pct: -1.43, ytd_pct: 5.3, prefix: "", suffix: "", ytd_spark: [6858,6902,6880,6945,6990,6965,7020,7075,7040,7110,7155,7190,7165,7225,7280,7260,7325,7340,7324,7219.07] },
+          { label: "USD", price: 9.77, change_pct: 1.48, ytd_pct: -2.8, prefix: "", suffix: " kr", ytd_spark: [10.05,10.02,9.98,10.01,9.95,9.90,9.88,9.92,9.85,9.82,9.79,9.81,9.76,9.74,9.70,9.68,9.65,9.63,9.63,9.77] },
+        ];
+        box.innerHTML = demoItems.map(it => {
+          const valFmt = it.price.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          const pctFmt = (it.change_pct > 0 ? "+" : "") + it.change_pct.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+          const ytdFmt = (it.ytd_pct > 0 ? "+" : "") + it.ytd_pct.toLocaleString("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+          const sparkSvg = renderTickerSparkline(it.ytd_spark, it.ytd_pct, it.label);
+          return `<span class="live-idx-item"><span class="live-idx-label">${it.label}</span><span class="live-idx-val">${it.prefix}${valFmt}${it.suffix}</span><span class="live-idx-pill ${it.change_pct >= 0 ? "up" : "down"}"><span class="live-idx-tag" style="color:inherit; opacity:0.8;">I dag</span>${pctFmt}</span><span class="live-idx-ytd ${it.ytd_pct >= 0 ? "up" : "down"}">${sparkSvg}<span class="live-idx-tag">YTD</span>${ytdFmt}</span></span>`;
+        }).join("");
+        if (upd) upd.textContent = "Demo Snapshot";
+        if (!SUITE_STATE.live_benchmarks) {
+          SUITE_STATE.live_benchmarks = {
+            source: "demo_snapshot",
+            inception_date: "2026-11-19",
+            sp500: {
+              INCEPTION: { return_pct: 0.33, norm: [1.0, 1.004, 1.002, 1.0033] },
+              "1D": { return_pct: -1.43, norm: [1.0, 0.9857] },
+              "1W": { return_pct: -0.8, norm: [1.0, 1.003, 0.998, 0.992] },
+              "1M": { return_pct: 1.4, norm: [1.0, 1.005, 1.011, 1.014] },
+              YTD: { return_pct: 5.26, norm: [1.0, 1.012, 1.028, 1.041, 1.0526] },
+              "1Y": { return_pct: 9.11, norm: [1.0, 1.02, 1.05, 1.07, 1.0911] }
+            },
+            omx: {
+              INCEPTION: { return_pct: 0.0, norm: [1.0, 1.0] },
+              "1D": { return_pct: -0.4, norm: [1.0, 0.996] },
+              "1W": { return_pct: 0.5, norm: [1.0, 1.002, 1.005] },
+              "1M": { return_pct: 2.1, norm: [1.0, 1.009, 1.021] },
+              YTD: { return_pct: 13.03, norm: [1.0, 1.03, 1.07, 1.10, 1.1303] },
+              "1Y": { return_pct: 16.4, norm: [1.0, 1.04, 1.09, 1.13, 1.164] }
+            },
+            obx: {
+              INCEPTION: { return_pct: 0.0, norm: [1.0, 1.0] },
+              "1D": { return_pct: -0.25, norm: [1.0, 0.9975] },
+              "1W": { return_pct: 1.2, norm: [1.0, 1.006, 1.012] },
+              "1M": { return_pct: 3.8, norm: [1.0, 1.015, 1.029, 1.038] },
+              YTD: { return_pct: 21.91, norm: [1.0, 1.05, 1.11, 1.17, 1.2191] },
+              "1Y": { return_pct: 30.62, norm: [1.0, 1.08, 1.16, 1.24, 1.3062] }
+            }
+          };
+          try { setPerfRange(ACTIVE_PERF_RANGE); } catch (err2) {}
+        }
+      }
     }
+
+    // Rewrite localhost:8000 links automatically when hosted on GitHub Pages (static preview)
+    (function adaptLinksForStaticPreview() {
+      const host = window.location.hostname;
+      if (host === "localhost" || host === "127.0.0.1" || host === "") return;
+      const ghDocs = "https://github.com/Frank-Ellingsen/Demo-AI-Trade-Agents/blob/main/";
+      const map = {
+        "http://localhost:8000/dummies": ghDocs + "docs/ai-trading-strategi-for-dummies.md",
+        "http://localhost:8000/rulebook": ghDocs + "docs/trading_agent_rulebook.md",
+        "http://localhost:8000/tax-fx": ghDocs + "docs/anbefalte_opt_tax_fee_fx_struktur.md",
+        "http://localhost:8000/guide": ghDocs + "docs/USER_GUIDE.md",
+        "http://localhost:8000/brukertest": ghDocs + "docs/ui_ux_bruker_test.md",
+        "http://localhost:8000/brukertest-nybegynner": ghDocs + "docs/bruker-test-nybegynner.md",
+        "http://localhost:8000/strategi-radgiver": "ui/dashboards/AI_Trading_Dashboard_med_Strategi-R%C3%A5dgiver.html",
+        "http://localhost:8000/meglerbord": "ui/dashboards/Multi-Agent_Meglerbord_%E2%80%94_Kontrollt%C3%A5rn___Portef%C3%B8ljeo.html",
+        "http://localhost:8000/kontrolltarn": "ui/dashboards/OBX_15_AI_Trader_-_Kontrollt%C3%A5rn___Portef%C3%B8ljeoversikt.html",
+        "http://localhost:8000/bloomberg": "ui/dashboards/Bloomberg-stil_Indeks-_og_Portef%C3%B8ljedashbord.html",
+        "http://localhost:8000/terminal": "ui/dashboards/AI_Trading_Terminal___Portef%C3%B8ljedashbord.html",
+        "http://localhost:8000/streamlined": "ui/dashboards/AI_Trading_Terminal_-_Streamlined___Clean.html",
+        "http://localhost:8000/nordquant-ai": "ui/dashboards/Bygging_av_AI-tradingagenter_i_Python.html"
+      };
+      document.querySelectorAll("a[href]").forEach(a => {
+        const href = a.getAttribute("href");
+        if (map[href]) a.setAttribute("href", map[href]);
+      });
+      const statusText = document.getElementById("serverStatusText");
+      const tipEl = document.getElementById("runnerTip");
+      if (statusText) {
+        statusText.innerHTML = "<strong>Interaktiv Demo-Preview (GitHub Pages).</strong> Alle grafer, kalkulatorer og dashboards er klare — kjør <code>python runner_server.py</code> lokalt for live Alpaca Paper &amp; Telegram.";
+      }
+      if (tipEl) tipEl.style.display = "none";
+    })();
 
     // Initialiser ved oppstart (Vis kun 01 Overview som ren startside)
     switchCategory("overview");
