@@ -1238,6 +1238,7 @@
               <thead>
                 <tr>
                   <th>Ticker</th>
+                  <th>Retning</th>
                   <th>Konto</th>
                   <th class="num">Antall</th>
                   <th class="num">Snittkost</th>
@@ -1256,8 +1257,8 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title-group">
-                <h3>Asset Allocation (Aktivaklasser)</h3>
-                <p>Fordeling på enkeltaksjer, indeks-ETFer og kontanter / T-Bills</p>
+                <h3>Long vs. Short &amp; Aktivaklasser</h3>
+                <p>Fordeling på Long-posisjoner, Short-posisjoner, Netto eksponering og Kontanter</p>
               </div>
             </div>
             <div class="table-wrap">
@@ -4008,7 +4009,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         if (posList.length === 0) {
           holdTb.innerHTML = `
             <tr>
-              <td colspan="7" style="text-align:center; padding: 24px 12px; color: var(--text-muted);">
+              <td colspan="8" style="text-align:center; padding: 24px 12px; color: var(--text-muted);">
                 Ingen åpne posisjoner i Alpaca Paper (<code>https://app.alpaca.markets/account/positions</code>).<br>
                 <span style="font-size:11.5px; color:var(--text-dim);">Kontoen har ${fmtUsd(cash)} i kontanter (0 % eksponert). Bruk <strong>03 Trading</strong> for å legge inn eller godkjenne en OCO Bracket-ordre.</span>
               </td>
@@ -4018,9 +4019,14 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           holdTb.innerHTML = posList.map(p => {
             const up = Number(p.unrealized_pl) >= 0;
             const dayUp = Number(p.change_today_pct) >= 0;
+            const side = String(p.side || (Number(p.qty) < 0 ? "SHORT" : "LONG")).toUpperCase();
+            const sidePill = side === "SHORT"
+              ? `<span class="pill pill-red">SHORT</span>`
+              : `<span class="pill pill-green">LONG</span>`;
             return `
               <tr>
                 <td><strong>${p.symbol}</strong></td>
+                <td>${sidePill}</td>
                 <td class="text-muted">Alpaca Paper</td>
                 <td class="num">${p.qty}</td>
                 <td class="num">${fmtUsd(p.avg_entry_price)}</td>
@@ -4035,12 +4041,34 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
       const allocTb = document.getElementById("assetAllocationTbody");
       if (allocTb) {
+        const longPositions = posList.filter(p => String(p.side || (Number(p.qty) < 0 ? "SHORT" : "LONG")).toUpperCase() !== "SHORT");
+        const shortPositions = posList.filter(p => String(p.side || (Number(p.qty) < 0 ? "SHORT" : "LONG")).toUpperCase() === "SHORT");
+        const shortMv = Math.abs(Number(
+          alp.short_market_value !== undefined
+            ? alp.short_market_value
+            : shortPositions.reduce((acc, p) => acc + Math.abs(Number(p.market_value || 0)), 0)
+        ));
+        const shortPct = eq > 0 ? (shortMv / eq) * 100.0 : 0.0;
+        const netMv = mv - shortMv;
+        const netPct = eq > 0 ? (netMv / eq) * 100.0 : 0.0;
         allocTb.innerHTML = `
           <tr>
-            <td><strong>US Aksjer &amp; ETFer (Alpaca Paper)</strong></td>
-            <td class="num">${fmtUsd(mv)}</td>
-            <td class="num">${mvPct.toFixed(1)} %</td>
-            <td>${posList.length} åpne posisjoner</td>
+            <td><strong>Long Eksponering</strong></td>
+            <td class="num text-green">${fmtUsd(mv)}</td>
+            <td class="num text-green">${mvPct.toFixed(1)} %</td>
+            <td>${longPositions.length} long-posisjoner</td>
+          </tr>
+          <tr>
+            <td><strong>Short Eksponering</strong></td>
+            <td class="num ${shortMv > 0 ? "text-red" : "text-muted"}">${fmtUsd(shortMv)}</td>
+            <td class="num ${shortMv > 0 ? "text-red" : "text-muted"}">${shortPct.toFixed(1)} %</td>
+            <td>${shortPositions.length} short-posisjoner</td>
+          </tr>
+          <tr>
+            <td><strong>Netto Eksponering (Long − Short)</strong></td>
+            <td class="num"><strong>${fmtUsd(netMv)}</strong></td>
+            <td class="num"><strong>${netPct.toFixed(1)} %</strong></td>
+            <td>${shortPositions.length === 0 ? "100 % Long-only" : "Long/Short balansert"}</td>
           </tr>
           <tr>
             <td><strong>Kontanter (USD Paper Balance)</strong></td>

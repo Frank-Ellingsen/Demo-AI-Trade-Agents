@@ -160,14 +160,18 @@ class AlpacaClient:
         cash = float(acct.get("cash") or 0.0)
         buying_power = float(acct.get("buying_power") or cash)
         long_mv = float(acct.get("long_market_value") or 0.0)
+        short_mv = float(acct.get("short_market_value") or 0.0)
         today_pnl = equity - last_equity
         today_pnl_pct = ((today_pnl / last_equity) * 100.0) if last_equity > 0 else 0.0
 
         norm_positions = []
         for p in positions:
+            qty_val = float(p.get("qty") or 0)
+            pos_side = str(p.get("side") or ("short" if qty_val < 0 else "long")).upper()
             norm_positions.append({
                 "symbol": str(p.get("symbol", "")),
-                "qty": float(p.get("qty") or 0),
+                "side": pos_side,
+                "qty": qty_val,
                 "avg_entry_price": float(p.get("avg_entry_price") or 0),
                 "current_price": float(p.get("current_price") or 0),
                 "market_value": float(p.get("market_value") or 0),
@@ -205,6 +209,7 @@ class AlpacaClient:
             "cash": round(cash, 2),
             "buying_power": round(buying_power, 2),
             "long_market_value": round(long_mv, 2),
+            "short_market_value": round(short_mv, 2),
             "today_pnl": round(today_pnl, 2),
             "today_pnl_pct": round(today_pnl_pct, 2),
             "unrealized_pl": round(unrealized_pl, 2),
