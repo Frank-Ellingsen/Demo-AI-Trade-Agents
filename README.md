@@ -126,6 +126,7 @@ powershell -ExecutionPolicy Bypass -File .\setup_windows_scheduler.ps1 -Install
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — Daily operations, Sunday audit, risk profiles, and troubleshooting.
 - [docs/ai-trading-strategi-for-dummies.md](docs/ai-trading-strategi-for-dummies.md) — Strategy & risk profile guide.
 - [docs/ui_ux_bruker_test.md](docs/ui_ux_bruker_test.md) — Telegram HITL UX protocol.
+- [docs/bruker-test-nybegynner.md](docs/bruker-test-nybegynner.md) — Beginner / non-pro usability test protocol.
 - [agents.md](agents.md) & [docs/risk.md](docs/risk.md) — Multi-agent architecture and factor risk decomposition.
 
 ---

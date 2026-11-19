@@ -830,12 +830,13 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(data)
                 return
 
-        if parsed.path in ("/guide", "/dummies", "/readme", "/brukertest", "/rulebook") or parsed.path.endswith(".md"):
+        if parsed.path in ("/guide", "/dummies", "/readme", "/brukertest", "/brukertest-nybegynner", "/rulebook") or parsed.path.endswith(".md"):
             md_map = {
                 "/guide": BASE_DIR / "docs" / "USER_GUIDE.md",
                 "/dummies": BASE_DIR / "docs" / "ai-trading-strategi-for-dummies.md",
                 "/readme": BASE_DIR / "README.md",
                 "/brukertest": BASE_DIR / "docs" / "ui_ux_bruker_test.md",
+                "/brukertest-nybegynner": BASE_DIR / "docs" / "bruker-test-nybegynner.md",
                 "/rulebook": BASE_DIR / "docs" / "trading_agent_rulebook.md",
             }
             md_file = md_map.get(parsed.path) or (BASE_DIR / "docs" / parsed.path.lstrip("/"))

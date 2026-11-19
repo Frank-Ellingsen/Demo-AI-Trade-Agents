@@ -616,6 +616,7 @@ def main() -> None:
             options=[
                 "📲 UI/UX Brukertest & 6-Felts Telegram Beslutningsprotokoll (ui_ux_bruker_test.md)",
                 "📜 Agent Rulebook & Failover (docs/trading_agent_rulebook.md)",
+                "🧪 Nybegynner-Brukertest (docs/bruker-test-nybegynner.md)",
                 "📘 AI Trading Strategi for Dummies (docs/ai-trading-strategi-for-dummies.md)",
                 "🛠️ Operasjonell Brukermanual (docs/USER_GUIDE.md)",
                 "📐 Teknisk Prosjektspesifikasjon (docs/antigravity-project-spec.md)",
@@ -624,6 +625,8 @@ def main() -> None:
         )
         if doc_choice.startswith("📜"):
             doc_path = settings.base_dir / "docs" / "trading_agent_rulebook.md"
+        elif doc_choice.startswith("🧪"):
+            doc_path = settings.base_dir / "docs" / "bruker-test-nybegynner.md"
         elif doc_choice.startswith("📲"):
             doc_path = settings.base_dir / "docs" / "ui_ux_bruker_test.md"
         elif doc_choice.startswith("📘"):
