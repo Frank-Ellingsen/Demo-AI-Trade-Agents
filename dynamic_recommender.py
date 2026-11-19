@@ -69,35 +69,71 @@ PORTFOLIO_CONFIGS: Dict[int, Dict[str, Any]] = {
 PROFILE_CONFIGS: Dict[str, Dict[str, Any]] = {str(k): v for k, v in PORTFOLIO_CONFIGS.items()}
 
 
-def calculate_portfolio(profile_id: int, total_capital: float = 100000.0) -> Dict[str, Any]:
+def _fetch_live_prices(symbols: List[str]) -> Dict[str, float]:
+    """Fetch latest live IEX trade prices from Alpaca Market Data API (skipped under pytest)."""
+    if os.environ.get("PYTEST_CURRENT_TEST") or not symbols:
+        return {}
+    try:
+        import requests
+        from dotenv import load_dotenv
+
+        load_dotenv(override=True)
+        client = AlpacaClient()
+        resp = requests.get(
+            "https://data.alpaca.markets/v2/stocks/trades/latest",
+            params={"symbols": ",".join(symbols), "feed": "iex"},
+            headers=client.headers,
+            timeout=6,
+        )
+        if resp.status_code != 200:
+            return {}
+        trades = resp.json().get("trades", {})
+        return {sym: float(info["p"]) for sym, info in trades.items() if info and info.get("p")}
+    except Exception:
+        return {}
+
+
+def calculate_portfolio(
+    profile_id: int,
+    total_capital: float = 100000.0,
+    use_live_prices: bool = True,
+) -> Dict[str, Any]:
     cfg = PORTFOLIO_CONFIGS.get(int(profile_id), PORTFOLIO_CONFIGS[2])
     investable_capital = float(total_capital) * (1.0 - cfg["cash_pct"])
 
+    live_prices = _fetch_live_prices([it["symbol"] for it in cfg["universe"]]) if use_live_prices else {}
     orders: List[Dict[str, Any]] = []
     total_allocated = 0.0
 
     for item in cfg["universe"]:
+        ref_price = float(item["price"])
+        live_p = live_prices.get(item["symbol"])
+        # Use +0.1% marketable limit on live price so orders fill promptly during open US market
+        price = round(live_p * 1.001, 2) if live_p and live_p > 0 else ref_price
+        atr = round(float(item["atr"]) * (price / ref_price), 2) if ref_price > 0 else float(item["atr"])
+
         target_val = investable_capital * item["weight"]
-        qty = int(target_val // item["price"])
+        qty = int(target_val // price)
         if qty == 0:
             continue
 
-        pos_val = qty * item["price"]
+        pos_val = qty * price
         total_allocated += pos_val
 
-        sl_dist = item["atr"] * cfg["atr_mult"]
+        sl_dist = atr * cfg["atr_mult"]
         tp_dist = sl_dist * cfg["rr_ratio"]
 
-        sl_price = round(item["price"] - sl_dist, 2)
-        tp_price = round(item["price"] + tp_dist, 2)
+        sl_price = round(price - sl_dist, 2)
+        tp_price = round(price + tp_dist, 2)
 
         orders.append(
             {
                 "symbol": item["symbol"],
                 "ticker": item["symbol"],
                 "qty": qty,
-                "price": item["price"],
-                "atr": item["atr"],
+                "price": price,
+                "price_source": "live_alpaca" if live_p else "reference",
+                "atr": atr,
                 "pos_val": round(pos_val, 2),
                 "pos_value": round(pos_val, 2),
                 "weight": round((pos_val / total_capital) * 100.0, 2),
@@ -106,8 +142,8 @@ def calculate_portfolio(profile_id: int, total_capital: float = 100000.0) -> Dic
                 "sl_price": sl_price,
                 "take_profit": tp_price,
                 "tp_price": tp_price,
-                "sl_pct": round(((item["price"] - sl_price) / item["price"]) * 100.0, 2),
-                "tp_pct": round(((tp_price - item["price"]) / item["price"]) * 100.0, 2),
+                "sl_pct": round(((price - sl_price) / price) * 100.0, 2),
+                "tp_pct": round(((tp_price - price) / price) * 100.0, 2),
                 "rr": cfg["rr_ratio"],
                 "rr_ratio": cfg["rr_ratio"],
             }
