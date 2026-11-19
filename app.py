@@ -856,15 +856,9 @@ def main() -> None:
             )
             df_nordic_curves, df_nordic_metrics = run_nordic_backtest(initial_capital_nok=100_000.0, trading_days=252)
             st.dataframe(df_nordic_metrics, use_container_width=True, hide_index=True)
+            nordic_cols = [c for c in df_nordic_curves.columns if c != "Handelsdag"]
             st.line_chart(
-                df_nordic_curves.set_index("Handelsdag")[
-                    [
-                        "1. OBX Momentum (m/ Brent-filter)",
-                        "2. OMXN40 Trend (m/ Nordic FX-drag)",
-                        "3. First North Small-Caps (Netto)",
-                        "4. Dekkede Opsjoner (Covered Calls)",
-                    ]
-                ],
+                df_nordic_curves.set_index("Handelsdag")[nordic_cols],
                 height=280,
             )
 
