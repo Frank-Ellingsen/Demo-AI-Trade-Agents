@@ -468,7 +468,7 @@ def test_scheduler_daemon_and_triggers(tmp_path) -> None:
 
     state_file = tmp_path / "scheduler_state.json"
     engine = SchedulerEngine(state_path=state_file)
-    assert len(engine.get_status()) == 6
+    assert len(engine.get_status()) == 8
 
     engine.toggle_job("obx_eod_scan", True)
     reloaded = SchedulerEngine(state_path=state_file)

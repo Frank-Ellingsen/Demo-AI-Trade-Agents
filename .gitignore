@@ -22,6 +22,7 @@ data/*.db-shm
 data/*.db-wal
 data/raw_news/
 data/scheduler_state.json
+data/portfolio_notify_state.json
 *.log
 
 # Pytest & coverage

@@ -98,6 +98,28 @@ DEFAULT_JOBS: dict[str, dict[str, Any]] = {
         "cmd": [sys.executable, "-c", "from src.hitl.order_queue import expire_stale_orders; print('HITL expiry check:', expire_stale_orders())"],
         "description": "Passer automatisk på at ubesvarte HITL-ordrer utløper etter 14 timer.",
     },
+    "daily_telegram_status": {
+        "id": "daily_telegram_status",
+        "kind": "schedule",
+        "name": "Daglig Porteføljestatus på Telegram",
+        "cron_label": "Man–Fre 22:15 CET",
+        "weekdays": [0, 1, 2, 3, 4],
+        "hour": 22,
+        "minute": 15,
+        "enabled": True,
+        "cmd": [sys.executable, "telegram_portfolio_notifier.py", "--daily"],
+        "description": "Sender daglig Alpaca Paper porteføljerapport (Equity, Cash, Realised/Urealisert P&L og posisjoner) til Telegram.",
+    },
+    "portfolio_change_notify": {
+        "id": "portfolio_change_notify",
+        "kind": "trigger",
+        "name": "Event: Telegram-varsel ved Porteføljeendring",
+        "cron_label": "Hvert 2. minutt",
+        "interval_seconds": 120,
+        "enabled": True,
+        "cmd": [sys.executable, "telegram_portfolio_notifier.py", "--check-change"],
+        "description": "Overvåker Alpaca Paper posisjoner og ordrer og sender umiddelbart Telegram-varsel ved fylling eller endring.",
+    },
 }
 
 
