@@ -3731,6 +3731,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
       return {
         label: rangeKey,
+        pct: pct,
         pill: `${sign}${pct.toFixed(2)} % (${rangeKey} · Faktisk Alpaca Paper)`,
         series: {
           "Faktisk Portefølje (Alpaca Paper)": portCurve,
@@ -3747,7 +3748,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       if (btnEl) btnEl.className = "btn btn-primary btn-sm";
       const cfg = buildLivePerfSeries(ACTIVE_PERF_RANGE);
       document.getElementById("perfRangeLabel").textContent = cfg.label;
-      document.getElementById("perfRangeReturnPill").textContent = cfg.pill;
+      const pillEl = document.getElementById("perfRangeReturnPill");
+      if (pillEl) {
+        pillEl.textContent = cfg.pill;
+        pillEl.className = `pill ${cfg.pct < 0 ? "pill-red" : (cfg.pct > 0 ? "pill-green" : "pill-cyan")}`;
+      }
       renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "");
     }
 
