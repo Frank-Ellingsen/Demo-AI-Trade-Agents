@@ -34,6 +34,21 @@ def _ensure_streamlit_runner() -> None:
 if __name__ == "__main__":
     _ensure_streamlit_runner()
 
+
+def _sync_streamlit_secrets_to_env() -> None:
+    """Expose Streamlit Cloud st.secrets as environment variables for Alpaca/Telegram clients."""
+    try:
+        import streamlit as _st
+
+        for k, v in _st.secrets.items():
+            if isinstance(v, (str, int, float, bool)) and k not in os.environ:
+                os.environ[str(k)] = str(v)
+    except Exception:
+        pass
+
+
+_sync_streamlit_secrets_to_env()
+
 import duckdb
 import streamlit as st
 
