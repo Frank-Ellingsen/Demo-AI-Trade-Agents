@@ -1120,9 +1120,9 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     "OSEBX.OL_1d": ("1d", "15m"),
                     "^GSPC_1d": ("1d", "15m"),
                     "^OMX_1d": ("1d", "15m"),
-                    "BZ=F": ("5d", "1d"),
-                    "^IXIC": ("5d", "1d"),
-                    "NOK=X": ("5d", "1d"),
+                    "BZ=F": ("ytd", "1d"),
+                    "^IXIC": ("ytd", "1d"),
+                    "NOK=X": ("ytd", "1d"),
                     "^VIX": ("5d", "1d"),
                 }
                 fetched: dict[str, dict] = {}
@@ -1147,15 +1147,32 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     ("S&P 500", "^GSPC", "", ""),
                     ("USD", "NOK=X", "", " kr"),
                 ]
+                yr_start_date = _dt.date(_dt.date.today().year, 1, 1)
                 items = []
                 for lbl, sym, pref, suff in ticker_specs:
                     d = fetched.get(sym)
                     if d:
+                        pts_all = d.get("pts") or []
+                        ytd_vals = [c for dt_i, c in pts_all if dt_i >= yr_start_date] or [c for _, c in pts_all]
+                        if ytd_vals:
+                            ytd_vals = list(ytd_vals)
+                            ytd_vals[-1] = float(d["price"])
+                            if len(ytd_vals) > 20:
+                                idxs = [round(i * (len(ytd_vals) - 1) / 19) for i in range(20)]
+                                spark = [round(ytd_vals[idx], 2) for idx in idxs]
+                            else:
+                                spark = [round(v, 2) for v in ytd_vals]
+                            ytd_pct = round(((spark[-1] - spark[0]) / spark[0]) * 100.0, 2) if spark[0] > 0 else 0.0
+                        else:
+                            spark = []
+                            ytd_pct = 0.0
                         items.append({
                             "label": lbl,
                             "symbol": sym,
                             "price": round(d["price"], 2),
                             "change_pct": round(d["change_pct"], 2),
+                            "ytd_pct": ytd_pct,
+                            "ytd_spark": spark,
                             "prefix": pref,
                             "suffix": suff,
                         })

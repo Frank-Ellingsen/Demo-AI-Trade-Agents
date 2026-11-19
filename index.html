@@ -4573,6 +4573,24 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    function renderTickerSparkline(vals, ytdPct, label) {
+      if (!Array.isArray(vals) || vals.length < 2) return "";
+      const w = 44, h = 15, pad = 2;
+      const minV = Math.min(...vals);
+      const maxV = Math.max(...vals);
+      const span = (maxV - minV) || 1;
+      const pts = vals.map((v, i) => {
+        const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+        const y = h - pad - ((v - minV) / span) * (h - pad * 2);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      const lastPt = pts[pts.length - 1].split(",");
+      const up = Number(ytdPct || 0) >= 0;
+      const stroke = up ? "#34d399" : "#f87171";
+      const ytdStr = (up ? "+" : "") + Number(ytdPct || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle; overflow:visible;" title="${label} YTD: ${ytdStr}"><title>${label} YTD: ${ytdStr}</title><polyline fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" points="${pts.join(" ")}"></polyline><circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="1.8" fill="${stroke}"></circle></svg>`;
+    }
+
     async function loadLiveIndexTicker() {
       const box = document.getElementById("liveIndexTickerItems");
       const upd = document.getElementById("liveIndexUpdatedAt");
@@ -4588,9 +4606,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             const pct = Number(it.change_pct || 0);
             const pctFmt = (pct > 0 ? "+" : "") + pct.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
             const cls = pct >= 0 ? "up" : "down";
+            const sparkSvg = renderTickerSparkline(it.ytd_spark, it.ytd_pct, it.label);
             return `
               <span class="live-idx-item">
                 <span class="live-idx-label">${it.label}</span>
+                ${sparkSvg}
                 <span class="live-idx-val">${it.prefix || ""}${valFmt}${it.suffix || ""}</span>
                 <span class="live-idx-pill ${cls}">${pctFmt}</span>
               </span>
