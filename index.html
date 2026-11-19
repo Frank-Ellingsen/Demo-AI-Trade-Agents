@@ -1046,7 +1046,7 @@
         </div>
       </div>
 
-      <div class="container" style="padding-top: 8px;">
+      <div class="container" style="padding-top: 8px; display: flex; flex-direction: column;">
 
     <!-- ===================================================================== -->
     <!-- 01 OVERVIEW: EXECUTIVE SUMMARY, PERFORMANCE CHART, MOVERS & EVENTS    -->
@@ -3427,7 +3427,9 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         btn.classList.toggle("active", btn.getAttribute("data-section") === `cat-${catKey}`);
       });
       document.querySelectorAll(".workspace-section").forEach(sec => {
-        sec.classList.toggle("hidden", !targetIds.includes(sec.id));
+        const orderIdx = targetIds.indexOf(sec.id);
+        sec.classList.toggle("hidden", orderIdx === -1);
+        sec.style.order = orderIdx === -1 ? "" : String(orderIdx);
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
