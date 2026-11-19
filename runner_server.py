@@ -108,7 +108,7 @@ COMMANDS: dict[str, dict[str, Any]] = {
         "cmd": [sys.executable, "backtest_us_multi_universe.py"],
     },
     "step6_nordic_backtest": {
-        "name": "Nordisk Multi-Univers Backtest (OBX 15, OMXS30, First North & Covered Calls)",
+        "name": "Norden (OMXN40) & Norge (OBX 15) Multi-Univers Backtest",
         "cmd": [sys.executable, "backtest_nordic_multi_universe.py"],
     },
     "step7_live_bridge": {
@@ -771,6 +771,23 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/universes/omxn40":
+            import yaml
+
+            uni_file = BASE_DIR / "config" / "universe.yaml"
+            uni_data = yaml.safe_load(uni_file.read_text(encoding="utf-8")) if uni_file.exists() else {}
+            omxn40 = uni_data.get("omxn40_stocks", [])
+            out_bytes = json.dumps(
+                {"index": uni_data.get("omxn40_index", "^OMXN40"), "count": len(omxn40), "stocks": omxn40},
+                ensure_ascii=False,
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/rulebook":
             rb_file = BASE_DIR / "docs" / "trading_agent_rulebook.md"
             if not rb_file.exists():
@@ -960,7 +977,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         col: [round(float(df_nordic[col].iloc[i]), 2) for i in step_idx]
                         for col in (
                             "1. OBX Momentum (m/ Brent-filter)",
-                            "2. OMXS30 Trend (m/ SEK FX-drag)",
+                            "2. OMXN40 Trend (m/ Nordic FX-drag)",
                             "3. First North Small-Caps (Netto)",
                             "4. Dekkede Opsjoner (Covered Calls)",
                         )

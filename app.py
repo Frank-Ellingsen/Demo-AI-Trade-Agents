@@ -231,7 +231,7 @@ def main() -> None:
             "0. Intuitiv Strategisammenligning (6 Case)",
             "1. Eksperimentmatrise & Cost Drag",
             "2. Agent 3 & 4: HITL Ordrekø & Pre-Execution Guardrail",
-            "3. Agent 1 & 2: OBX 15 Univers",
+            "3. Agent 1 & 2: Norden (OMXN40) & Norge (OBX 15)",
             "4. Agent 5: Portefølje & Konseptdrift (DuckDB Views)",
             "5. Brukermanual & Strategi for Dummies",
             "6. Frittstående HTML-Dashboards (Aurora & Tufte)",
@@ -509,12 +509,35 @@ def main() -> None:
                     st.error(f"Feil ved sending av Scenario {sc_id}: {exc}")
 
     with tab_universe:
-        st.subheader("OBX 15 Aksjer — Siste Teknisk Status & MiFID II Likviditetsbånd")
+        st.subheader("🇳🇴 Norge (OBX 15) — Siste Teknisk Status & MiFID II Likviditetsbånd")
         st.dataframe(
             data.get("obx15_snapshot", []),
             use_container_width=True,
             hide_index=True,
         )
+
+        st.divider()
+        st.subheader("🇩🇰🇸🇪🇫🇮 Norden (OMXN40 — 40 Selskaper)")
+        import yaml as _yaml
+
+        uni_path = settings.base_dir / "config" / "universe.yaml"
+        omxn40_list = (
+            _yaml.safe_load(uni_path.read_text(encoding="utf-8")).get("omxn40_stocks", [])
+            if uni_path.exists()
+            else []
+        )
+        ctry_filter = st.radio(
+            "Filtrer OMXN40 etter land:",
+            options=["Alle (40)", "DK (Danmark)", "SE (Sverige)", "FI (Finland)"],
+            horizontal=True,
+            key="st_omxn40_country",
+        )
+        if not ctry_filter.startswith("Alle"):
+            code = ctry_filter.split(" ")[0]
+            omxn40_view = [s for s in omxn40_list if s.get("country") == code]
+        else:
+            omxn40_view = omxn40_list
+        st.dataframe(omxn40_view, use_container_width=True, hide_index=True)
 
     with tab_drift:
         st.subheader("Agent 5: Rullende 60-Dagers Konseptdrift (`v_rolling_strategy_drift_60d`)")
@@ -790,10 +813,10 @@ def main() -> None:
             )
 
         with col_nordic:
-            st.subheader("3. Nordisk Multi-Univers Backtest (`backtest_nordic_multi_universe.py`)")
+            st.subheader("3. Norden (OMXN40) & Norge (OBX 15) Backtest (`backtest_nordic_multi_universe.py`)")
             st.caption(
-                "Simulerer 252 handelsdager (100 000 NOK på ASK): OBX 15 Momentum m/ Brent-filter, "
-                "OMXS30 Trend m/ SEK FX-drag (0.25 %), First North Small-Caps og Dekkede Opsjoner."
+                "Simulerer 252 handelsdager (100 000 NOK): Norge (OBX 15 Momentum m/ Brent-filter), "
+                "Norden (OMXN40 Trend m/ FX-drag), First North Small-Caps og Dekkede Opsjoner."
             )
             df_nordic_curves, df_nordic_metrics = run_nordic_backtest(initial_capital_nok=100_000.0, trading_days=252)
             st.dataframe(df_nordic_metrics, use_container_width=True, hide_index=True)
@@ -801,7 +824,7 @@ def main() -> None:
                 df_nordic_curves.set_index("Handelsdag")[
                     [
                         "1. OBX Momentum (m/ Brent-filter)",
-                        "2. OMXS30 Trend (m/ SEK FX-drag)",
+                        "2. OMXN40 Trend (m/ Nordic FX-drag)",
                         "3. First North Small-Caps (Netto)",
                         "4. Dekkede Opsjoner (Covered Calls)",
                     ]

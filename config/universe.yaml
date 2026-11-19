@@ -126,3 +126,56 @@ stocks:
     sector_index: "OBIT.OL"
     liquidity_band: 5
     commodity_linked: false
+
+# =============================================================================
+# OMX Nordic 40 (OMXN40) Investment Universe (Nasdaq Stockholm / Copenhagen / Helsinki)
+# Nordic Market = OMXN40 (40 blue-chip constituents across SE, DK, FI)
+# Norwegian Market = OBX 15 (defined in `stocks` above)
+# =============================================================================
+omxn40_index: "^OMXN40"
+omxn40_stocks:
+  # --- Denmark (Nasdaq Copenhagen, DKK) ---
+  - { ticker: "NOVO-B.CO", name: "Novo Nordisk B", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Healthcare" }
+  - { ticker: "DSV.CO", name: "DSV", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Industrials" }
+  - { ticker: "MAERSK-B.CO", name: "A.P. Møller - Mærsk B", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Shipping" }
+  - { ticker: "DANSKE.CO", name: "Danske Bank", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Financials" }
+  - { ticker: "VWS.CO", name: "Vestas Wind Systems", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Industrials" }
+  - { ticker: "ORSTED.CO", name: "Ørsted", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Utilities" }
+  - { ticker: "CARL-B.CO", name: "Carlsberg B", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Consumer_Staples" }
+  - { ticker: "COLO-B.CO", name: "Coloplast B", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Healthcare" }
+  - { ticker: "GMAB.CO", name: "Genmab", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Healthcare" }
+  - { ticker: "NSIS-B.CO", name: "Novonesis B", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Materials" }
+  - { ticker: "PNDORA.CO", name: "Pandora", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Consumer_Discretionary" }
+  - { ticker: "TRYG.CO", name: "Tryg", country: "DK", exchange: "XCSE", currency: "DKK", sector: "Financials" }
+
+  # --- Sweden (Nasdaq Stockholm, SEK) ---
+  - { ticker: "ATCO-A.ST", name: "Atlas Copco A", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "ATCO-B.ST", name: "Atlas Copco B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "INVE-B.ST", name: "Investor B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Financials" }
+  - { ticker: "VOLV-B.ST", name: "Volvo B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "ASSA-B.ST", name: "ASSA ABLOY B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "ABB.ST", name: "ABB Ltd", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "SAND.ST", name: "Sandvik", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "SEB-A.ST", name: "SEB A", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Financials" }
+  - { ticker: "SHB-A.ST", name: "Svenska Handelsbanken A", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Financials" }
+  - { ticker: "SWED-A.ST", name: "Swedbank A", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Financials" }
+  - { ticker: "ERIC-B.ST", name: "Ericsson B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Technology" }
+  - { ticker: "HEXA-B.ST", name: "Hexagon B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Technology" }
+  - { ticker: "EPI-A.ST", name: "Epiroc A", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "HM-B.ST", name: "Hennes & Mauritz B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Consumer_Discretionary" }
+  - { ticker: "ESSITY-B.ST", name: "Essity B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Consumer_Staples" }
+  - { ticker: "ALFA.ST", name: "Alfa Laval", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "EVO.ST", name: "Evolution", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Consumer_Discretionary" }
+  - { ticker: "NIBE-B.ST", name: "NIBE Industrier B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+  - { ticker: "AZN.ST", name: "AstraZeneca", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Healthcare" }
+  - { ticker: "EQT.ST", name: "EQT AB", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Financials" }
+  - { ticker: "TELIA.ST", name: "Telia Company", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Telecom" }
+  - { ticker: "SKF-B.ST", name: "SKF B", country: "SE", exchange: "XSTO", currency: "SEK", sector: "Industrials" }
+
+  # --- Finland (Nasdaq Helsinki, EUR) ---
+  - { ticker: "NDA-FI.HE", name: "Nordea Bank", country: "FI", exchange: "XHEL", currency: "EUR", sector: "Financials" }
+  - { ticker: "NOKIA.HE", name: "Nokia", country: "FI", exchange: "XHEL", currency: "EUR", sector: "Technology" }
+  - { ticker: "KNEBV.HE", name: "KONE", country: "FI", exchange: "XHEL", currency: "EUR", sector: "Industrials" }
+  - { ticker: "SAMPO.HE", name: "Sampo A", country: "FI", exchange: "XHEL", currency: "EUR", sector: "Financials" }
+  - { ticker: "UPM.HE", name: "UPM-Kymmene", country: "FI", exchange: "XHEL", currency: "EUR", sector: "Materials" }
+  - { ticker: "NESTE.HE", name: "Neste", country: "FI", exchange: "XHEL", currency: "EUR", sector: "Energy" }

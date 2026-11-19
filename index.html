@@ -1344,8 +1344,8 @@
             <div class="card" id="card_step6">
               <div class="card-header">
                 <div class="card-title-group">
-                  <h3>6. Nordisk Multi-Univers Backtest (100k NOK)</h3>
-                  <p>OBX 15 Momentum (Brent-filter), OMXS30 Trend (SEK FX-drag), First North &amp; Covered Calls</p>
+                  <h3>6. Norden (OMXN40) &amp; Norge (OBX 15) Backtest</h3>
+                  <p>Norge (OBX 15 Brent-filter), Norden (OMXN40 Trend m/ FX-drag), First North &amp; Covered Calls</p>
                 </div>
                 <span class="step-status" id="status_step6">Klar</span>
               </div>
@@ -1724,8 +1724,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         <div class="card">
           <div class="card-header">
             <div class="card-title-group">
-              <h3>🇳🇴🇸🇪 Nordisk Multi-Univers Backtest (1 År / 100 000 NOK på ASK)</h3>
-              <p>Fra <code>backtest_nordic_multi_universe.py</code> — OBX Brent-filter vs. OMXS30 SEK-valutadrag &amp; First North spread</p>
+              <h3>🇳🇴🇩🇰🇸🇪🇫🇮 Norden (OMXN40) &amp; Norge (OBX 15) Backtest (1 År / 100 000 NOK)</h3>
+              <p>Fra <code>backtest_nordic_multi_universe.py</code> — OBX 15 Brent-filter vs. OMXN40 (40 selskaper) &amp; First North spread</p>
             </div>
             <span class="pill pill-cyan">Saxo ASK Kurtasje 0.085%</span>
           </div>
@@ -1928,15 +1928,48 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         </div>
       </div>
 
+      <!-- Norden: OMX Nordic 40 (OMXN40) Universe Card -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🇩🇰🇸🇪🇫🇮 Norden (OMXN40 — 40 Selskaper)</h3>
+            <p>Fullstendig OMX Nordic 40-univers fra <code>config/universe.yaml</code> (Norge håndteres separat i OBX 15 under)</p>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+            <button class="btn btn-outline btn-sm" onclick="filterOmxn40('ALL')">Alle (40)</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOmxn40('DK')">DK (12)</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOmxn40('SE')">SE (22)</button>
+            <button class="btn btn-outline btn-sm" onclick="filterOmxn40('FI')">FI (6)</button>
+          </div>
+        </div>
+        <div style="max-height: 300px; overflow-y: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th>Selskap</th>
+                <th>Land</th>
+                <th>Børs</th>
+                <th>Valuta</th>
+                <th>Sektor</th>
+              </tr>
+            </thead>
+            <tbody id="omxn40TableBody">
+              <tr><td colspan="6" class="muted">Laster 40 OMXN40-selskaper fra /api/universes/omxn40...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- ===================================================================== -->
-    <!-- SEKSJON 5: OBX 15 UNIVERS, HITL ORDREKØ & AGENT 5 REVISJON            -->
+    <!-- SEKSJON 5: NORGE (OBX 15) UNIVERS, HITL ORDREKØ & AGENT 5 REVISJON    -->
     <!-- ===================================================================== -->
     <section class="workspace-section" id="sec-obx-hitl">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">SEKSJON 05</span> OBX 15 Teknisk Univers, HITL Ordrekø (SQLite WAL) &amp; Agent 5 Revisjon</h2>
+          <h2><span class="sec-tag">SEKSJON 05</span> Norge (OBX 15) Teknisk Univers, HITL Ordrekø (SQLite WAL) &amp; Agent 5 Revisjon</h2>
           <p>Live status for de 15 OBX-aksjene (inkl. <code>GJF.OL</code>), interaktiv godkjenning av kjøpsforslag og faktorregresjon</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -2312,13 +2345,13 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         metrics: [
           { "Strategi": "1. OBX Momentum (m/ Brent-filter)", "Sluttverdi (NOK)": "121,450 NOK", "Netto Avkastning": "+21.45 %", "Max Drawdown": " 8.12 %", "Sortino Ratio": "1.84" },
           { "Strategi": "4. Dekkede Opsjoner (Covered Calls)", "Sluttverdi (NOK)": "114,280 NOK", "Netto Avkastning": "+14.28 %", "Max Drawdown": " 6.20 %", "Sortino Ratio": "1.52" },
-          { "Strategi": "2. OMXS30 Trend (m/ SEK FX-drag)", "Sluttverdi (NOK)": "111,640 NOK", "Netto Avkastning": "+11.64 %", "Max Drawdown": " 9.45 %", "Sortino Ratio": "1.12" },
+          { "Strategi": "2. OMXN40 Trend (m/ Nordic FX-drag)", "Sluttverdi (NOK)": "111,640 NOK", "Netto Avkastning": "+11.64 %", "Max Drawdown": " 9.45 %", "Sortino Ratio": "1.12" },
           { "Strategi": "3. First North Small-Caps (Netto)", "Sluttverdi (NOK)": "79,850 NOK", "Netto Avkastning": "-20.15 %", "Max Drawdown": "26.80 %", "Sortino Ratio": "-0.74" }
         ],
         series: {
           "1. OBX Momentum (m/ Brent-filter)": [100000, 101900, 104200, 103500, 106800, 109400, 112100, 111500, 115200, 117800, 119600, 121450],
           "4. Dekkede Opsjoner (Covered Calls)": [100000, 101200, 102600, 102100, 104300, 106100, 107900, 107400, 109800, 111600, 112900, 114280],
-          "2. OMXS30 Trend (m/ SEK FX-drag)": [100000, 101100, 102400, 100800, 103100, 104900, 106500, 105200, 107800, 109400, 110500, 111640],
+          "2. OMXN40 Trend (m/ Nordic FX-drag)": [100000, 101100, 102400, 100800, 103100, 104900, 106500, 105200, 107800, 109400, 110500, 111640],
           "3. First North Small-Caps (Netto)": [100000, 97600, 95100, 92400, 90800, 88200, 86500, 84900, 83100, 81900, 80700, 79850]
         }
       },
@@ -2780,7 +2813,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         "2. OTC Micro-Caps (Netto)": "#f87171",
         "1. OBX Momentum (m/ Brent-filter)": "#34d399",
         "4. Dekkede Opsjoner (Covered Calls)": "#5cc4d6",
-        "2. OMXS30 Trend (m/ SEK FX-drag)": "#e6b84d",
+        "2. OMXN40 Trend (m/ Nordic FX-drag)": "#e6b84d",
         "3. First North Small-Caps (Netto)": "#f87171"
       };
 
@@ -3825,6 +3858,42 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    let OMXN40_STOCKS = [];
+    async function loadOmxn40Universe() {
+      const tbody = document.getElementById("omxn40TableBody");
+      if (!tbody) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/universes/omxn40`);
+        if (res.ok) {
+          const data = await res.json();
+          OMXN40_STOCKS = data.stocks || [];
+          filterOmxn40("ALL");
+        }
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="muted">Start runner_server.py for å laste de 40 OMXN40-selskapene.</td></tr>`;
+      }
+    }
+
+    function filterOmxn40(country) {
+      const tbody = document.getElementById("omxn40TableBody");
+      if (!tbody) return;
+      const rows = country === "ALL" ? OMXN40_STOCKS : OMXN40_STOCKS.filter(s => s.country === country);
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="muted">Ingen OMXN40-selskaper funnet.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(s => `
+        <tr>
+          <td><strong>${s.ticker}</strong></td>
+          <td>${s.name}</td>
+          <td><span class="pill pill-cyan">${s.country}</span></td>
+          <td>${s.exchange}</td>
+          <td>${s.currency}</td>
+          <td>${s.sector}</td>
+        </tr>
+      `).join("");
+    }
+
     // Initialiser ved oppstart (Vis 01 Overview som fokusert startside)
     renderAllSections();
     syncStrategyOrderPreview();
@@ -3833,6 +3902,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     checkServerConnection();
     syncSchedulerStatus();
     loadRulebookAndFailover();
+    loadOmxn40Universe();
     setInterval(checkServerConnection, 6000);
     setInterval(syncSchedulerStatus, 15000);
     setInterval(refreshAlpacaPortfolio, 15000);

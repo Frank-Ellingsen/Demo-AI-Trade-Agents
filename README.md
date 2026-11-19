@@ -65,7 +65,7 @@ When running `python runner_server.py` (port `8000`) and Streamlit (port `8501`)
 ├── alpaca_execution.py                 # Alpaca Paper API v2 facade (OCO Bracket Orders)
 ├── dynamic_recommender.py              # ATR(14) Portfolio & Risk Profile Generator (Profiles 1–3)
 ├── backtest_us_multi_universe.py       # US Multi-Universe Backtester (252-day simulation)
-├── backtest_nordic_multi_universe.py   # Nordic Multi-Universe Backtester (OBX 15, OMXS30, First North)
+├── backtest_nordic_multi_universe.py   # Nordic (OMXN40) & Norway (OBX 15) Multi-Universe Backtester
 ├── telegram_strategy_advisor_bot.py    # Strategy Advisor & Telegram HITL Signal Bot
 ├── telegram_hitl_trader.py             # Telegram Inline-Button Callback Listener -> Alpaca Paper
 ├── failover_approver.py                # 3-Tier Failover Engine (Email SMTP + /approve & /reject)

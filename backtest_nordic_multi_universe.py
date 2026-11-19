@@ -1,14 +1,14 @@
 """
 Nordic Multi-Universe & Multi-Strategy Backtesting Engine
 =========================================================
-Sammenligner AI- og kvant-strategier på tvers av nordiske markeder:
-1. OBX 15 / Oslo Børs: Råvare- og energimomentum med Brent-filter
-2. OMXS30 / Stockholm: Industriell og syklisk trendfølging
+Sammenligner AI- og kvant-strategier på tvers av norske og nordiske markeder:
+1. Norge (OBX 15 / Oslo Børs): Råvare- og energimomentum med Brent-filter
+2. Norden (OMXN40 / Nasdaq Nordic 40 — SE, DK, FI): Industriell, helse- og finans-trendfølging
 3. Nordiske Small/Mid-Caps (First North / Euronext Growth): Simulert illikviditet og spread-drag
-4. Dekkede Opsjoner (Covered Calls) på OBX/OMXS30: Fast premieinntekt vs. begrenset oppside
+4. Dekkede Opsjoner (Covered Calls) på OBX 15 / OMXN40: Fast premieinntekt vs. begrenset oppside
 
 Inkluderer realistiske friksjoner:
-- Saxo Bank kurtasje og valutaveksling (NOK vs. SEK)
+- Kurtasje og valutaveksling (NOK vs. SEK/DKK/EUR)
 - MiFID II tick-size og bid-ask spread
 - Skatteoptimalisering via ASK (Aksjesparekonto)
 """
@@ -19,9 +19,9 @@ import pandas as pd
 def run_nordic_backtest(initial_capital_nok: float = 100_000.0, trading_days: int = 252):
     np.random.seed(42)
     
-    # 1. Benchmark-data (OBX og OMXS30 simulert dagsavkastning)
-    obx_daily = np.random.normal(0.00045, 0.0135, trading_days)  # OBX: noe høyere råvarevolatilitet
-    omx_daily = np.random.normal(0.00040, 0.0110, trading_days)  # OMXS30: stabil industri/finans
+    # 1. Benchmark-data (OBX 15 og OMXN40 simulert dagsavkastning)
+    obx_daily = np.random.normal(0.00045, 0.0135, trading_days)  # OBX 15: noe høyere råvarevolatilitet
+    omx_daily = np.random.normal(0.00040, 0.0110, trading_days)  # OMXN40: bred nordisk helse/industri/finans
     brent_2d_shocks = np.random.normal(0.0, 0.022, trading_days)  # Oljeprisendring (2-dagers)
     
     # --- Strategi 1: OBX 15 Momentum m/ Brent-filter (Trend Breakout) ---
@@ -39,8 +39,8 @@ def run_nordic_backtest(initial_capital_nok: float = 100_000.0, trading_days: in
         cap_obx *= (1 + net_r)
         strat_obx_mom.append(cap_obx)
 
-    # --- Strategi 2: OMXS30 Svensk Trendfølging (Eksponert mot SEK) ---
-    # Logikk: Industrielt trendutbrudd, men med 0.25 % valutakonvertering (FX drag ved rebalansering)
+    # --- Strategi 2: OMXN40 Nordisk Trendfølging (Eksponert mot SEK/DKK/EUR) ---
+    # Logikk: Nordisk blue-chip trendutbrudd (40 selskaper), men med 0.25 % valutakonvertering (FX drag ved rebalansering)
     strat_omx_trend = []
     cap_omx = initial_capital_nok
     fx_cost = 0.0025  # 0.25 % valutaspread hos Saxo
@@ -64,7 +64,7 @@ def run_nordic_backtest(initial_capital_nok: float = 100_000.0, trading_days: in
         cap_small *= (1 + net_r)
         strat_nordic_small.append(cap_small)
 
-    # --- Strategi 4: Dekkede Opsjoner (Covered Calls på OBX/OMXS30) ---
+    # --- Strategi 4: Dekkede Opsjoner (Covered Calls på OBX 15 / OMXN40) ---
     # Logikk: Hold indeks/blue-chips, selg 30d OTM calls for fast premie (0.75 % / mnd)
     strat_nordic_covered = []
     cap_cov = initial_capital_nok
@@ -79,7 +79,7 @@ def run_nordic_backtest(initial_capital_nok: float = 100_000.0, trading_days: in
     df = pd.DataFrame({
         "Handelsdag": range(1, trading_days + 1),
         "1. OBX Momentum (m/ Brent-filter)": strat_obx_mom,
-        "2. OMXS30 Trend (m/ SEK FX-drag)": strat_omx_trend,
+        "2. OMXN40 Trend (m/ Nordic FX-drag)": strat_omx_trend,
         "3. First North Small-Caps (Netto)": strat_nordic_small,
         "4. Dekkede Opsjoner (Covered Calls)": strat_nordic_covered
     })

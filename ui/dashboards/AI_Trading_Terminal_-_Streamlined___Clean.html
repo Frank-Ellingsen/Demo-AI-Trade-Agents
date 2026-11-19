@@ -1480,14 +1480,15 @@
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h3 class="panel-title">Overvåkningsliste — US &amp; Norden (OBX 15)</h3>
+              <h3 class="panel-title">Overvåkningsliste — US, Norden (OMXN40) &amp; Norge (OBX 15)</h3>
               <p class="panel-sub">Tekniske indikatorer (RSI(2), ATR(14), SMA(200)), 12-dagers trend og sikkerhetsflagg</p>
             </div>
             <div class="topbar-controls">
               <div class="segmented-toggle" role="group" aria-label="Markedsfilter">
                 <button type="button" class="seg-btn active" data-mkt="ALL" onclick="setMarketFilter('ALL')">Alle</button>
                 <button type="button" class="seg-btn" data-mkt="US" onclick="setMarketFilter('US')">US (S&amp;P/Nasdaq)</button>
-                <button type="button" class="seg-btn" data-mkt="NO" onclick="setMarketFilter('NO')">Norden (OBX 15)</button>
+                <button type="button" class="seg-btn" data-mkt="OMXN40" onclick="setMarketFilter('OMXN40')">Norden (OMXN40)</button>
+                <button type="button" class="seg-btn" data-mkt="NO" onclick="setMarketFilter('NO')">Norge (OBX 15)</button>
               </div>
               <div class="field" style="min-width: 190px;">
                 <label for="mktSearchInput">Søk ticker eller sektor</label>
@@ -1765,7 +1766,48 @@
       { ticker: `DNB.OL`, name: `DNB Bank ASA`, market: `NO`, sector: `Bank / Finans`, price: 224.80, dailyPct: 0.45, rsi2: 41.2, atr14: 3.85, sma200: 211.40, signal: `Band 6 · I portefølje`, signalType: `cyan`, spark: [219, 220, 221, 220, 222, 222, 223, 223, 224, 223, 224, 225] },
       { ticker: `KOG.OL`, name: `Kongsberg Gruppen`, market: `NO`, sector: `Forsvar / Tek`, price: 1112.00, dailyPct: 1.46, rsi2: 64.5, atr14: 24.50, sma200: 942.00, signal: `20d Breakout`, signalType: `pos`, spark: [1045, 1052, 1060, 1058, 1072, 1080, 1086, 1094, 1090, 1098, 1105, 1112] },
       { ticker: `GJF.OL`, name: `Gjensidige Forsikring`, market: `NO`, sector: `Forsikring`, price: 196.40, dailyPct: 0.20, rsi2: 37.5, atr14: 3.10, sma200: 184.60, signal: `Nøytral`, signalType: `neutral`, spark: [193, 194, 194, 195, 194, 195, 195, 196, 195, 196, 196, 196] },
-      { ticker: `MOWI.OL`, name: `Mowi ASA`, market: `NO`, sector: `Sjømat`, price: 201.60, dailyPct: -0.40, rsi2: 14.3, atr14: 4.10, sma200: 192.20, signal: `Overvåk pullback`, signalType: `warn`, spark: [206, 205, 204, 205, 203, 203, 202, 201, 202, 202, 202, 202] }
+      { ticker: `MOWI.OL`, name: `Mowi ASA`, market: `NO`, sector: `Sjømat`, price: 201.60, dailyPct: -0.40, rsi2: 14.3, atr14: 4.10, sma200: 192.20, signal: `Overvåk pullback`, signalType: `warn`, spark: [206, 205, 204, 205, 203, 203, 202, 201, 202, 202, 202, 202] },
+      // --- Norden: OMX Nordic 40 (OMXN40 — 40 selskaper: DK, SE, FI) ---
+      { ticker: `NOVO-B.CO`, name: `Novo Nordisk B`, market: `OMXN40`, currency: `DKK`, sector: `Helse (DK)`, price: 782.40, dailyPct: 1.15, rsi2: 24.5, atr14: 18.40, sma200: 745.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [760, 764, 768, 765, 770, 772, 771, 775, 777, 778, 780, 782] },
+      { ticker: `DSV.CO`, name: `DSV`, market: `OMXN40`, currency: `DKK`, sector: `Industri (DK)`, price: 1485.00, dailyPct: 0.92, rsi2: 41.0, atr14: 28.50, sma200: 1340.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [1430, 1440, 1445, 1442, 1450, 1458, 1460, 1465, 1470, 1472, 1480, 1485] },
+      { ticker: `MAERSK-B.CO`, name: `A.P. Møller - Mærsk B`, market: `OMXN40`, currency: `DKK`, sector: `Shipping (DK)`, price: 11820.00, dailyPct: 0.65, rsi2: 38.2, atr14: 290.00, sma200: 11100.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [11500, 11550, 11600, 11580, 11620, 11650, 11680, 11700, 11720, 11750, 11790, 11820] },
+      { ticker: `DANSKE.CO`, name: `Danske Bank`, market: `OMXN40`, currency: `DKK`, sector: `Finans (DK)`, price: 214.60, dailyPct: 0.48, rsi2: 52.4, atr14: 3.90, sma200: 198.20, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [208, 209, 210, 209, 211, 211, 212, 212, 213, 213, 214, 215] },
+      { ticker: `VWS.CO`, name: `Vestas Wind Systems`, market: `OMXN40`, currency: `DKK`, sector: `Industri (DK)`, price: 126.40, dailyPct: -0.85, rsi2: 14.8, atr14: 4.20, sma200: 122.00, signal: `OMXN40 · Pullback`, signalType: `warn`, spark: [131, 130, 129, 130, 129, 128, 128, 127, 127, 127, 127, 126] },
+      { ticker: `ORSTED.CO`, name: `Ørsted`, market: `OMXN40`, currency: `DKK`, sector: `Fornybar (DK)`, price: 392.50, dailyPct: 0.35, rsi2: 33.1, atr14: 9.80, sma200: 381.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [386, 387, 388, 387, 389, 390, 389, 390, 391, 391, 392, 393] },
+      { ticker: `CARL-B.CO`, name: `Carlsberg B`, market: `OMXN40`, currency: `DKK`, sector: `Konsum (DK)`, price: 812.00, dailyPct: 0.22, rsi2: 44.6, atr14: 14.50, sma200: 790.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [802, 804, 805, 804, 806, 807, 808, 809, 808, 810, 811, 812] },
+      { ticker: `COLO-B.CO`, name: `Coloplast B`, market: `OMXN40`, currency: `DKK`, sector: `Helse (DK)`, price: 868.00, dailyPct: 0.54, rsi2: 47.0, atr14: 15.20, sma200: 842.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [852, 855, 856, 855, 858, 860, 861, 862, 864, 865, 866, 868] },
+      { ticker: `GMAB.CO`, name: `Genmab`, market: `OMXN40`, currency: `DKK`, sector: `Helse (DK)`, price: 1624.00, dailyPct: -0.62, rsi2: 19.2, atr14: 38.00, sma200: 1580.00, signal: `OMXN40 · Overvåk`, signalType: `warn`, spark: [1660, 1655, 1650, 1648, 1642, 1640, 1638, 1635, 1632, 1630, 1628, 1624] },
+      { ticker: `NSIS-B.CO`, name: `Novonesis B`, market: `OMXN40`, currency: `DKK`, sector: `Materialer (DK)`, price: 438.20, dailyPct: 0.88, rsi2: 56.1, atr14: 8.10, sma200: 412.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [425, 427, 428, 427, 430, 431, 432, 433, 434, 435, 437, 438] },
+      { ticker: `PNDORA.CO`, name: `Pandora`, market: `OMXN40`, currency: `DKK`, sector: `Konsum (DK)`, price: 1142.00, dailyPct: 1.32, rsi2: 61.5, atr14: 24.00, sma200: 1055.00, signal: `OMXN40 · Breakout`, signalType: `pos`, spark: [1095, 1100, 1105, 1108, 1112, 1118, 1120, 1124, 1128, 1132, 1136, 1142] },
+      { ticker: `TRYG.CO`, name: `Tryg`, market: `OMXN40`, currency: `DKK`, sector: `Finans (DK)`, price: 158.40, dailyPct: 0.18, rsi2: 49.0, atr14: 2.40, sma200: 151.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [155, 156, 156, 156, 157, 157, 157, 157, 158, 158, 158, 158] },
+      { ticker: `ATCO-A.ST`, name: `Atlas Copco A`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 184.50, dailyPct: 1.05, rsi2: 43.2, atr14: 3.60, sma200: 172.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [176, 177, 178, 177, 179, 180, 180, 181, 182, 182, 183, 185] },
+      { ticker: `ATCO-B.ST`, name: `Atlas Copco B`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 162.80, dailyPct: 0.94, rsi2: 42.1, atr14: 3.20, sma200: 152.50, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [156, 157, 158, 157, 159, 159, 160, 160, 161, 161, 162, 163] },
+      { ticker: `INVE-B.ST`, name: `Investor B`, market: `OMXN40`, currency: `SEK`, sector: `Finans (SE)`, price: 308.40, dailyPct: 0.72, rsi2: 51.0, atr14: 4.90, sma200: 286.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [298, 299, 300, 300, 302, 303, 304, 304, 305, 306, 307, 308] },
+      { ticker: `VOLV-B.ST`, name: `Volvo B`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 286.20, dailyPct: 1.18, rsi2: 36.4, atr14: 5.80, sma200: 268.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [276, 277, 278, 278, 280, 281, 281, 282, 283, 284, 285, 286] },
+      { ticker: `ASSA-B.ST`, name: `ASSA ABLOY B`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 334.60, dailyPct: 0.61, rsi2: 48.8, atr14: 5.40, sma200: 312.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [324, 325, 326, 326, 328, 329, 330, 331, 331, 332, 333, 335] },
+      { ticker: `ABB.ST`, name: `ABB Ltd`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 598.00, dailyPct: 1.42, rsi2: 63.0, atr14: 11.20, sma200: 545.00, signal: `OMXN40 · Breakout`, signalType: `pos`, spark: [572, 575, 578, 576, 580, 584, 586, 588, 590, 592, 595, 598] },
+      { ticker: `SAND.ST`, name: `Sandvik`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 218.40, dailyPct: 0.45, rsi2: 39.5, atr14: 4.30, sma200: 208.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [212, 213, 214, 213, 215, 215, 216, 216, 217, 217, 218, 218] },
+      { ticker: `SEB-A.ST`, name: `SEB A`, market: `OMXN40`, currency: `SEK`, sector: `Finans (SE)`, price: 156.80, dailyPct: 0.52, rsi2: 46.2, atr14: 2.70, sma200: 147.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [152, 152, 153, 153, 154, 154, 155, 155, 155, 156, 156, 157] },
+      { ticker: `SHB-A.ST`, name: `Svenska Handelsbanken A`, market: `OMXN40`, currency: `SEK`, sector: `Finans (SE)`, price: 114.20, dailyPct: 0.34, rsi2: 44.0, atr14: 2.10, sma200: 108.50, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [111, 111, 112, 112, 112, 113, 113, 113, 113, 114, 114, 114] },
+      { ticker: `SWED-A.ST`, name: `Swedbank A`, market: `OMXN40`, currency: `SEK`, sector: `Finans (SE)`, price: 224.50, dailyPct: 0.68, rsi2: 50.4, atr14: 3.80, sma200: 210.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [217, 218, 219, 219, 220, 220, 221, 222, 222, 223, 224, 225] },
+      { ticker: `ERIC-B.ST`, name: `Ericsson B`, market: `OMXN40`, currency: `SEK`, sector: `Teknologi (SE)`, price: 89.60, dailyPct: 1.12, rsi2: 58.2, atr14: 2.20, sma200: 78.40, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [84, 85, 85, 86, 86, 87, 87, 88, 88, 88, 89, 90] },
+      { ticker: `HEXA-B.ST`, name: `Hexagon B`, market: `OMXN40`, currency: `SEK`, sector: `Teknologi (SE)`, price: 112.40, dailyPct: -0.28, rsi2: 28.4, atr14: 2.50, sma200: 108.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [114, 114, 113, 114, 113, 113, 113, 113, 112, 113, 113, 112] },
+      { ticker: `EPI-A.ST`, name: `Epiroc A`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 204.80, dailyPct: 0.58, rsi2: 45.1, atr14: 3.90, sma200: 196.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [199, 200, 200, 201, 201, 202, 202, 203, 203, 204, 204, 205] },
+      { ticker: `HM-B.ST`, name: `Hennes & Mauritz B`, market: `OMXN40`, currency: `SEK`, sector: `Konsum (SE)`, price: 168.40, dailyPct: -0.45, rsi2: 16.5, atr14: 3.70, sma200: 162.00, signal: `OMXN40 · Pullback`, signalType: `warn`, spark: [173, 172, 172, 171, 171, 170, 170, 169, 169, 169, 169, 168] },
+      { ticker: `ESSITY-B.ST`, name: `Essity B`, market: `OMXN40`, currency: `SEK`, sector: `Konsum (SE)`, price: 298.50, dailyPct: 0.41, rsi2: 47.5, atr14: 4.80, sma200: 282.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [290, 291, 292, 292, 293, 294, 295, 295, 296, 297, 298, 299] },
+      { ticker: `ALFA.ST`, name: `Alfa Laval`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 478.20, dailyPct: 0.89, rsi2: 53.6, atr14: 8.60, sma200: 446.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [462, 464, 465, 466, 468, 469, 471, 472, 474, 475, 476, 478] },
+      { ticker: `EVO.ST`, name: `Evolution`, market: `OMXN40`, currency: `SEK`, sector: `Konsum (SE)`, price: 1024.00, dailyPct: -0.74, rsi2: 12.8, atr14: 24.50, sma200: 998.00, signal: `OMXN40 · RSI(2) < 15`, signalType: `pos`, spark: [1062, 1058, 1052, 1048, 1045, 1040, 1038, 1035, 1032, 1029, 1027, 1024] },
+      { ticker: `NIBE-B.ST`, name: `NIBE Industrier B`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 52.40, dailyPct: 0.78, rsi2: 34.0, atr14: 1.85, sma200: 49.80, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [50, 50, 51, 51, 51, 51, 51, 52, 52, 52, 52, 52] },
+      { ticker: `AZN.ST`, name: `AstraZeneca`, market: `OMXN40`, currency: `SEK`, sector: `Helse (SE)`, price: 1465.00, dailyPct: 0.62, rsi2: 49.8, atr14: 26.00, sma200: 1410.00, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [1430, 1435, 1438, 1440, 1444, 1448, 1450, 1452, 1456, 1458, 1462, 1465] },
+      { ticker: `EQT.ST`, name: `EQT AB`, market: `OMXN40`, currency: `SEK`, sector: `Finans (SE)`, price: 342.80, dailyPct: 1.25, rsi2: 59.4, atr14: 7.40, sma200: 318.00, signal: `OMXN40 · Breakout`, signalType: `pos`, spark: [324, 326, 328, 329, 331, 333, 335, 336, 338, 339, 341, 343] },
+      { ticker: `TELIA.ST`, name: `Telia Company`, market: `OMXN40`, currency: `SEK`, sector: `Telekom (SE)`, price: 32.85, dailyPct: 0.15, rsi2: 45.2, atr14: 0.55, sma200: 30.40, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [31, 31, 32, 32, 32, 32, 32, 32, 33, 33, 33, 33] },
+      { ticker: `SKF-B.ST`, name: `SKF B`, market: `OMXN40`, currency: `SEK`, sector: `Industri (SE)`, price: 214.20, dailyPct: 0.44, rsi2: 41.8, atr14: 4.10, sma200: 204.00, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [208, 209, 209, 210, 210, 211, 211, 212, 212, 213, 214, 214] },
+      { ticker: `NDA-FI.HE`, name: `Nordea Bank`, market: `OMXN40`, currency: `EUR`, sector: `Finans (FI)`, price: 11.42, dailyPct: 0.64, rsi2: 48.0, atr14: 0.22, sma200: 10.85, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [11.0, 11.1, 11.1, 11.1, 11.2, 11.2, 11.2, 11.3, 11.3, 11.3, 11.4, 11.4] },
+      { ticker: `NOKIA.HE`, name: `Nokia`, market: `OMXN40`, currency: `EUR`, sector: `Teknologi (FI)`, price: 4.28, dailyPct: 0.95, rsi2: 55.4, atr14: 0.11, sma200: 3.82, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [4.0, 4.0, 4.1, 4.1, 4.1, 4.1, 4.2, 4.2, 4.2, 4.2, 4.3, 4.3] },
+      { ticker: `KNEBV.HE`, name: `KONE`, market: `OMXN40`, currency: `EUR`, sector: `Industri (FI)`, price: 49.85, dailyPct: 0.38, rsi2: 43.6, atr14: 0.92, sma200: 47.20, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [48.2, 48.4, 48.6, 48.7, 48.9, 49.0, 49.1, 49.2, 49.4, 49.5, 49.7, 49.9] },
+      { ticker: `SAMPO.HE`, name: `Sampo A`, market: `OMXN40`, currency: `EUR`, sector: `Finans (FI)`, price: 41.60, dailyPct: 0.29, rsi2: 46.5, atr14: 0.68, sma200: 39.80, signal: `OMXN40 · Trend OK`, signalType: `pos`, spark: [40.4, 40.5, 40.6, 40.7, 40.8, 40.9, 41.0, 41.1, 41.2, 41.3, 41.5, 41.6] },
+      { ticker: `UPM.HE`, name: `UPM-Kymmene`, market: `OMXN40`, currency: `EUR`, sector: `Materialer (FI)`, price: 29.40, dailyPct: -0.34, rsi2: 26.2, atr14: 0.64, sma200: 28.90, signal: `OMXN40 · Nøytral`, signalType: `neutral`, spark: [30.1, 30.0, 29.9, 29.9, 29.8, 29.7, 29.7, 29.6, 29.6, 29.5, 29.5, 29.4] },
+      { ticker: `NESTE.HE`, name: `Neste`, market: `OMXN40`, currency: `EUR`, sector: `Energi (FI)`, price: 15.80, dailyPct: -0.52, rsi2: 14.1, atr14: 0.52, sma200: 15.20, signal: `OMXN40 · Overvåk`, signalType: `warn`, spark: [16.5, 16.4, 16.3, 16.3, 16.2, 16.1, 16.1, 16.0, 16.0, 15.9, 15.9, 15.8] }
     ];
 
     const RISK_PROFILES = {
@@ -1839,8 +1881,8 @@
         sub: `Legg inn OCO bracket-ordrer med pre-execution guardrail og administrer ventende Telegram HITL-godkjenninger.`
       },
       markeder: {
-        title: `04 Markeder — US & Norden (OBX 15)`,
-        sub: `Kompakt overvåkningsliste med RSI(2), ATR(14), SMA(200) og makrobetinget regimestatus for VIX og Brent.`
+        title: `04 Markeder — US, Norden (OMXN40) & Norge (OBX 15)`,
+        sub: `Kompakt overvåkningsliste for US (S&P/Nasdaq), Norden (OMXN40 — 40 selskaper) og Norge (OBX 15) med RSI(2), ATR(14), SMA(200) og regimestatus.`
       },
       analyse: {
         title: `05 Analyse & Strategier — Backtest & Profiler`,
@@ -2596,7 +2638,15 @@
       }
 
       tbody.innerHTML = rows.map(function (w) {
-        const curr = w.market === `US` ? `USD` : `NOK`;
+        const curr = w.currency || (w.market === `US` ? `USD` : `NOK`);
+        const fmtNative = function (val) {
+          const f = Math.abs(val).toLocaleString(`nb-NO`, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          if (curr === `USD`) return `$${f}`;
+          if (curr === `EUR`) return `€${f}`;
+          if (curr === `SEK` || curr === `DKK`) return `${f} ${curr}`;
+          return `${f} kr`;
+        };
+        const marketBadge = w.market === `US` ? `US S&amp;P` : (w.market === `OMXN40` ? `OMXN40` : `OBX 15`);
         const dayCls = w.dailyPct >= 0 ? `text-pos` : `text-neg`;
         const smaDiff = ((w.price - w.sma200) / w.sma200) * 100;
         const chipCls = w.signalType === `pos` ? `chip-pos` : (w.signalType === `cyan` ? `chip-cyan` : (w.signalType === `err` ? `chip-err` : (w.signalType === `warn` ? `chip-warn` : `chip-neutral`)));
@@ -2608,11 +2658,11 @@
               <span class="ticker-name">${w.name} · ${w.sector}</span>
             </div>
           </td>
-          <td><span class="chip chip-neutral">${w.market === `US` ? `US S&amp;P` : `OBX 15`}</span></td>
-          <td class="num">${fmtMoney(w.price, curr)}</td>
+          <td><span class="chip chip-neutral">${marketBadge}</span></td>
+          <td class="num">${fmtNative(w.price)}</td>
           <td class="num ${dayCls}">${w.dailyPct >= 0 ? `+` : ``}${w.dailyPct.toFixed(2)} %</td>
           <td class="num ${w.rsi2 < 15 ? `text-pos` : ``}">${w.rsi2.toFixed(1)}</td>
-          <td class="num">${fmtMoney(w.atr14, curr)}</td>
+          <td class="num">${fmtNative(w.atr14)}</td>
           <td class="num text-pos">+${smaDiff.toFixed(1)} %</td>
           <td>${buildSparklineSvg(w.spark, w.dailyPct >= 0)}</td>
           <td><span class="chip ${chipCls}">${w.signal}</span></td>
