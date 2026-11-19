@@ -986,7 +986,99 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             if cache and (now_ts - cache.get("ts", 0)) < 25:
                 res_obj = cache["data"]
             else:
-                specs = [
+                import datetime as _dt
+                from concurrent.futures import ThreadPoolExecutor
+
+                hdr = {"User-Agent": "Mozilla/5.0"}
+
+                def _fetch_yf(sym: str, rng: str) -> dict:
+                    import requests
+
+                    r = requests.get(
+                        f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+                        params={"range": rng, "interval": "1d"},
+                        headers=hdr,
+                        timeout=6,
+                    )
+                    res0 = r.json()["chart"]["result"][0]
+                    meta = res0.get("meta", {})
+                    ts_list = res0.get("timestamp") or []
+                    cl_list = res0.get("indicators", {}).get("quote", [{}])[0].get("close") or []
+                    pts = [
+                        (_dt.datetime.fromtimestamp(t, _dt.timezone.utc).date(), float(c))
+                        for t, c in zip(ts_list, cl_list)
+                        if c is not None
+                    ]
+                    p = float(meta.get("regularMarketPrice") or (pts[-1][1] if pts else 0.0))
+                    pc = float(pts[-2][1]) if len(pts) >= 2 else float(meta.get("chartPreviousClose") or p or 1.0)
+                    chg_pct = ((p - pc) / pc) * 100.0 if pc > 0 else 0.0
+                    return {"price": p, "prev_close": pc, "change_pct": chg_pct, "pts": pts}
+
+                def _build_bench_ranges(raw: dict) -> dict:
+                    pts = raw.get("pts") or []
+                    p_now = float(raw.get("price") or (pts[-1][1] if pts else 0.0))
+                    if not pts or p_now <= 0:
+                        return {}
+                    today = _dt.date.today()
+                    yr_start = _dt.date(today.year, 1, 1)
+
+                    def _slice_series(sub_pts: list, target_points: int = 12) -> dict:
+                        vals = [c for _, c in sub_pts]
+                        if not vals:
+                            vals = [p_now]
+                        # Ensure final point matches live price
+                        vals = list(vals)
+                        vals[-1] = p_now
+                        base = vals[0] if vals[0] > 0 else p_now
+                        # Downsample evenly if long
+                        if len(vals) > target_points:
+                            idxs = [round(i * (len(vals) - 1) / (target_points - 1)) for i in range(target_points)]
+                            sampled = [vals[idx] for idx in idxs]
+                        elif len(vals) < 2:
+                            sampled = [base, p_now]
+                        else:
+                            sampled = vals
+                        norm = [round(v / base, 6) for v in sampled]
+                        ret_pct = round(((p_now - base) / base) * 100.0, 2)
+                        return {"return_pct": ret_pct, "norm": norm}
+
+                    # 1D: prev_close -> live price
+                    pc = float(raw.get("prev_close") or p_now)
+                    one_d = {
+                        "return_pct": round(((p_now - pc) / pc) * 100.0, 2) if pc > 0 else 0.0,
+                        "norm": [1.0, round(p_now / pc, 6) if pc > 0 else 1.0],
+                    }
+                    # 1W (~6 trading closes), 1M (~22 trading closes), YTD, 1Y
+                    ytd_pts = [(d, c) for d, c in pts if d >= yr_start] or pts[-22:]
+                    return {
+                        "1D": one_d,
+                        "1W": _slice_series(pts[-6:], 6),
+                        "1M": _slice_series(pts[-22:], 12),
+                        "YTD": _slice_series(ytd_pts, 14),
+                        "1Y": _slice_series(pts, 16),
+                    }
+
+                fetch_plan = {
+                    "OSEBX.OL": "1y",
+                    "^GSPC": "1y",
+                    "BZ=F": "5d",
+                    "^IXIC": "5d",
+                    "NOK=X": "5d",
+                    "^VIX": "5d",
+                }
+                fetched: dict[str, dict] = {}
+                try:
+                    with ThreadPoolExecutor(max_workers=6) as ex:
+                        futs = {ex.submit(_fetch_yf, sym, rng): sym for sym, rng in fetch_plan.items()}
+                        for fut, sym in futs.items():
+                            try:
+                                fetched[sym] = fut.result(timeout=7)
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+
+                ticker_specs = [
                     ("OSLO", "OSEBX.OL", "", ""),
                     ("OLJE", "BZ=F", "$ ", ""),
                     ("NASDAQ", "^IXIC", "", ""),
@@ -994,47 +1086,67 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     ("USD", "NOK=X", "", " kr"),
                 ]
                 items = []
-                hdr = {"User-Agent": "Mozilla/5.0"}
-                try:
-                    import requests
-
-                    for lbl, sym, pref, suff in specs:
-                        try:
-                            r = requests.get(
-                                f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
-                                params={"range": "5d", "interval": "1d"},
-                                headers=hdr,
-                                timeout=5,
-                            )
-                            res0 = r.json()["chart"]["result"][0]
-                            meta = res0.get("meta", {})
-                            p = float(meta.get("regularMarketPrice") or 0.0)
-                            closes = [c for c in (res0.get("indicators", {}).get("quote", [{}])[0].get("close") or []) if c is not None]
-                            pc = float(closes[-2]) if len(closes) >= 2 else float(meta.get("chartPreviousClose") or p or 1.0)
-                            chg_pct = ((p - pc) / pc) * 100.0 if pc > 0 else 0.0
-                            items.append({
-                                "label": lbl,
-                                "symbol": sym,
-                                "price": round(p, 2),
-                                "change_pct": round(chg_pct, 2),
-                                "prefix": pref,
-                                "suffix": suff,
-                            })
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
+                for lbl, sym, pref, suff in ticker_specs:
+                    d = fetched.get(sym)
+                    if d:
+                        items.append({
+                            "label": lbl,
+                            "symbol": sym,
+                            "price": round(d["price"], 2),
+                            "change_pct": round(d["change_pct"], 2),
+                            "prefix": pref,
+                            "suffix": suff,
+                        })
 
                 if not items:
                     items = [
                         {"label": "OSLO", "symbol": "OSEBX.OL", "price": 2068.75, "change_pct": -0.25, "prefix": "", "suffix": ""},
-                        {"label": "OLJE", "symbol": "BZ=F", "price": 92.45, "change_pct": 1.19, "prefix": "$ ", "suffix": ""},
-                        {"label": "NASDAQ", "symbol": "^IXIC", "price": 24166.51, "change_pct": -1.08, "prefix": "", "suffix": ""},
-                        {"label": "S&P 500", "symbol": "^GSPC", "price": 7235.44, "change_pct": -1.20, "prefix": "", "suffix": ""},
-                        {"label": "USD", "symbol": "NOK=X", "price": 9.76, "change_pct": 0.66, "prefix": "", "suffix": " kr"},
+                        {"label": "OLJE", "symbol": "BZ=F", "price": 90.21, "change_pct": -1.89, "prefix": "$ ", "suffix": ""},
+                        {"label": "NASDAQ", "symbol": "^IXIC", "price": 24250.81, "change_pct": -0.73, "prefix": "", "suffix": ""},
+                        {"label": "S&P 500", "symbol": "^GSPC", "price": 7257.24, "change_pct": -0.91, "prefix": "", "suffix": ""},
+                        {"label": "USD", "symbol": "NOK=X", "price": 9.76, "change_pct": 1.38, "prefix": "", "suffix": " kr"},
                     ]
 
-                res_obj = {"updated_at": time.strftime("%H:%M:%S"), "items": items}
+                # Live Macro Regime (OBX vs SMA200, VIX, Brent 2d)
+                obx_d = fetched.get("OSEBX.OL") or {}
+                obx_pts = obx_d.get("pts") or []
+                obx_close = round(float(obx_d.get("price") or 2068.75), 2)
+                obx_sma200 = round(
+                    sum(c for _, c in obx_pts[-200:]) / min(200, len(obx_pts)), 2
+                ) if obx_pts else 2011.98
+                vix_d = fetched.get("^VIX") or {}
+                vix_close = round(float(vix_d.get("price") or 25.0), 2)
+                bz_d = fetched.get("BZ=F") or {}
+                bz_pts = bz_d.get("pts") or []
+                bz_p = float(bz_d.get("price") or 0.0)
+                if len(bz_pts) >= 3 and bz_pts[-3][1] > 0 and bz_p > 0:
+                    brent_2d_pct = round(((bz_p - bz_pts[-3][1]) / bz_pts[-3][1]) * 100.0, 2)
+                else:
+                    brent_2d_pct = round(float(bz_d.get("change_pct") or 0.0), 2)
+
+                macro_regime = {
+                    "source": "live_yahoo" if fetched else "fallback",
+                    "obx_close": obx_close,
+                    "obx_sma200": obx_sma200,
+                    "obx_bull": obx_close >= obx_sma200,
+                    "vix_close": vix_close,
+                    "vix_ok": vix_close < 25.0,
+                    "brent_2d_pct": brent_2d_pct,
+                }
+
+                benchmarks = {
+                    "source": "live_yahoo" if ("^GSPC" in fetched or "OSEBX.OL" in fetched) else "fallback",
+                    "sp500": _build_bench_ranges(fetched.get("^GSPC") or {}),
+                    "obx": _build_bench_ranges(fetched.get("OSEBX.OL") or {}),
+                }
+
+                res_obj = {
+                    "updated_at": time.strftime("%H:%M:%S"),
+                    "source": "live_yahoo" if fetched else "fallback",
+                    "items": items,
+                    "macro_regime": macro_regime,
+                    "benchmarks": benchmarks,
+                }
                 setattr(self.server, "_live_ticker_cache", {"ts": now_ts, "data": res_obj})
 
             out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")

@@ -2791,11 +2791,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           if (dashData.obx15_snapshot && dashData.obx15_snapshot.length) {
             SUITE_STATE.obx15_snapshot = dashData.obx15_snapshot;
           }
-          if (dashData.macro_regime) {
+          if (dashData.macro_regime && !SUITE_STATE.live_macro) {
             const m = dashData.macro_regime;
-            document.getElementById("macroObx").textContent = `${Number(m.obx_close || 1384).toFixed(1)} / ${Number(m.obx_sma200 || 1318).toFixed(1)}`;
-            document.getElementById("macroVix").textContent = `${Number(m.vix_close || 16.4).toFixed(1)}`;
-            document.getElementById("macroBrent").textContent = `${Number(m.brent_2d_pct || 1.15) >= 0 ? "+" : ""}${Number(m.brent_2d_pct || 1.15).toFixed(2)} %`;
+            document.getElementById("macroObx").textContent = `${Number(m.obx_close || 2068.8).toFixed(1)} / ${Number(m.obx_sma200 || 2012.0).toFixed(1)}`;
+            document.getElementById("macroVix").textContent = `${Number(m.vix_close || 25.0).toFixed(1)}`;
+            document.getElementById("macroBrent").textContent = `${Number(m.brent_2d_pct || 0) >= 0 ? "+" : ""}${Number(m.brent_2d_pct || 0).toFixed(2)} %`;
           }
         }
         if (suiteRes && suiteRes.ok) {
@@ -3816,7 +3816,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
-    let ACTIVE_PERF_RANGE = "1D";
+    let ACTIVE_PERF_RANGE = "YTD";
 
     function buildLivePerfSeries(rangeKey) {
       const alp = SUITE_STATE.alpaca_portfolio || { equity: 100000.0, last_equity: 100000.0, today_pnl_pct: 0.0 };
@@ -3826,33 +3826,54 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const pct = startEq > 0 ? (diff / startEq) * 100.0 : 0.0;
       const sign = pct >= 0 ? "+" : "";
 
-      // Actual Alpaca Paper portfolio trajectory from startEq -> currEq vs. S&P 500 benchmark anchored at startEq
-      const steps = 6;
+      const liveBench = SUITE_STATE.live_benchmarks || {};
+      const spObj = (liveBench.sp500 || {})[rangeKey];
+      const obxObj = (liveBench.obx || {})[rangeKey];
+
+      const spNorm = (spObj && Array.isArray(spObj.norm) && spObj.norm.length >= 2) ? spObj.norm : [1.0, 1.0];
+      const obxNorm = (obxObj && Array.isArray(obxObj.norm) && obxObj.norm.length >= 2) ? obxObj.norm : null;
+      const nPts = spNorm.length;
+
       const portCurve = [];
-      const benchCurve = [];
-      const benchEndPct = rangeKey === "1D" ? 0.0005 : (rangeKey === "1W" ? 0.004 : (rangeKey === "1M" ? 0.012 : 0.025));
-      for (let i = 0; i <= steps; i++) {
-        const w = i / steps;
+      const spCurve = [];
+      const obxCurve = [];
+      for (let i = 0; i < nPts; i++) {
+        const w = nPts > 1 ? i / (nPts - 1) : 1;
         portCurve.push(Number((startEq + diff * w).toFixed(2)));
-        benchCurve.push(Number((startEq * (1 + benchEndPct * w)).toFixed(2)));
+        spCurve.push(Number((startEq * spNorm[i]).toFixed(2)));
+        if (obxNorm) {
+          const oi = Math.min(obxNorm.length - 1, Math.round(w * (obxNorm.length - 1)));
+          obxCurve.push(Number((startEq * obxNorm[oi]).toFixed(2)));
+        }
       }
+
+      const spRet = spObj && spObj.return_pct !== undefined ? `${spObj.return_pct >= 0 ? "+" : ""}${Number(spObj.return_pct).toFixed(1)}%` : "";
+      const obxRet = obxObj && obxObj.return_pct !== undefined ? `${obxObj.return_pct >= 0 ? "+" : ""}${Number(obxObj.return_pct).toFixed(1)}%` : "";
+      const spLabel = spRet ? `S&P 500 (${spRet})` : "S&P 500";
+      const obxLabel = obxRet ? `OBX (${obxRet})` : "OBX";
+
+      const series = { "Portefølje": portCurve };
+      series[spLabel] = spCurve;
+      if (obxCurve.length) series[obxLabel] = obxCurve;
+
       return {
         label: rangeKey,
         pct: pct,
+        spLabel,
+        obxLabel,
         pill: `${sign}${pct.toFixed(2)} % (${rangeKey} · Faktisk Alpaca Paper)`,
-        series: {
-          "Portefølje": portCurve,
-          "S&P 500": benchCurve
-        }
+        series
       };
     }
 
     function setPerfRange(rangeKey, btnEl) {
-      ACTIVE_PERF_RANGE = rangeKey || "1D";
+      ACTIVE_PERF_RANGE = rangeKey || ACTIVE_PERF_RANGE || "YTD";
+      const rangeIdxMap = { "1D": 1, "1W": 2, "1M": 3, "YTD": 4, "1Y": 5 };
+      const targetBtn = btnEl || document.querySelector(`#perfRangeButtons button:nth-child(${rangeIdxMap[ACTIVE_PERF_RANGE] || 4})`);
       document.querySelectorAll("#perfRangeButtons button").forEach(b => {
         b.className = "btn btn-outline btn-sm";
       });
-      if (btnEl) btnEl.className = "btn btn-primary btn-sm";
+      if (targetBtn) targetBtn.className = "btn btn-primary btn-sm";
       const cfg = buildLivePerfSeries(ACTIVE_PERF_RANGE);
       document.getElementById("perfRangeLabel").textContent = cfg.label;
       const pillEl = document.getElementById("perfRangeReturnPill");
@@ -3861,10 +3882,10 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         pillEl.className = `pill ${cfg.pct < 0 ? "pill-red" : (cfg.pct > 0 ? "pill-green" : "pill-cyan")}`;
       }
       const portColor = cfg.pct > 0 ? "#34d399" : (cfg.pct < 0 ? "#f87171" : "#5cc4d6");
-      renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "", {
-        "Portefølje": portColor,
-        "S&P 500": "#64748b"
-      });
+      const colorMap = { "Portefølje": portColor };
+      colorMap[cfg.spLabel] = "#94a3b8";
+      colorMap[cfg.obxLabel] = "#38bdf8";
+      renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "", colorMap);
     }
 
     function renderOverviewAndPortfolio() {
@@ -3937,7 +3958,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         ? "Ingen åpne posisjoner i Alpaca Paper (100 % kontanter)"
         : `${posList.length} åpne posisjoner (${fmtUsd(mv)} eksponert)`;
 
-      setPerfRange("YTD", document.querySelector("#perfRangeButtons button:nth-child(4)"));
+      setPerfRange(ACTIVE_PERF_RANGE);
 
       const moversTb = document.getElementById("topMoversTbody");
       if (moversTb) {
@@ -4511,21 +4532,60 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         if (!res.ok) return;
         const d = await res.json();
         const items = d.items || [];
-        if (!items.length) return;
-        box.innerHTML = items.map(it => {
-          const valFmt = Number(it.price || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          const pct = Number(it.change_pct || 0);
-          const pctFmt = (pct > 0 ? "+" : "") + pct.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
-          const cls = pct >= 0 ? "up" : "down";
-          return `
-            <span class="live-idx-item">
-              <span class="live-idx-label">${it.label}</span>
-              <span class="live-idx-val">${it.prefix || ""}${valFmt}${it.suffix || ""}</span>
-              <span class="live-idx-pill ${cls}">${pctFmt}</span>
-            </span>
-          `;
-        }).join("");
+        if (items.length) {
+          box.innerHTML = items.map(it => {
+            const valFmt = Number(it.price || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const pct = Number(it.change_pct || 0);
+            const pctFmt = (pct > 0 ? "+" : "") + pct.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+            const cls = pct >= 0 ? "up" : "down";
+            return `
+              <span class="live-idx-item">
+                <span class="live-idx-label">${it.label}</span>
+                <span class="live-idx-val">${it.prefix || ""}${valFmt}${it.suffix || ""}</span>
+                <span class="live-idx-pill ${cls}">${pctFmt}</span>
+              </span>
+            `;
+          }).join("");
+        }
         if (upd && d.updated_at) upd.textContent = `Live ${d.updated_at}`;
+
+        // Update Live Macro Regime strip (OBX vs SMA200, VIX, Brent 2d) with conditional colors
+        if (d.macro_regime) {
+          const m = d.macro_regime;
+          SUITE_STATE.live_macro = m;
+          const obxEl = document.getElementById("macroObx");
+          const vixEl = document.getElementById("macroVix");
+          const brentEl = document.getElementById("macroBrent");
+          if (obxEl) {
+            const bull = Boolean(m.obx_bull);
+            const cFmt = Number(m.obx_close || 0).toLocaleString("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            const sFmt = Number(m.obx_sma200 || 0).toLocaleString("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+            obxEl.textContent = `${cFmt} / ${sFmt} (${bull ? "BULL" : "BEAR"})`;
+            obxEl.style.color = bull ? "#34d399" : "#f87171";
+          }
+          if (vixEl) {
+            const vix = Number(m.vix_close || 0);
+            const ok = vix < 25;
+            vixEl.textContent = `${vix.toFixed(1)} (${ok ? "< 25 OK" : "≥ 25 HØY"})`;
+            vixEl.style.color = vix < 18 ? "#34d399" : (vix < 25 ? "#f59e0b" : "#f87171");
+            // Keep Strategy Meta VIX text synced with live VIX
+            if (typeof STRATEGY_META !== "undefined" && STRATEGY_META.ai_regime_switcher) {
+              const regText = vix < 18 ? "Liquid Momentum" : (vix < 24 ? "Covered Calls" : "T-Bills / Risiko-av");
+              STRATEGY_META.ai_regime_switcher.desc = `Dynamisk VIX-rotasjon: Liquid Momentum ved VIX < 18, Covered Calls ved VIX 18–24, T-Bills ved VIX ≥ 24 (live nå: VIX ${vix.toFixed(1)} → ${regText}).`;
+            }
+          }
+          if (brentEl) {
+            const b = Number(m.brent_2d_pct || 0);
+            brentEl.textContent = `${b >= 0 ? "+" : ""}${b.toFixed(2)} %`;
+            brentEl.style.color = b >= 0 ? "#34d399" : "#f87171";
+          }
+        }
+
+        // Update Live Benchmarks (S&P 500 + OBX) for Overview Chart
+        if (d.benchmarks) {
+          SUITE_STATE.live_benchmarks = d.benchmarks;
+          try { setPerfRange(ACTIVE_PERF_RANGE); } catch (e) {}
+        }
       } catch (e) {}
     }
 

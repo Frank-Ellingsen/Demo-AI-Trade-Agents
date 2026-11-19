@@ -160,17 +160,56 @@ def render_embedded_html(html_content: str, height: int = 900) -> None:
         st.components.v1.html(html_content, height=height, scrolling=True)
 
 
+@st.cache_data(ttl=60)
+def fetch_live_macro_regime(fallback: dict) -> dict:
+    """Fetch live OBX vs SMA200 (OSEBX.OL), VIX (^VIX) and Brent 2d (BZ=F) from Yahoo Finance."""
+    try:
+        import requests
+
+        hdr = {"User-Agent": "Mozilla/5.0"}
+
+        def _yf(sym: str, rng: str) -> tuple[float, list[float]]:
+            r = requests.get(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+                params={"range": rng, "interval": "1d"},
+                headers=hdr,
+                timeout=5,
+            )
+            res0 = r.json()["chart"]["result"][0]
+            cl = [float(c) for c in (res0.get("indicators", {}).get("quote", [{}])[0].get("close") or []) if c is not None]
+            p = float(res0.get("meta", {}).get("regularMarketPrice") or (cl[-1] if cl else 0.0))
+            return p, cl
+
+        obx_p, obx_cl = _yf("OSEBX.OL", "1y")
+        obx_sma200 = sum(obx_cl[-200:]) / min(200, len(obx_cl)) if obx_cl else float(fallback.get("obx_sma200", 0))
+        vix_p, _ = _yf("^VIX", "5d")
+        bz_p, bz_cl = _yf("BZ=F", "5d")
+        bz_2d = ((bz_p - bz_cl[-3]) / bz_cl[-3]) * 100.0 if len(bz_cl) >= 3 and bz_cl[-3] > 0 else float(fallback.get("brent_2d_pct", 0))
+        return {
+            "source": "Live Yahoo",
+            "obx_close": round(obx_p, 2),
+            "obx_sma200": round(obx_sma200, 2),
+            "vix_close": round(vix_p, 2),
+            "brent_2d_pct": round(bz_2d, 2),
+        }
+    except Exception:
+        out = dict(fallback)
+        out["source"] = "DuckDB EOD"
+        return out
+
+
 def main() -> None:
     init_sqlite_db()
     data = load_cached_dashboard_data()
-    macro = data.get("macro_regime", {})
+    macro = fetch_live_macro_regime(data.get("macro_regime", {}))
 
     st.title("AI Trading Desk — Multi-Agent Kontrolltårn")
     st.caption(
-        f"Siste børsdag i DuckDB: **{data.get('latest_trade_date', '—')}**  |  "
-        f"OBX vs. SMA(200): **{macro.get('obx_close', 0):.1f} / {macro.get('obx_sma200', 0):.1f}**  |  "
+        f"Makro ({macro.get('source', 'Live')}):  "
+        f"OBX vs. SMA(200): **{macro.get('obx_close', 0):,.1f} / {macro.get('obx_sma200', 0):,.1f}**  |  "
         f"VIX: **{macro.get('vix_close', 0):.1f}**  |  "
-        f"Brent 2d: **{macro.get('brent_2d_pct', 0):+.2f} %**"
+        f"Brent 2d: **{macro.get('brent_2d_pct', 0):+.2f} %**  |  "
+        f"DuckDB EOD: **{data.get('latest_trade_date', '—')}**"
     )
 
     with st.sidebar:
