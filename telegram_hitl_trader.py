@@ -413,6 +413,14 @@ class TelegramHITLTrader:
         except Exception as e:
             logger.debug(f"Feil ved answerCallback: {e}")
 
+    def send_confirmation(self, text: str) -> None:
+        """Sender en egen bekreftelsesmelding til Telegram med push-varsel."""
+        url = f"{self.base_url}/sendMessage"
+        try:
+            requests.post(url, json={"chat_id": self.chat_id, "text": text}, timeout=10)
+        except Exception as e:
+            logger.debug(f"Feil ved send_confirmation: {e}")
+
     def update_message(self, message_id: int, updated_text: str):
         url = f"{self.base_url}/editMessageText"
         payload = {
@@ -533,6 +541,7 @@ class TelegramHITLTrader:
                                     stop_loss_price=trade["sl"],
                                 )
                                 order_id = str(res.get("id", "N/A"))[:8]
+                                decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
                                 status_msg = (
                                     f"✅ ORDRE EKSEKVERT PÅ ALPACA (OCO BRACKET)\n"
                                     f"----------------------------------------\n"
@@ -540,13 +549,20 @@ class TelegramHITLTrader:
                                     f"• Antall: {trade['qty']} stk @ Limit ${trade['limit']:,.2f}\n"
                                     f"• Stop-Loss: ${trade['sl']:,.2f} | Take-Profit: ${trade['tp']:,.2f}\n"
                                     f"• Alpaca Ordre-ID: {order_id}\n"
+                                    f"• Tidspunkt: {decided_ts}\n"
                                     f"• Status: Godkjent og innsendt innenfor kursvern (<= ${max_allowed_ask:,.2f})"
                                 )
                                 self.update_message(message_id, status_msg)
+                                self.send_confirmation(
+                                    f"✅ BEKREFTELSE ({decided_ts}): {trade['side'].upper()} {trade['qty']} {trade['symbol']} "
+                                    f"@ Limit ${trade['limit']:,.2f} er GODKJENT og registrert hos Alpaca Paper (ID: {order_id})."
+                                )
                             except Exception as e:
                                 logger.error(f"Feil ved eksekvering pa Alpaca: {e}")
-                                err_msg = f"🔴 FEIL VED EKSEKVERING PÅ ALPACA\nFeil: {e}"
+                                decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                                err_msg = f"🔴 FEIL VED EKSEKVERING PÅ ALPACA ({decided_ts})\nFeil: {e}"
                                 self.update_message(message_id, err_msg)
+                                self.send_confirmation(err_msg)
                             if stop_after_first:
                                 return
                         else:
@@ -566,12 +582,18 @@ class TelegramHITLTrader:
                                 pass
                             self.answer_callback(cb_id, "Ordre avvist og loggført.")
                             logger.info(f"Bruker AVVISTE ordre {trade_id} ({trade['symbol']})")
+                            decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
                             reject_msg = (
                                 f"❌ SIGNAL AVVIST AV RISIKOMANAGER (HITL)\n"
                                 f"----------------------------------------\n"
-                                f"Handelen i {trade['symbol']} ({trade['qty']} stk @ ${trade['limit']:,.2f}) ble avvist og loggført i SQLite WAL."
+                                f"Handelen i {trade['symbol']} ({trade['qty']} stk @ ${trade['limit']:,.2f}) ble avvist og loggført i SQLite WAL.\n"
+                                f"• Tidspunkt: {decided_ts}"
                             )
                             self.update_message(message_id, reject_msg)
+                            self.send_confirmation(
+                                f"❌ BEKREFTELSE ({decided_ts}): Ordre for {trade['symbol']} "
+                                f"({trade['qty']} stk @ ${trade['limit']:,.2f}) er AVVIST og kansellert."
+                            )
                             if stop_after_first:
                                 return
                         else:
