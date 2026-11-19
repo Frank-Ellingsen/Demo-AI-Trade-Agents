@@ -3075,17 +3075,38 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const us = SUITE_STATE.us_backtest;
       if (us && us.metrics) {
         document.getElementById("usBacktestTbody").innerHTML = us.metrics.map(m => {
-          const retStr = m["Netto Avk. (%)"] || "";
-          const cls = retStr.includes("-") ? "text-red" : "text-green";
+          const endRaw = m["Sluttverdi ($)"];
+          const endStr = typeof endRaw === "number"
+            ? "$" + endRaw.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : String(endRaw || "-");
+          const retRaw = m["Netto Avk. (%)"] !== undefined ? m["Netto Avk. (%)"] : m["Total Avkastning (%)"];
+          const retNum = typeof retRaw === "number" ? retRaw : parseFloat(String(retRaw || "0").replace("%", "").trim());
+          const retStr = typeof retRaw === "number"
+            ? `${retRaw >= 0 ? "+" : ""}${retRaw.toFixed(2)} %`
+            : String(retRaw || "0.00 %");
+          const cls = retNum < 0 ? "text-red" : "text-green";
+
+          const volRaw = m["Volatilitet"] !== undefined ? m["Volatilitet"] : m["Volatilitet (%)"];
+          const volStr = typeof volRaw === "number" ? `${volRaw.toFixed(2)} %` : String(volRaw || "-");
+
+          const ddRaw = m["Max Drawdown"] !== undefined ? m["Max Drawdown"] : m["Max Drawdown (%)"];
+          const ddStr = typeof ddRaw === "number" ? `-${Math.abs(ddRaw).toFixed(2)} %` : String(ddRaw || "-");
+
+          const sharpeRaw = m["Sharpe (4.5%)"] !== undefined ? m["Sharpe (4.5%)"] : m["Sharpe Ratio"];
+          const sharpeStr = typeof sharpeRaw === "number" ? sharpeRaw.toFixed(2) : String(sharpeRaw || "-");
+
+          const sortinoRaw = m["Sortino (MAR=0)"] !== undefined ? m["Sortino (MAR=0)"] : m["Sortino Ratio"];
+          const sortinoStr = typeof sortinoRaw === "number" ? sortinoRaw.toFixed(2) : String(sortinoRaw || "-");
+
           return `
             <tr>
-              <td><strong>${m["Strategi"]}</strong></td>
-              <td class="num">${m["Sluttverdi ($)"]}</td>
+              <td><strong>${m["Strategi"] || "-"}</strong></td>
+              <td class="num">${endStr}</td>
               <td class="num ${cls}"><strong>${retStr}</strong></td>
-              <td class="num">${m["Volatilitet"]}</td>
-              <td class="num">${m["Max Drawdown"]}</td>
-              <td class="num">${m["Sharpe (4.5%)"]}</td>
-              <td class="num">${m["Sortino (MAR=0)"]}</td>
+              <td class="num">${volStr}</td>
+              <td class="num">${ddStr}</td>
+              <td class="num">${sharpeStr}</td>
+              <td class="num">${sortinoStr}</td>
             </tr>
           `;
         }).join("");
@@ -3112,22 +3133,36 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
       const cases = SUITE_STATE.intuitive_6case || [];
       document.getElementById("intuitive6CaseTbody").innerHTML = cases.map(c => {
-        const dd = Number(c.max_dd_pct || 0);
-        const ddClass = dd <= 18.0 ? "text-green" : "text-red";
-        const drag = Number(c.cost_drag_pct || 0);
-        const dragClass = drag <= 20.0 ? "text-green" : "text-amber";
+        const caseId = c.case_id || c["Case ID"] || "-";
+        const arch = c.architecture_mode || c["Type"] || "-";
+        const filt = c.filter_mode || c["Strategi"] || "-";
+        const horRaw = c.horizon_days !== undefined ? `${c.horizon_days}d` : String(c["Horisont"] || "-");
+        const trades = c.total_trades !== undefined ? c.total_trades : (c["Trades"] ?? "-");
+
+        const winRaw = c.win_rate_pct !== undefined ? `${Number(c.win_rate_pct).toFixed(1)} %` : String(c["Win%"] || "-");
+        const retRaw = c.net_return_pct !== undefined ? `+${Number(c.net_return_pct).toFixed(1)} %` : String(c["CAGR"] || "-");
+        const retCls = String(retRaw).includes("-") ? "text-red" : "text-green";
+
+        const ddRaw = c.max_dd_pct !== undefined ? Number(c.max_dd_pct) : Math.abs(parseFloat(String(c["Max DD"] || "0").replace("%", "").trim()) || 0);
+        const ddClass = ddRaw <= 18.0 ? "text-green" : "text-red";
+
+        const sortRaw = c.sortino !== undefined ? Number(c.sortino).toFixed(2) : String(c["Sortino"] || "-");
+
+        const dragRaw = c.cost_drag_pct !== undefined ? Number(c.cost_drag_pct) : Math.abs(parseFloat(String(c["Cost Drag"] || "0").replace("%", "").trim()) || 0);
+        const dragClass = dragRaw <= 20.0 ? "text-green" : "text-amber";
+
         return `
           <tr>
-            <td><code>${c.case_id}</code></td>
-            <td>${c.architecture_mode}</td>
-            <td>${c.filter_mode}</td>
-            <td class="num">${c.horizon_days}d</td>
-            <td class="num">${c.total_trades}</td>
-            <td class="num">${Number(c.win_rate_pct).toFixed(1)} %</td>
-            <td class="num text-green">+${Number(c.net_return_pct).toFixed(1)} %</td>
-            <td class="num ${ddClass}"><strong>-${dd.toFixed(2)} %</strong></td>
-            <td class="num">${Number(c.sortino).toFixed(2)}</td>
-            <td class="num ${dragClass}">${drag.toFixed(2)} %</td>
+            <td><code>${caseId}</code></td>
+            <td>${arch}</td>
+            <td>${filt}</td>
+            <td class="num">${horRaw}</td>
+            <td class="num">${trades}</td>
+            <td class="num">${winRaw}</td>
+            <td class="num ${retCls}">${retRaw}</td>
+            <td class="num ${ddClass}"><strong>-${ddRaw.toFixed(2)} %</strong></td>
+            <td class="num">${sortRaw}</td>
+            <td class="num ${dragClass}">${dragRaw.toFixed(2)} %</td>
           </tr>
         `;
       }).join("");
