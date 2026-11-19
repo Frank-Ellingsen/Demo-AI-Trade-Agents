@@ -3080,7 +3080,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     // -------------------------------------------------------------------------
     // SEKSJON 3: MULTI-UNIVERS BACKTEST (TUFTE SVG S-CURVES + TABELLER)
     // -------------------------------------------------------------------------
-    function renderTufteSvgCurve(containerId, seriesMap, unitPrefix = "$", unitSuffix = "") {
+    function renderTufteSvgCurve(containerId, seriesMap, unitPrefix = "$", unitSuffix = "", colorOverrides = {}) {
       const box = document.getElementById(containerId);
       if (!box || !seriesMap) return;
 
@@ -3120,7 +3120,10 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       keys.forEach(k => {
         const arr = seriesMap[k] || [];
         if (!arr.length) return;
-        const color = palette[k] || "#94a3b8";
+        const color = colorOverrides[k] || palette[k] || "#94a3b8";
+        const isBench = k.toLowerCase().includes("benchmark") || k.toLowerCase().includes("s&p 500");
+        const strokeW = isBench ? "1.6" : "2.4";
+        const dashAttr = isBench ? ' stroke-dasharray="4,3"' : "";
         const pts = arr.map((v, idx) => {
           const x = padL + (idx / Math.max(1, arr.length - 1)) * plotW;
           const y = yFor(v);
@@ -3128,8 +3131,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         }).join(" ");
         const lastVal = arr[arr.length - 1];
         const lastY = yFor(lastVal);
-        pathsHtml += `<polyline fill="none" stroke="${color}" stroke-width="2" points="${pts}"/>`;
-        pathsHtml += `<circle cx="${(padL + plotW).toFixed(1)}" cy="${lastY.toFixed(1)}" r="3" fill="${color}"/>`;
+        pathsHtml += `<polyline fill="none" stroke="${color}" stroke-width="${strokeW}"${dashAttr} points="${pts}"/>`;
+        pathsHtml += `<circle cx="${(padL + plotW).toFixed(1)}" cy="${lastY.toFixed(1)}" r="3.2" fill="${color}"/>`;
         endpoints.push({ key: k, val: lastVal, y: lastY, color });
       });
 
@@ -3774,8 +3777,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         pct: pct,
         pill: `${sign}${pct.toFixed(2)} % (${rangeKey} · Faktisk Alpaca Paper)`,
         series: {
-          "Faktisk Portefølje (Alpaca Paper)": portCurve,
-          "Benchmark (S&P 500 / SPY)": benchCurve
+          "Portefølje": portCurve,
+          "S&P 500": benchCurve
         }
       };
     }
@@ -3793,7 +3796,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         pillEl.textContent = cfg.pill;
         pillEl.className = `pill ${cfg.pct < 0 ? "pill-red" : (cfg.pct > 0 ? "pill-green" : "pill-cyan")}`;
       }
-      renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "");
+      const portColor = cfg.pct > 0 ? "#34d399" : (cfg.pct < 0 ? "#f87171" : "#5cc4d6");
+      renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "", {
+        "Portefølje": portColor,
+        "S&P 500": "#64748b"
+      });
     }
 
     function renderOverviewAndPortfolio() {
