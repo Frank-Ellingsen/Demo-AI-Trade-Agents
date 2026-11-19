@@ -961,6 +961,9 @@
           <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="US &amp; Nordisk Multi-Univers backtest, kostnadsdrag, Sortino Ratio, konseptdrift og Shadow Tracking (Agent 5).">
             <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Rapporter</span>
           </button>
+          <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater alle nøkler og innstillinger lokalt i .env: Alpaca Paper, Telegram HITL, Backup E-post (SMTP) og AI-modell.">
+            <span class="tab-num">06</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
+          </button>
           <button class="nav-tab" data-section="all" onclick="switchSection('all')" style="margin-top:4px; border-top:1px solid var(--border-color); padding-top:10px;" data-tooltip="Viser alle seksjoner samtidig på én samlet side for full gjennomgang uten fane-skifte.">
             <span class="tab-num">✦</span>Vis Alle Seksjoner
           </button>
@@ -2291,6 +2294,163 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       </div>
     </section>
 
+    <!-- ===================================================================== -->
+    <!-- 06 SETTINGS: LOCAL .ENV CONFIGURATION (ALPACA, TELEGRAM, BACKUP EMAIL)-->
+    <!-- ===================================================================== -->
+    <section class="workspace-section hidden" id="sec-settings">
+      <div class="section-header">
+        <div>
+          <h2><span class="sec-tag">06 SETTINGS</span> Systeminnstillinger, API-nøkler &amp; Backup E-post (<code>.env</code>)</h2>
+          <p>Lagrer sikkert til lokal <code>.env</code> (aldri pushet til GitHub). La hemmelige passordfelt stå tomme for å beholde eksisterende verdi.</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="loadSettingsForm()">🔄 Last Inn Status</button>
+          <button class="btn btn-success btn-sm" onclick="saveSettingsForm()">💾 Lagre Innstillinger til .env</button>
+        </div>
+      </div>
+
+      <div id="settingsSaveStatus" style="margin-bottom: 12px; font-size: 0.9rem;"></div>
+
+      <div class="grid-2">
+        <!-- Card 1: Alpaca Paper -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🇺🇸 Alpaca Paper Trading (Aktiv Megler)</h3>
+              <p>Låst til <code>paper-api.alpaca.markets/v2</code> for sikker papirhandel</p>
+            </div>
+            <span class="pill pill-cyan" id="setAlpacaHint">Sjekker...</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div class="field-group">
+              <label for="setAlpacaEndpoint">Alpaca Paper Endpoint</label>
+              <input type="text" id="setAlpacaEndpoint" value="https://paper-api.alpaca.markets/v2">
+            </div>
+            <div class="field-group">
+              <label for="setAlpacaKey">Alpaca Paper API Key (<code>ALPACA_API_KEY</code>)</label>
+              <input type="password" id="setAlpacaKey" placeholder="Lim inn ny Paper API Key (la stå tom for å beholde)">
+            </div>
+            <div class="field-group">
+              <label for="setAlpacaSecret">Alpaca Paper Secret Key (<code>ALPACA_SECRET_KEY</code>)</label>
+              <input type="password" id="setAlpacaSecret" placeholder="Lim inn ny Paper Secret Key (la stå tom for å beholde)">
+            </div>
+            <div class="field-group">
+              <label for="setAlpacaInitEq">Startkapital for Realised P&amp;L ($ USD)</label>
+              <input type="number" id="setAlpacaInitEq" value="100000" step="1000">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Telegram HITL -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>📲 Telegram Human-in-the-Loop (Trinn 1)</h3>
+              <p>Primær kanal for godkjenning av kjøpsforslag på mobil</p>
+            </div>
+            <span class="pill pill-cyan" id="setTgHint">Sjekker...</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div class="field-group">
+              <label for="setTgToken">Telegram Bot Token (<code>TELEGRAM_BOT_TOKEN</code>)</label>
+              <input type="password" id="setTgToken" placeholder="Fra @BotFather (la stå tom for å beholde)">
+            </div>
+            <div class="field-group">
+              <label for="setTgChatId">Telegram Chat ID (<code>TELEGRAM_CHAT_ID</code>)</label>
+              <input type="text" id="setTgChatId" placeholder="F.eks. 8871019825">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Backup Email / SMTP Failover -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>📧 Backup E-post / Failover SMTP (Trinn 2)</h3>
+              <p>Sender HTML-epost med sikre <code>/approve</code> &amp; <code>/reject</code>-lenker hvis Telegram er nede</p>
+            </div>
+            <span class="pill pill-cyan" id="setSmtpHint">Sjekker...</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div class="field-group">
+              <label for="setAlertEmailTo">Mottaker Backup E-post (<code>ALERT_EMAIL_TO</code>)</label>
+              <input type="email" id="setAlertEmailTo" placeholder="din.epost@domene.no">
+            </div>
+            <div class="field-group">
+              <label for="setSmtpUser">Avsender SMTP-konto (<code>SMTP_USER</code>)</label>
+              <input type="email" id="setSmtpUser" placeholder="din.gmail@gmail.com">
+            </div>
+            <div class="field-group">
+              <label for="setSmtpPass">SMTP App-Passord (<code>SMTP_PASS</code>)</label>
+              <input type="password" id="setSmtpPass" placeholder="Google / SMTP App Password (la stå tom for å beholde)">
+            </div>
+            <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setSmtpServer">SMTP Server</label>
+                <input type="text" id="setSmtpServer" value="smtp.gmail.com">
+              </div>
+              <div class="field-group">
+                <label for="setSmtpPort">Port</label>
+                <input type="number" id="setSmtpPort" value="587">
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="setWebhookBaseUrl">Failover Webhook URL (<code>WEBHOOK_BASE_URL</code>)</label>
+              <input type="text" id="setWebhookBaseUrl" value="http://localhost:8000">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: AI & Market Data -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🧠 AI Risikomanager (Ollama / Gemini) &amp; Data</h3>
+              <p>Lokal-først Ollama som standard + valgfri Gemini-fallback og Massive BBO</p>
+            </div>
+            <span class="pill pill-cyan" id="setAiHint">Lokal-først</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div class="field-group">
+              <label for="setLlmProvider">Primær LLM-motor (<code>LLM_PROVIDER</code>)</label>
+              <select id="setLlmProvider">
+                <option value="ollama">Lokal Ollama (Anbefalt, $0 kostnad)</option>
+                <option value="gemini">Google Gemini API</option>
+              </select>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setOllamaHost">Ollama Host</label>
+                <input type="text" id="setOllamaHost" value="http://localhost:11434">
+              </div>
+              <div class="field-group">
+                <label for="setOllamaModel">Ollama Modell</label>
+                <input type="text" id="setOllamaModel" value="qwen2.5:14b">
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setGeminiModel">Gemini Modell</label>
+                <input type="text" id="setGeminiModel" value="gemini-2.5-flash">
+              </div>
+              <div class="field-group">
+                <label for="setGeminiKey">Gemini API Key (valgfritt)</label>
+                <input type="password" id="setGeminiKey" placeholder="La stå tom for å beholde">
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="setMassiveKey">Massive / Polygon API Key (valgfritt)</label>
+              <input type="password" id="setMassiveKey" placeholder="La stå tom for å beholde">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; display:flex; gap:10px; justify-content:flex-end;">
+        <button class="btn btn-success" onclick="saveSettingsForm()">💾 Lagre Alle Innstillinger til .env &amp; Test Tilkobling</button>
+      </div>
+    </section>
+
       </div>
     </div>
   </div>
@@ -3441,7 +3601,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       portfolio: ["sec-portfolio"],
       trading: ["sec-alpaca", "sec-pipeline"],
       markets: ["sec-obx-hitl", "sec-bridge"],
-      analytics: ["sec-backtest", "sec-docs"]
+      analytics: ["sec-backtest", "sec-docs"],
+      settings: ["sec-settings"]
     };
 
     function switchCategory(catKey) {
@@ -3996,6 +4157,91 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       if (sb) sb.addEventListener("scroll", () => tip.classList.remove("visible"));
     })();
 
+    async function loadSettingsForm() {
+      const statusEl = document.getElementById("settingsSaveStatus");
+      try {
+        const res = await fetch(`${SERVER_URL}/api/settings`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const p = data.plain || {};
+        const s = data.secrets || {};
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+
+        setVal("setAlpacaEndpoint", p.ALPACA_ENDPOINT || "https://paper-api.alpaca.markets/v2");
+        setVal("setAlpacaInitEq", p.ALPACA_INITIAL_EQUITY || "100000");
+        setVal("setTgChatId", p.TELEGRAM_CHAT_ID || "");
+        setVal("setAlertEmailTo", p.ALERT_EMAIL_TO || "");
+        setVal("setSmtpUser", p.SMTP_USER || "");
+        setVal("setSmtpServer", p.SMTP_SERVER || "smtp.gmail.com");
+        setVal("setSmtpPort", p.SMTP_PORT || "587");
+        setVal("setWebhookBaseUrl", p.WEBHOOK_BASE_URL || "http://localhost:8000");
+        setVal("setLlmProvider", p.LLM_PROVIDER || "ollama");
+        setVal("setOllamaHost", p.OLLAMA_HOST || "http://localhost:11434");
+        setVal("setOllamaModel", p.OLLAMA_MODEL || "qwen2.5:14b");
+        setVal("setGeminiModel", p.GEMINI_MODEL || "gemini-2.5-flash");
+
+        const alpHint = document.getElementById("setAlpacaHint");
+        if (alpHint) alpHint.textContent = (s.ALPACA_API_KEY && s.ALPACA_API_KEY.set) ? `Nøkkel satt (${s.ALPACA_API_KEY.hint})` : "Mangler API-nøkkel";
+        const tgHint = document.getElementById("setTgHint");
+        if (tgHint) tgHint.textContent = (s.TELEGRAM_BOT_TOKEN && s.TELEGRAM_BOT_TOKEN.set) ? `Bot satt (${s.TELEGRAM_BOT_TOKEN.hint})` : "Mangler Bot Token";
+        const smtpHint = document.getElementById("setSmtpHint");
+        if (smtpHint) smtpHint.textContent = (s.SMTP_PASS && s.SMTP_PASS.set) ? "SMTP Klar" : "SMTP Ikke konfigurert";
+      } catch (err) {
+        if (statusEl) statusEl.innerHTML = `<span class="text-amber">Kunne ikke laste innstillinger fra lokal server: ${err}</span>`;
+      }
+    }
+
+    async function saveSettingsForm() {
+      const statusEl = document.getElementById("settingsSaveStatus");
+      if (statusEl) statusEl.innerHTML = `<span class="text-cyan">Lagrer til lokal .env og tester Alpaca Paper-tilkobling...</span>`;
+      const val = (id) => (document.getElementById(id) || {}).value || "";
+      const payload = {
+        ALPACA_ENDPOINT: val("setAlpacaEndpoint"),
+        ALPACA_INITIAL_EQUITY: val("setAlpacaInitEq"),
+        ALPACA_API_KEY: val("setAlpacaKey"),
+        ALPACA_SECRET_KEY: val("setAlpacaSecret"),
+        TELEGRAM_BOT_TOKEN: val("setTgToken"),
+        TELEGRAM_CHAT_ID: val("setTgChatId"),
+        ALERT_EMAIL_TO: val("setAlertEmailTo"),
+        SMTP_USER: val("setSmtpUser"),
+        SMTP_PASS: val("setSmtpPass"),
+        SMTP_SERVER: val("setSmtpServer"),
+        SMTP_PORT: val("setSmtpPort"),
+        WEBHOOK_BASE_URL: val("setWebhookBaseUrl"),
+        LLM_PROVIDER: val("setLlmProvider"),
+        OLLAMA_HOST: val("setOllamaHost"),
+        OLLAMA_MODEL: val("setOllamaModel"),
+        GEMINI_MODEL: val("setGeminiModel"),
+        GEMINI_API_KEY: val("setGeminiKey"),
+        MASSIVE_API_KEY: val("setMassiveKey")
+      };
+      try {
+        const res = await fetch(`${SERVER_URL}/api/settings`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          ["setAlpacaKey", "setAlpacaSecret", "setTgToken", "setSmtpPass", "setGeminiKey", "setMassiveKey"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+          });
+          const alpMsg = data.alpaca_connected
+            ? `✅ Alpaca Paper tilkoblet (Cash: $${Number(data.alpaca_cash).toLocaleString("en-US", { minimumFractionDigits: 2 })})`
+            : `⚠️ Alpaca Paper ikke tilkoblet enda (${data.alpaca_error || "sjekk Paper API-nøkler"})`;
+          if (statusEl) statusEl.innerHTML = `<span class="pill pill-green">LAGRET</span> ${data.updated_count} felt oppdatert i <code>.env</code>. ${alpMsg}`;
+          loadSettingsForm();
+          loadRulebookAndFailover();
+          refreshAlpacaPortfolio();
+        } else {
+          if (statusEl) statusEl.innerHTML = `<span class="pill pill-red">AVVIST</span> <span class="text-red">${data.error || "Kunne ikke lagre"}</span>`;
+        }
+      } catch (err) {
+        if (statusEl) statusEl.innerHTML = `<span class="pill pill-red">FEIL</span> <span class="text-red">${err}</span>`;
+      }
+    }
+
     // Initialiser ved oppstart (Vis 01 Overview som fokusert startside)
     renderAllSections();
     syncStrategyOrderPreview();
@@ -4005,6 +4251,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     syncSchedulerStatus();
     loadRulebookAndFailover();
     loadOmxn40Universe();
+    loadSettingsForm();
     setInterval(checkServerConnection, 6000);
     setInterval(syncSchedulerStatus, 15000);
     setInterval(refreshAlpacaPortfolio, 15000);

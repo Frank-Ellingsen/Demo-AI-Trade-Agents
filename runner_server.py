@@ -739,6 +739,98 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(out_bytes)))
             self.end_headers()
             self.wfile.write(out_bytes)
+        elif parsed.path == "/api/settings":
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body)
+            try:
+                allowed_plain = {
+                    "ALPACA_ENDPOINT",
+                    "ALPACA_INITIAL_EQUITY",
+                    "TELEGRAM_CHAT_ID",
+                    "SMTP_SERVER",
+                    "SMTP_PORT",
+                    "SMTP_USER",
+                    "ALERT_EMAIL_TO",
+                    "WEBHOOK_BASE_URL",
+                    "LLM_PROVIDER",
+                    "OLLAMA_HOST",
+                    "OLLAMA_MODEL",
+                    "GEMINI_MODEL",
+                }
+                allowed_secrets = {
+                    "ALPACA_API_KEY",
+                    "ALPACA_SECRET_KEY",
+                    "TELEGRAM_BOT_TOKEN",
+                    "SMTP_PASS",
+                    "GEMINI_API_KEY",
+                    "MASSIVE_API_KEY",
+                }
+                env_path = BASE_DIR / ".env"
+                existing_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+                updates: dict[str, str] = {}
+
+                for key in allowed_plain:
+                    if key in payload:
+                        val = str(payload.get(key) or "").strip()
+                        if key == "ALPACA_ENDPOINT" and val:
+                            ep_check = urlparse(val)
+                            if ep_check.scheme != "https" or (ep_check.hostname or "").lower() != "paper-api.alpaca.markets":
+                                raise ValueError("SIKKERHETSSPERRE: Kun https://paper-api.alpaca.markets/v2 er tillatt.")
+                        if val:
+                            updates[key] = val
+
+                for key in allowed_secrets:
+                    if key in payload:
+                        val = str(payload.get(key) or "").strip()
+                        if val:
+                            updates[key] = val
+
+                # Keep legacy lowercase alpaca aliases synchronized if present
+                if "ALPACA_API_KEY" in updates:
+                    updates["alpaca_key"] = updates["ALPACA_API_KEY"]
+                if "ALPACA_SECRET_KEY" in updates:
+                    updates["alpaca_secret"] = updates["ALPACA_SECRET_KEY"]
+                if "ALPACA_ENDPOINT" in updates:
+                    updates["alpaca_endpoint"] = updates["ALPACA_ENDPOINT"]
+
+                updated_keys: set[str] = set()
+                new_lines: list[str] = []
+                for line in existing_lines:
+                    stripped = line.strip()
+                    if stripped and not stripped.startswith("#") and "=" in stripped:
+                        k = stripped.split("=", 1)[0].strip()
+                        if k in updates:
+                            new_lines.append(f"{k}={updates[k]}")
+                            updated_keys.add(k)
+                            continue
+                    new_lines.append(line)
+
+                for k, v in updates.items():
+                    if k not in updated_keys:
+                        new_lines.append(f"{k}={v}")
+
+                env_path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+                _reload_env()
+                alp_snap = _fetch_alpaca_portfolio_safe()
+                res_obj = {
+                    "success": True,
+                    "updated_count": len(updates),
+                    "alpaca_connected": bool(alp_snap.get("connected")),
+                    "alpaca_cash": alp_snap.get("cash", 0.0),
+                    "alpaca_error": alp_snap.get("error", ""),
+                }
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
         else:
             out_bytes = json.dumps({"success": False, "error": f"Ukjent endepunkt: {parsed.path}"}).encode("utf-8")
             self.send_response(404)
@@ -749,6 +841,55 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+
+        if parsed.path == "/api/settings":
+            _reload_env()
+
+            def _mask(val: str) -> str:
+                s = (val or "").strip()
+                if not s:
+                    return ""
+                return (s[:4] + "••••") if len(s) >= 6 else "••••"
+
+            alp_key = os.getenv("ALPACA_API_KEY") or os.getenv("alpaca_key") or ""
+            alp_sec = os.getenv("ALPACA_SECRET_KEY") or os.getenv("alpaca_secret") or ""
+            alp_ep = os.getenv("ALPACA_ENDPOINT") or os.getenv("alpaca_endpoint") or "https://paper-api.alpaca.markets/v2"
+            tg_tok = os.getenv("TELEGRAM_BOT_TOKEN") or ""
+            smtp_pw = os.getenv("SMTP_PASS") or ""
+            gem_key = os.getenv("GEMINI_API_KEY") or ""
+            mas_key = os.getenv("MASSIVE_API_KEY") or ""
+
+            res_obj = {
+                "plain": {
+                    "ALPACA_ENDPOINT": alp_ep,
+                    "ALPACA_INITIAL_EQUITY": os.getenv("ALPACA_INITIAL_EQUITY", "100000"),
+                    "TELEGRAM_CHAT_ID": os.getenv("TELEGRAM_CHAT_ID", ""),
+                    "SMTP_SERVER": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
+                    "SMTP_PORT": os.getenv("SMTP_PORT", "587"),
+                    "SMTP_USER": os.getenv("SMTP_USER", ""),
+                    "ALERT_EMAIL_TO": os.getenv("ALERT_EMAIL_TO", os.getenv("SMTP_USER", "")),
+                    "WEBHOOK_BASE_URL": os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000"),
+                    "LLM_PROVIDER": os.getenv("LLM_PROVIDER", "ollama"),
+                    "OLLAMA_HOST": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+                    "OLLAMA_MODEL": os.getenv("OLLAMA_MODEL", "qwen2.5:14b"),
+                    "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                },
+                "secrets": {
+                    "ALPACA_API_KEY": {"set": bool(alp_key), "hint": _mask(alp_key)},
+                    "ALPACA_SECRET_KEY": {"set": bool(alp_sec), "hint": _mask(alp_sec)},
+                    "TELEGRAM_BOT_TOKEN": {"set": bool(tg_tok), "hint": _mask(tg_tok)},
+                    "SMTP_PASS": {"set": bool(smtp_pw), "hint": _mask(smtp_pw)},
+                    "GEMINI_API_KEY": {"set": bool(gem_key), "hint": _mask(gem_key)},
+                    "MASSIVE_API_KEY": {"set": bool(mas_key), "hint": _mask(mas_key)},
+                },
+            }
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
 
         # Failover webhook endpoints (/approve & /reject) from failover_approver.py
         if parsed.path in ("/approve", "/reject"):
