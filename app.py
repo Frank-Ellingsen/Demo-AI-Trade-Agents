@@ -370,7 +370,6 @@ def main() -> None:
             if st.button("📲 Generer Papirer & Send til Telegram for Godkjenning", disabled=not cash_ok, use_container_width=True):
                 try:
                     import time as _time
-                    from dynamic_recommender import DynamicRecommender
 
                     p_map = {"1.": "2", "2.": "1", "3.": "3", "4.": "2"}
                     p_key = p_map.get(strat_choice[:2], "2")
