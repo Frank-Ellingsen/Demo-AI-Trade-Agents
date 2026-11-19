@@ -1000,6 +1000,7 @@
         <div class="sidebar-group-label">Dokumentasjon</div>
         <div class="sidebar-links">
           <a href="http://localhost:8000/rulebook" target="_blank" class="sidebar-link" data-tooltip="Operativt regelverk for Agent 1–4: hard veto ved kvartalstall (48t), ATR-stopp, sektortak og 3-trinns failover."><span>📜 Agent Rulebook</span><span>↗</span></a>
+          <a href="http://localhost:8000/tax-fx" target="_blank" class="sidebar-link" data-tooltip="Deterministisk skatte-, gebyr- og valutastruktur (ASK vs. Alpaca USD-pool, All-in kostnadsmodell og Trade Hurdle Rule)."><span>💰 Skatt, Gebyr &amp; FX</span><span>↗</span></a>
           <a href="http://localhost:8000/guide" target="_blank" class="sidebar-link" data-tooltip="Komplett brukermanual for daglig drift, Alpaca Paper-oppsett, Windows Task Scheduler og feilsøking."><span>🛠️ Brukermanual</span><span>↗</span></a>
           <a href="http://localhost:8000/dummies" target="_blank" class="sidebar-link" data-tooltip="Lettfattelig guide til AI-trading, ATR(14) stop-loss, risikoprofiler, dekkede opsjoner og 5-stegs oppstart."><span>📘 Strategi for Dummies</span><span>↗</span></a>
           <a href="http://localhost:8000/brukertest" target="_blank" class="sidebar-link" data-tooltip="UX-protokoll for Telegram Human-in-the-Loop godkjenningskort, knapper og sikkerhetsvarsler."><span>📲 Telegram UX-Protokoll</span><span>↗</span></a>
@@ -2291,6 +2292,44 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </div>
           <div id="failoverQueueBox" style="font-size: 0.85rem; color: var(--muted);">Ingen ventende failover-ordrer i køen.</div>
         </div>
+      </div>
+
+      <!-- Deterministic Tax, Fee & FX Routing & Trade Hurdle Engine -->
+      <div class="card" style="margin-top: 14px;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>💰 Deterministisk Tax, Fee &amp; FX Hurdle-Motor (<code>src/portfolio/tax_fee_fx_engine.py</code>)</h3>
+            <p>Hard portvakt (&lt;1 ms) før Telegram HITL: EØS/ASK-ruting, 7-komponents All-In friksjon og <code>E[Alpha] &gt; C_all_in + Buffer</code></p>
+          </div>
+          <a href="http://localhost:8000/tax-fx" target="_blank" class="btn btn-outline btn-sm">Åpne arkitektur-dok ↗</a>
+        </div>
+        <div class="controls-bar" style="margin-top: 10px; margin-bottom: 10px; display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end;">
+          <div class="field-group">
+            <label for="tfTickerInput">Ticker (f.eks. NVDA, EQNR.OL, NOVO-B.CO)</label>
+            <input type="text" id="tfTickerInput" value="NVDA">
+          </div>
+          <div class="field-group">
+            <label for="tfValueInput">Ordreverdi</label>
+            <input type="number" id="tfValueInput" value="10000" step="1000">
+          </div>
+          <div class="field-group">
+            <label for="tfAlphaInput">Forventet Brutto Alfa (%)</label>
+            <input type="number" id="tfAlphaInput" value="1.20" step="0.10">
+          </div>
+          <div class="field-group">
+            <label for="tfBrokerSelect">Megler / Konto</label>
+            <select id="tfBrokerSelect">
+              <option value="">Auto (Anbefalt ruting)</option>
+              <option value="alpaca_usd_pool">Alpaca USD-pool ($0)</option>
+              <option value="nordnet_ask_mini">Nordnet ASK Mini</option>
+              <option value="nordnet_ask_normal">Nordnet ASK Normal</option>
+              <option value="saxo_classic">Saxo Classic</option>
+              <option value="saxo_vip">Saxo VIP</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="evaluateTaxFeeFx()">Beregn Hurdle &amp; Ruting</button>
+        </div>
+        <div id="tfResultBox" style="font-size: 0.88rem; color: var(--text-muted);">Klikk «Beregn Hurdle &amp; Ruting» for å teste portvakten.</div>
       </div>
     </section>
 
@@ -4248,6 +4287,45 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    async function evaluateTaxFeeFx() {
+      const out = document.getElementById("tfResultBox");
+      if (!out) return;
+      out.innerHTML = `<span class="text-cyan">Beregner deterministisk kostnads- og rutingmodell...</span>`;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/tax-fx/evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({
+            ticker: (document.getElementById("tfTickerInput") || {}).value || "NVDA",
+            trade_value: parseFloat((document.getElementById("tfValueInput") || {}).value) || 10000,
+            expected_alpha_pct: parseFloat((document.getElementById("tfAlphaInput") || {}).value) || 1.2,
+            broker_key: (document.getElementById("tfBrokerSelect") || {}).value || ""
+          })
+        });
+        const d = await res.json();
+        if (!d.success) {
+          out.innerHTML = `<span class="text-red">Feil: ${d.error}</span>`;
+          return;
+        }
+        const c = d.costs_pct || {};
+        out.innerHTML = `
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+            <span class="pill ${d.passed ? "pill-green" : "pill-red"}">${d.decision}</span>
+            <strong>${d.ticker}</strong> → <span>${d.routing.recommended_account}</span>
+            <span class="pill pill-cyan">ASK: ${d.in_ask ? "Ja (0% løpende skatt)" : "Nei"}</span>
+          </div>
+          <div style="color:var(--text-muted); margin-bottom:6px;">
+            <strong>All-In Kostnad:</strong> ${d.all_in_cost_pct.toFixed(3)} % (Kurtasje ${c.commission} %, Spread ${c.spread} %, Slippage ${c.slippage} %, FX ${c.fx} %, Reg ${c.regulatory} %, Depot ${c.custody} %, Skattedrag ${c.tax_drag} %) |
+            <strong>Hurdle (+${d.alpha_buffer_pct}% buffer):</strong> ${d.hurdle_pct.toFixed(3)} % |
+            <strong>Netto Alfa:</strong> <strong class="${d.net_alpha_pct > 0 ? "text-green" : "text-red"}">${d.net_alpha_pct >= 0 ? "+" : ""}${d.net_alpha_pct.toFixed(3)} %</strong>
+          </div>
+          <div style="font-size:11.5px; color:var(--text-dim);">Begrunnelse: ${d.routing.rationale}</div>
+        `;
+      } catch (err) {
+        out.innerHTML = `<span class="text-red">Kunne ikke nå /api/tax-fx/evaluate: ${err}</span>`;
+      }
+    }
+
     // Initialiser ved oppstart (Vis 01 Overview som fokusert startside)
     renderAllSections();
     syncStrategyOrderPreview();
@@ -4258,6 +4336,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     loadRulebookAndFailover();
     loadOmxn40Universe();
     loadSettingsForm();
+    evaluateTaxFeeFx();
     setInterval(checkServerConnection, 6000);
     setInterval(syncSchedulerStatus, 15000);
     setInterval(refreshAlpacaPortfolio, 15000);

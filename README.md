@@ -123,6 +123,7 @@ powershell -ExecutionPolicy Bypass -File .\setup_windows_scheduler.ps1 -Install
 ## Documentation
 
 - [docs/trading_agent_rulebook.md](docs/trading_agent_rulebook.md) — Operative Agent 1–4 veto rules, strategy matrix, and 3-tier failover protocol.
+- [docs/anbefalte_opt_tax_fee_fx_struktur.md](docs/anbefalte_opt_tax_fee_fx_struktur.md) — Deterministic Tax, Fee & FX routing architecture and Trade Hurdle Rule.
 - [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — Daily operations, Sunday audit, risk profiles, and troubleshooting.
 - [docs/ai-trading-strategi-for-dummies.md](docs/ai-trading-strategi-for-dummies.md) — Strategy & risk profile guide.
 - [docs/ui_ux_bruker_test.md](docs/ui_ux_bruker_test.md) — Telegram HITL UX protocol.

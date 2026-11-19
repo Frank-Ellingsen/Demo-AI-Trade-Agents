@@ -739,6 +739,37 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(out_bytes)))
             self.end_headers()
             self.wfile.write(out_bytes)
+        elif parsed.path == "/api/tax-fx/evaluate":
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body)
+            try:
+                from src.portfolio.tax_fee_fx_engine import evaluate_trade_hurdle
+
+                res_obj = evaluate_trade_hurdle(
+                    ticker=str(payload.get("ticker", "NVDA")),
+                    trade_value=float(payload.get("trade_value", 10000.0)),
+                    expected_alpha_pct=float(payload.get("expected_alpha_pct", 1.2)),
+                    broker_key=payload.get("broker_key") or None,
+                    spread_pct=float(payload.get("spread_pct", 0.05)),
+                    slippage_pct=float(payload.get("slippage_pct", 0.05)),
+                    alpha_buffer_pct=float(payload.get("alpha_buffer_pct", 0.20)),
+                    holding_days=int(payload.get("holding_days", 10)),
+                    fx_mode=str(payload.get("fx_mode", "auto")),
+                    is_adr=bool(payload.get("is_adr", False)),
+                )
+                res_obj["success"] = True
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
         elif parsed.path == "/api/settings":
             content_len = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
@@ -987,7 +1018,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(data)
                 return
 
-        if parsed.path in ("/guide", "/dummies", "/readme", "/brukertest", "/brukertest-nybegynner", "/rulebook") or parsed.path.endswith(".md"):
+        if parsed.path in ("/guide", "/dummies", "/readme", "/brukertest", "/brukertest-nybegynner", "/rulebook", "/tax-fx") or parsed.path.endswith(".md"):
             md_map = {
                 "/guide": BASE_DIR / "docs" / "USER_GUIDE.md",
                 "/dummies": BASE_DIR / "docs" / "ai-trading-strategi-for-dummies.md",
@@ -995,6 +1026,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 "/brukertest": BASE_DIR / "docs" / "ui_ux_bruker_test.md",
                 "/brukertest-nybegynner": BASE_DIR / "docs" / "bruker-test-nybegynner.md",
                 "/rulebook": BASE_DIR / "docs" / "trading_agent_rulebook.md",
+                "/tax-fx": BASE_DIR / "docs" / "anbefalte_opt_tax_fee_fx_struktur.md",
             }
             md_file = md_map.get(parsed.path) or (BASE_DIR / "docs" / parsed.path.lstrip("/"))
             if not md_file.exists():

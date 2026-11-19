@@ -483,6 +483,34 @@ def test_scheduler_daemon_and_triggers(tmp_path) -> None:
     assert "obx_eod_scan" in fired
 
 
+def test_tax_fee_fx_routing_and_trade_hurdle() -> None:
+    """Verify deterministic Tax, Fee & FX routing and Trade Hurdle Rule."""
+    from src.portfolio.tax_fee_fx_engine import evaluate_trade_hurdle, route_instrument
+
+    # 1. Routing rules
+    r_us = route_instrument("NVDA")
+    assert r_us.recommended_broker_key == "alpaca_usd_pool"
+    assert r_us.ask_qualified is False
+
+    r_no = route_instrument("EQNR.OL")
+    assert "Nordnet ASK" in r_no.recommended_account
+    assert r_no.ask_qualified is True
+
+    r_dk = route_instrument("NOVO-B.CO")
+    assert r_dk.ask_qualified is True
+
+    # 2. Trade Hurdle PASS (US Alpaca $0 commission, 0% FX in USD pool)
+    res_pass = evaluate_trade_hurdle("NVDA", trade_value=10_000.0, expected_alpha_pct=1.20)
+    assert res_pass["passed"] is True
+    assert res_pass["costs_pct"]["commission"] == 0.0
+    assert res_pass["costs_pct"]["fx"] == 0.0
+
+    # 3. Trade Hurdle REJECT (expected alpha below all-in cost + 0.20% buffer)
+    res_fail = evaluate_trade_hurdle("NVDA", trade_value=10_000.0, expected_alpha_pct=0.25, spread_pct=0.15)
+    assert res_fail["passed"] is False
+    assert res_fail["all_in_cost_pct"] + res_fail["alpha_buffer_pct"] > 0.25
+
+
 
 
 

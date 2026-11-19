@@ -616,6 +616,7 @@ def main() -> None:
             options=[
                 "📲 UI/UX Brukertest & 6-Felts Telegram Beslutningsprotokoll (ui_ux_bruker_test.md)",
                 "📜 Agent Rulebook & Failover (docs/trading_agent_rulebook.md)",
+                "💰 Skatt, Gebyr & FX-Struktur (docs/anbefalte_opt_tax_fee_fx_struktur.md)",
                 "🧪 Nybegynner-Brukertest (docs/bruker-test-nybegynner.md)",
                 "📘 AI Trading Strategi for Dummies (docs/ai-trading-strategi-for-dummies.md)",
                 "🛠️ Operasjonell Brukermanual (docs/USER_GUIDE.md)",
@@ -625,6 +626,8 @@ def main() -> None:
         )
         if doc_choice.startswith("📜"):
             doc_path = settings.base_dir / "docs" / "trading_agent_rulebook.md"
+        elif doc_choice.startswith("💰"):
+            doc_path = settings.base_dir / "docs" / "anbefalte_opt_tax_fee_fx_struktur.md"
         elif doc_choice.startswith("🧪"):
             doc_path = settings.base_dir / "docs" / "bruker-test-nybegynner.md"
         elif doc_choice.startswith("📲"):
@@ -682,6 +685,32 @@ def main() -> None:
         pending_fo = list_pending_approvals()
         if pending_fo:
             st.dataframe(pending_fo, use_container_width=True, hide_index=True)
+
+        st.divider()
+        st.subheader("💰 Deterministisk Tax, Fee & FX Hurdle-Motor (`src/portfolio/tax_fee_fx_engine.py`)")
+        from src.portfolio.tax_fee_fx_engine import BROKER_PROFILES, evaluate_trade_hurdle
+
+        tf_c1, tf_c2, tf_c3, tf_c4 = st.columns(4)
+        tf_ticker = tf_c1.text_input("Ticker", value="NVDA", key="st_tf_ticker")
+        tf_val = tf_c2.number_input("Ordreverdi", min_value=500.0, value=10000.0, step=1000.0, key="st_tf_val")
+        tf_alpha = tf_c3.number_input("Forventet Brutto Alfa (%)", min_value=0.0, value=1.20, step=0.10, key="st_tf_alpha")
+        tf_broker = tf_c4.selectbox(
+            "Megler / Konto (Auto = Anbefalt)",
+            options=["auto", *list(BROKER_PROFILES.keys())],
+            key="st_tf_broker",
+        )
+        tf_res = evaluate_trade_hurdle(
+            ticker=tf_ticker,
+            trade_value=float(tf_val),
+            expected_alpha_pct=float(tf_alpha),
+            broker_key=None if tf_broker == "auto" else tf_broker,
+        )
+        tk1, tk2, tk3, tk4 = st.columns(4)
+        tk1.metric("Anbefalt Konto", tf_res["routing"]["recommended_account"], tf_res["routing"]["market_segment"])
+        tk2.metric("All-In Kostnad", f"{tf_res['all_in_cost_pct']:.3f} %", f"ASK: {'Ja' if tf_res['in_ask'] else 'Nei'}")
+        tk3.metric("Trade Hurdle", f"{tf_res['hurdle_pct']:.3f} %", f"Netto Alfa: {tf_res['net_alpha_pct']:+.3f} %")
+        tk4.metric("Portvakt-Beslutning", "PASS ✅" if tf_res["passed"] else "REJECT ❌", tf_res["decision"])
+        st.caption(f"Begrunnelse: {tf_res['routing']['rationale']}")
 
     with tab_html:
         st.subheader("Interaktivt Kontrolltårn & HTML-Dashboards")
