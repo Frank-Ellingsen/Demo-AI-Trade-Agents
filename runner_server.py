@@ -804,6 +804,9 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 for key in allowed_plain:
                     if key in payload:
                         val = str(payload.get(key) or "").strip()
+                        # Ignore unchanged masked demo placeholders (e.g. "fr••••@hotmail.com" or "88xxxx25")
+                        if "••••" in val or "xxxx" in val.lower():
+                            continue
                         if key == "ALPACA_ENDPOINT" and val:
                             ep_check = urlparse(val)
                             if ep_check.scheme != "https" or (ep_check.hostname or "").lower() != "paper-api.alpaca.markets":
@@ -814,6 +817,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 for key in allowed_secrets:
                     if key in payload:
                         val = str(payload.get(key) or "").strip()
+                        if "••••" in val or "xxxx" in val.lower():
+                            continue
                         if val:
                             updates[key] = val
 
@@ -880,7 +885,23 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 s = (val or "").strip()
                 if not s:
                     return ""
-                return (s[:4] + "••••") if len(s) >= 6 else "••••"
+                return (s[:2] + "xxxx••••") if len(s) >= 6 else "xxxx••••"
+
+            def _mask_email(val: str) -> str:
+                s = (val or "").strip()
+                if not s:
+                    return ""
+                if "@" in s:
+                    local, dom = s.split("@", 1)
+                    prefix = local[:2] if len(local) >= 2 else "x"
+                    return f"{prefix}xxxx••••@{dom}"
+                return _mask(s)
+
+            def _mask_id(val: str) -> str:
+                s = (val or "").strip()
+                if not s:
+                    return ""
+                return f"{s[:2]}xxxx{s[-2:]}" if len(s) >= 5 else "xxxx"
 
             alp_key = os.getenv("ALPACA_API_KEY") or os.getenv("alpaca_key") or ""
             alp_sec = os.getenv("ALPACA_SECRET_KEY") or os.getenv("alpaca_secret") or ""
@@ -894,11 +915,11 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 "plain": {
                     "ALPACA_ENDPOINT": alp_ep,
                     "ALPACA_INITIAL_EQUITY": os.getenv("ALPACA_INITIAL_EQUITY", "100000"),
-                    "TELEGRAM_CHAT_ID": os.getenv("TELEGRAM_CHAT_ID", ""),
+                    "TELEGRAM_CHAT_ID": _mask_id(os.getenv("TELEGRAM_CHAT_ID", "")),
                     "SMTP_SERVER": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
                     "SMTP_PORT": os.getenv("SMTP_PORT", "587"),
-                    "SMTP_USER": os.getenv("SMTP_USER", ""),
-                    "ALERT_EMAIL_TO": os.getenv("ALERT_EMAIL_TO", os.getenv("SMTP_USER", "")),
+                    "SMTP_USER": _mask_email(os.getenv("SMTP_USER", "")),
+                    "ALERT_EMAIL_TO": _mask_email(os.getenv("ALERT_EMAIL_TO", os.getenv("SMTP_USER", ""))),
                     "WEBHOOK_BASE_URL": os.getenv("WEBHOOK_BASE_URL", "http://localhost:8000"),
                     "LLM_PROVIDER": os.getenv("LLM_PROVIDER", "ollama"),
                     "OLLAMA_HOST": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
