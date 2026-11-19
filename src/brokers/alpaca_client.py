@@ -191,6 +191,10 @@ class AlpacaClient:
                 "submitted_at": str(o.get("submitted_at") or ""),
             })
 
+        unrealized_pl = sum(float(p.get("unrealized_pl", 0.0)) for p in norm_positions)
+        initial_equity = float(os.getenv("ALPACA_INITIAL_EQUITY", "100000.0"))
+        realized_pl = (equity - initial_equity) - unrealized_pl
+
         return {
             "connected": True,
             "endpoint": self.endpoint,
@@ -203,6 +207,8 @@ class AlpacaClient:
             "long_market_value": round(long_mv, 2),
             "today_pnl": round(today_pnl, 2),
             "today_pnl_pct": round(today_pnl_pct, 2),
+            "unrealized_pl": round(unrealized_pl, 2),
+            "realized_pl": round(realized_pl, 2),
             "positions": norm_positions,
             "recent_orders": norm_orders,
         }

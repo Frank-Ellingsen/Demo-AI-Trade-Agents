@@ -1162,6 +1162,29 @@
         </div>
       </div>
 
+      <div class="kpi-grid" style="margin-bottom: 16px;">
+        <div class="kpi-item highlight-cyan">
+          <div class="kpi-label">Total Egenkapital (Alpaca Paper)</div>
+          <div class="kpi-value" id="portEquityVal">$100,000.00</div>
+          <div class="kpi-sub" id="portEquitySub">Markedsverdi + kontanter</div>
+        </div>
+        <div class="kpi-item highlight-green">
+          <div class="kpi-label">Realised P&amp;L (Realisert)</div>
+          <div class="kpi-value" id="portRealizedPnl">$0.00</div>
+          <div class="kpi-sub" id="portRealizedSub">Lukkede handler mot startkapital</div>
+        </div>
+        <div class="kpi-item highlight-green">
+          <div class="kpi-label">Urealisert P&amp;L (Åpne Posisjoner)</div>
+          <div class="kpi-value" id="portUnrealizedPnl">$0.00</div>
+          <div class="kpi-sub" id="portUnrealizedSub">Løpende mark-to-market</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-label">Tilgjengelig Cash</div>
+          <div class="kpi-value" id="portCashVal">$100,000.00</div>
+          <div class="kpi-sub" id="portCashSub">100.0 % kontantbuffer</div>
+        </div>
+      </div>
+
       <div class="grid-pipeline">
         <!-- Left: Holdings Table -->
         <div class="card">
@@ -1170,7 +1193,7 @@
               <h3>Holdings Table (Åpne Posisjoner)</h3>
               <p>Ticker, antall, snittkost, markedsverdi, daglig endring og urealisert P&amp;L</p>
             </div>
-            <span class="pill pill-cyan">Saxo ASK + Alpaca Paper</span>
+            <span class="pill pill-cyan">Alpaca Paper v2</span>
           </div>
           <div class="table-wrap">
             <table class="tufte-table">
@@ -3522,8 +3545,35 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const mv = Number(alp.long_market_value || 0);
       const pnl = Number(alp.today_pnl || 0);
       const pnlPct = Number(alp.today_pnl_pct || 0);
+      const unrealizedPl = Number(
+        alp.unrealized_pl !== undefined
+          ? alp.unrealized_pl
+          : posList.reduce((acc, p) => acc + Number(p.unrealized_pl || 0), 0)
+      );
+      const realizedPl = Number(
+        alp.realized_pl !== undefined
+          ? alp.realized_pl
+          : (eq - 100000.0) - unrealizedPl
+      );
       const cashPct = eq > 0 ? (cash / eq) * 100.0 : 100.0;
       const mvPct = eq > 0 ? (mv / eq) * 100.0 : 0.0;
+
+      const pEq = document.getElementById("portEquityVal");
+      if (pEq) pEq.textContent = fmtUsd(eq);
+      const pReal = document.getElementById("portRealizedPnl");
+      if (pReal) {
+        pReal.textContent = `${realizedPl >= 0 ? "+" : "-"}${fmtUsd(Math.abs(realizedPl))}`;
+        pReal.className = `kpi-value ${realizedPl > 0 ? "text-green" : (realizedPl < 0 ? "text-red" : "")}`;
+      }
+      const pUnreal = document.getElementById("portUnrealizedPnl");
+      if (pUnreal) {
+        pUnreal.textContent = `${unrealizedPl >= 0 ? "+" : "-"}${fmtUsd(Math.abs(unrealizedPl))}`;
+        pUnreal.className = `kpi-value ${unrealizedPl > 0 ? "text-green" : (unrealizedPl < 0 ? "text-red" : "")}`;
+      }
+      const pCash = document.getElementById("portCashVal");
+      if (pCash) pCash.textContent = fmtUsd(cash);
+      const pCashSub = document.getElementById("portCashSub");
+      if (pCashSub) pCashSub.textContent = `${cashPct.toFixed(1)} % kontantbuffer`;
 
       document.getElementById("ovTotalValue").textContent = fmtUsd(eq);
       document.getElementById("ovTotalSub").textContent = alp.connected

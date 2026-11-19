@@ -193,6 +193,8 @@ def _fetch_alpaca_portfolio_safe() -> dict[str, Any]:
             "long_market_value": 0.0,
             "today_pnl": 0.0,
             "today_pnl_pct": 0.0,
+            "unrealized_pl": 0.0,
+            "realized_pl": 0.0,
             "positions": [],
             "recent_orders": [],
         }
