@@ -897,6 +897,27 @@
       align-items: center;
       justify-content: space-between;
     }
+    /* Floating Sidebar Hover Tooltip */
+    #sidebarHoverTooltip {
+      position: fixed;
+      z-index: 9999;
+      max-width: 290px;
+      padding: 8px 11px;
+      background: #0d1624;
+      color: #edf3f5;
+      border: 1px solid #38515c;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.45;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: opacity 110ms ease, transform 110ms ease;
+    }
+    #sidebarHoverTooltip.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
   </style>
 </head>
 <body>
@@ -914,10 +935,10 @@
       </div>
 
       <div style="display:flex; flex-direction:column; gap:6px;">
-        <a href="http://localhost:8000/streamlined" target="_blank" class="btn btn-primary btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;">
+        <a href="http://localhost:8000/streamlined" target="_blank" class="btn btn-primary btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" data-tooltip="Ren og nybegynnervennlig handelsterminal med 01–05 meny, US/OMXN40/OBX15 overvåkning, OCO-skjema og pop-up AI-rådgiver.">
           <span>⚡ Streamlined Terminal</span><span>↗</span>
         </a>
-        <a href="http://localhost:8000/strategi-radgiver" target="_blank" class="btn btn-outline btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;">
+        <a href="http://localhost:8000/strategi-radgiver" target="_blank" class="btn btn-outline btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" data-tooltip="Interaktivt strategidashbord for å sammenligne risikoprofiler (Konservativ, Balansert, Aggressiv) og få AI-råd før handel.">
           <span>🧠 Strategi-Rådgiver</span><span>↗</span>
         </a>
       </div>
@@ -925,22 +946,22 @@
       <div>
         <div class="sidebar-group-label">Hovedmeny (5 Kjerneområder)</div>
         <nav class="sidebar-nav" aria-label="Hovednavigasjon">
-          <button class="nav-tab active" data-section="cat-overview" onclick="switchCategory('overview')">
+          <button class="nav-tab active" data-section="cat-overview" onclick="switchCategory('overview')" data-tooltip="Sammendrag av Alpaca Paper egenkapital, tilgjengelig cash, daglig P&amp;L, 1-klikks pipeline og tidsplanstatus.">
             <span class="tab-num">01</span>Overview <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Sammendrag</span>
           </button>
-          <button class="nav-tab" data-section="cat-portfolio" onclick="switchCategory('portfolio')">
+          <button class="nav-tab" data-section="cat-portfolio" onclick="switchCategory('portfolio')" data-tooltip="Live synkronisert oversikt over åpne posisjoner, urealisert P&amp;L, siste ordrer og kontantbuffer fra Alpaca Paper.">
             <span class="tab-num">02</span>Portfolio <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Hvordan går det?</span>
           </button>
-          <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')">
+          <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')" data-tooltip="Velg strategi + USD-beløp for Telegram-godkjenning, legg inn manuell OCO Bracket-ordre, eller styr 3-trinns failover og HITL-kø.">
             <span class="tab-num">03</span>Trading <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Kjøp / Salg / HITL</span>
           </button>
-          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')">
+          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live BBO-kurser, AI Strategi-rådgiver, Norden (OMXN40 — 40 selskaper) og Norge (OBX 15) teknisk oversikt.">
             <span class="tab-num">04</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Screener &amp; BBO</span>
           </button>
-          <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')">
+          <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="US &amp; Nordisk Multi-Univers backtest, kostnadsdrag, Sortino Ratio, konseptdrift og Shadow Tracking (Agent 5).">
             <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Rapporter</span>
           </button>
-          <button class="nav-tab" data-section="all" onclick="switchSection('all')" style="margin-top:4px; border-top:1px solid var(--border-color); padding-top:10px;">
+          <button class="nav-tab" data-section="all" onclick="switchSection('all')" style="margin-top:4px; border-top:1px solid var(--border-color); padding-top:10px;" data-tooltip="Viser alle seksjoner samtidig på én samlet side for full gjennomgang uten fane-skifte.">
             <span class="tab-num">✦</span>Vis Alle Seksjoner
           </button>
         </nav>
@@ -949,13 +970,13 @@
       <div>
         <div class="sidebar-group-label">Hurtigkjøring</div>
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <button class="btn btn-success btn-sm" style="justify-content:center;" onclick="runAllStepsSequentially()">
+          <button class="btn btn-success btn-sm" style="justify-content:center;" onclick="runAllStepsSequentially()" data-tooltip="Kjører hele arbeidsflyten i rekkefølge: enhetstester, EOD-skanning, portefølje/drift, backtests og porteføljerådgiver.">
             ▶ Kjør Alle Steg (1–8)
           </button>
-          <button class="btn btn-outline btn-sm" style="justify-content:center;" onclick="runMultiMarketSuite()">
+          <button class="btn btn-outline btn-sm" style="justify-content:center;" onclick="runMultiMarketSuite()" data-tooltip="Kjører US backtest, OMXN40/OBX15 backtest, Live Market Bridge og Dynamisk Alpaca Rådgiver (steg 5–8).">
             🌐 Multi-Univers Suite (5–8)
           </button>
-          <button class="btn btn-outline btn-sm" style="justify-content:center;" onclick="syncAllLiveApis()">
+          <button class="btn btn-outline btn-sm" style="justify-content:center;" onclick="syncAllLiveApis()" data-tooltip="Henter ferske tall fra Alpaca Paper-kontoen, HITL-ordrekøen, OMXN40-universet og scheduler-status nå.">
             🔄 Synkroniser Live Data
           </button>
         </div>
@@ -964,22 +985,22 @@
       <div>
         <div class="sidebar-group-label">Dashboards</div>
         <div class="sidebar-links">
-          <a href="http://localhost:8501/" target="_blank" class="sidebar-link"><span>📊 Streamlit Kontrolltårn</span><span>↗</span></a>
-          <a href="http://localhost:8000/bloomberg" target="_blank" class="sidebar-link"><span>📈 NordQuant (Bloomberg)</span><span>↗</span></a>
-          <a href="http://localhost:8000/terminal" target="_blank" class="sidebar-link"><span>🖥️ NordicQuant Terminal</span><span>↗</span></a>
-          <a href="http://localhost:8000/meglerbord" target="_blank" class="sidebar-link"><span>🏛️ 7-Faners Meglerbord</span><span>↗</span></a>
-          <a href="http://localhost:8000/kontrolltarn" target="_blank" class="sidebar-link"><span>🌌 Aurora Kontrolltårn</span><span>↗</span></a>
+          <a href="http://localhost:8501/" target="_blank" class="sidebar-link" data-tooltip="Python/Streamlit kontrolltårn (port 8501) med live Alpaca KPIer, interaktive backtest-grafer, Rulebook og Failover."><span>📊 Streamlit Kontrolltårn</span><span>↗</span></a>
+          <a href="http://localhost:8000/bloomberg" target="_blank" class="sidebar-link" data-tooltip="Bloomberg-inspirert indeks- og porteføljedashbord for makrooversikt, sektorer og nøkkeltall."><span>📈 NordQuant (Bloomberg)</span><span>↗</span></a>
+          <a href="http://localhost:8000/terminal" target="_blank" class="sidebar-link" data-tooltip="Institusjonelt aksjehandels- og porteføljedashbord med ordrebok, risikomatrise og posisjonsdetaljer."><span>🖥️ NordicQuant Terminal</span><span>↗</span></a>
+          <a href="http://localhost:8000/meglerbord" target="_blank" class="sidebar-link" data-tooltip="7-faners Multi-Agent Meglerbord med avkastnings-waterfall, Profil×Marked-matrise og HITL-styring."><span>🏛️ 7-Faners Meglerbord</span><span>↗</span></a>
+          <a href="http://localhost:8000/kontrolltarn" target="_blank" class="sidebar-link" data-tooltip="Aurora 6-faners Chart.js kontrolltårn med regel-sandkasse, gebyrsimulator og konseptdrift-kurver."><span>🌌 Aurora Kontrolltårn</span><span>↗</span></a>
         </div>
       </div>
 
       <div>
         <div class="sidebar-group-label">Dokumentasjon</div>
         <div class="sidebar-links">
-          <a href="http://localhost:8000/rulebook" target="_blank" class="sidebar-link"><span>📜 Agent Rulebook</span><span>↗</span></a>
-          <a href="http://localhost:8000/guide" target="_blank" class="sidebar-link"><span>🛠️ Brukermanual</span><span>↗</span></a>
-          <a href="http://localhost:8000/dummies" target="_blank" class="sidebar-link"><span>📘 Strategi for Dummies</span><span>↗</span></a>
-          <a href="http://localhost:8000/brukertest" target="_blank" class="sidebar-link"><span>📲 Telegram UX-Protokoll</span><span>↗</span></a>
-          <a href="http://localhost:8000/brukertest-nybegynner" target="_blank" class="sidebar-link"><span>🧪 Nybegynner-Brukertest</span><span>↗</span></a>
+          <a href="http://localhost:8000/rulebook" target="_blank" class="sidebar-link" data-tooltip="Operativt regelverk for Agent 1–4: hard veto ved kvartalstall (48t), ATR-stopp, sektortak og 3-trinns failover."><span>📜 Agent Rulebook</span><span>↗</span></a>
+          <a href="http://localhost:8000/guide" target="_blank" class="sidebar-link" data-tooltip="Komplett brukermanual for daglig drift, Alpaca Paper-oppsett, Windows Task Scheduler og feilsøking."><span>🛠️ Brukermanual</span><span>↗</span></a>
+          <a href="http://localhost:8000/dummies" target="_blank" class="sidebar-link" data-tooltip="Lettfattelig guide til AI-trading, ATR(14) stop-loss, risikoprofiler, dekkede opsjoner og 5-stegs oppstart."><span>📘 Strategi for Dummies</span><span>↗</span></a>
+          <a href="http://localhost:8000/brukertest" target="_blank" class="sidebar-link" data-tooltip="UX-protokoll for Telegram Human-in-the-Loop godkjenningskort, knapper og sikkerhetsvarsler."><span>📲 Telegram UX-Protokoll</span><span>↗</span></a>
+          <a href="http://localhost:8000/brukertest-nybegynner" target="_blank" class="sidebar-link" data-tooltip="5-fasers brukertestprotokoll for nybegynnere: navigasjon, begreper, AI-rådgiver, første handel og feilsjekk."><span>🧪 Nybegynner-Brukertest</span><span>↗</span></a>
         </div>
       </div>
 
@@ -3896,6 +3917,32 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         </tr>
       `).join("");
     }
+
+    // Floating hover tooltips for all left sidebar items
+    (function initSidebarTooltips() {
+      const tip = document.createElement("div");
+      tip.id = "sidebarHoverTooltip";
+      document.body.appendChild(tip);
+
+      document.querySelectorAll(".sidebar [data-tooltip]").forEach((el) => {
+        el.addEventListener("mouseenter", () => {
+          const text = el.getAttribute("data-tooltip");
+          if (!text) return;
+          tip.textContent = text;
+          const rect = el.getBoundingClientRect();
+          const topPos = Math.max(10, Math.min(window.innerHeight - 80, rect.top + rect.height / 2 - 20));
+          tip.style.left = `${rect.right + 10}px`;
+          tip.style.top = `${topPos}px`;
+          tip.classList.add("visible");
+        });
+        el.addEventListener("mouseleave", () => {
+          tip.classList.remove("visible");
+        });
+      });
+
+      const sb = document.querySelector(".sidebar");
+      if (sb) sb.addEventListener("scroll", () => tip.classList.remove("visible"));
+    })();
 
     // Initialiser ved oppstart (Vis 01 Overview som fokusert startside)
     renderAllSections();
