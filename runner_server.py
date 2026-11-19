@@ -568,6 +568,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
             payload = json.loads(raw_body)
             try:
+                import re
                 from alpaca_execution import AlpacaClient
 
                 symbol = str(payload.get("symbol", "")).upper().strip()
@@ -575,8 +576,21 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 side = str(payload.get("side", "buy")).lower().strip()
                 order_type = str(payload.get("order_type", "limit")).lower().strip()
                 lim = None if order_type == "market" else float(payload.get("limit_price"))
-                tp = float(payload["take_profit_price"]) if payload.get("take_profit_price") else None
-                sl = float(payload["stop_loss_price"]) if payload.get("stop_loss_price") else None
+                raw_tp = payload.get("take_profit_price", payload.get("take_profit"))
+                raw_sl = payload.get("stop_loss_price", payload.get("stop_loss"))
+                tp = float(raw_tp) if raw_tp else None
+                sl = float(raw_sl) if raw_sl else None
+
+                if not symbol or not re.fullmatch(r"[A-Z]{1,6}([.-][A-Z]{1,3})?", symbol):
+                    raise ValueError(f"Ugyldig aksjesymbol ({symbol}), vennligst sjekk tickeren.")
+                if qty <= 0:
+                    raise ValueError("Antall aksjer må være større enn 0.")
+                if lim is not None and lim <= 0:
+                    raise ValueError("Limit-kurs må være større enn 0.")
+                if side == "buy" and lim is not None and sl is not None and sl >= lim:
+                    raise ValueError("Stop-Loss må ligge under kjøpskurs for et kjøp.")
+                if side == "buy" and lim is not None and tp is not None and tp <= lim:
+                    raise ValueError("Take-Profit må ligge over kjøpskurs for et kjøp.")
 
                 client = AlpacaClient()
                 ord_res = client.place_bracket_order(

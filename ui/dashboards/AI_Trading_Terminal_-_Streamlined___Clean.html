@@ -2378,8 +2378,16 @@
       }
     }
 
+    let lastOrderSubmitTs = 0;
+
     function submitOrderForm(event) {
       event.preventDefault();
+      const now = Date.now();
+      const submitBtn = event.submitter || (event.target && event.target.querySelector(`button[type="submit"]`));
+      if (now - lastOrderSubmitTs < 1500) {
+        return;
+      }
+
       const acct = document.getElementById(`ordAccount`).value;
       const ticker = document.getElementById(`ordTicker`).value.trim().toUpperCase();
       const side = document.getElementById(`ordSide`).value;
@@ -2389,10 +2397,21 @@
       const sl = parseFloat(document.getElementById(`ordSl`).value) || 0;
       const tp = parseFloat(document.getElementById(`ordTp`).value) || 0;
       const fb = document.getElementById(`orderFeedback`);
+      const curr = acct === `ALPACA` ? `USD` : `NOK`;
 
       if (!ticker || qty <= 0 || limit <= 0) {
         if (fb) {
           fb.textContent = `Ugyldig ordre: Fyll inn gyldig ticker, antall og kurs.`;
+          fb.className = `form-feedback visible err`;
+        }
+        return;
+      }
+
+      const knownTicker = WATCHLIST_DATA.some(function (w) { return w.ticker === ticker; }) ||
+        appState.positions.some(function (p) { return p.ticker === ticker; });
+      if (!knownTicker) {
+        if (fb) {
+          fb.textContent = `Ugyldig aksjesymbol (${ticker}), vennligst sjekk tickeren mot overvåkningslisten.`;
           fb.className = `form-feedback visible err`;
         }
         return;
@@ -2406,12 +2425,28 @@
         return;
       }
 
+      const orderValue = qty * limit;
+      const availCash = acct === `ALPACA` ? appState.cashUsd : appState.cashNok;
+      if (side === `BUY` && orderValue > availCash) {
+        if (fb) {
+          fb.textContent = `Utilstrekkelig kjøpekraft. Maksimal ordreverdi er ${fmtMoney(availCash, curr)}.`;
+          fb.className = `form-feedback visible err`;
+        }
+        return;
+      }
+
       if (side === `BUY` && sl >= limit) {
         if (fb) {
           fb.textContent = `Ugyldig OCO Bracket: Stop-Loss må ligge under limit-kurs ved kjøp.`;
           fb.className = `form-feedback visible err`;
         }
         return;
+      }
+
+      lastOrderSubmitTs = now;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        setTimeout(function () { submitBtn.disabled = false; }, 1500);
       }
 
       const rr = ((tp - limit) / Math.max(0.01, limit - sl)).toFixed(2);
