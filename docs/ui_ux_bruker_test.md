@@ -69,7 +69,7 @@ Strategi: Trend Breakout (20d High) | Risiko: MODERAT
 
 ---
 
-## 4. Brukertestprotokoll for Testkjøring i `G:\My Drive\AI trader`
+## 4. Brukertestprotokoll for Testkjøring i AI Trading Desk
 
 For å verifisere at beslutningsprosessen fungerer optimalt, gjennomføres fire simulerte testscenarioer:
 
@@ -95,8 +95,11 @@ For å verifisere at beslutningsprosessen fungerer optimalt, gjennomføres fire 
 
 ---
 
-## 5. Oppsummering og Anbefalte Rutiner for Windows 11
+## 5. Bekreftelser, Posisjonsvarsling og Anbefalte Rutiner for Windows 11
 
-1. **Filplassering:** Lagre filene i `G:\My Drive\AI trader\` slik at de automatisk sikkerhetskopieres og synkroniseres.
-2. **Tidsstyring:** La Windows Oppgaveplanlegger (Task Scheduler) starte Telegram-lytteren kl. 15:15 CET på hverdager (15 minutter før amerikansk børsåpning) og stoppe den ved børsslutt kl. 22:05 CET.
-3. **Loggføring:** Alle godkjenninger og avvisninger lagres i DuckDB eller SQLite, slik at du ukentlig kan evaluere effekten av manuelle beslutninger opp mot en helautomatisk strategi.
+1. **Bekreftelseskvittering med tidsstempel:** Hver gang du trykker `[✅ GODKJENN]` eller `[❌ AVVIS]` i Telegram, oppdateres kortet med klokkeslett og det sendes en egen bekreftelsesmelding (`✅ BEKREFTELSE` / `❌ BEKREFTELSE`).
+2. **Posisjonsvarsling & Daglig Rapport (`telegram_portfolio_notifier.py`):**
+   * `🔔 POSISJONSENDRING`: Varsler automatisk når en posisjon faktisk åpnes, lukkes eller endrer antall (ingen støy fra ventende ordrer).
+   * `📊 DAGLIG PORTEFØLJESTATUS`: Sendes automatisk Man–Fre kl. **22:15 CET** (etter US børsslutt) med egenkapital, cash, Realised/Urealisert P&L og åpne posisjoner.
+3. **Backup E-post (Failover):** Dersom Telegram feiler, sender `failover_approver.py` HTML-epost med signerte `/approve`- og `/reject`-lenker som registrerer svar og tidsstempel (`decided_at`) direkte i appen.
+4. **Windows 11 Task Scheduler:** Registreres med `powershell -ExecutionPolicy Bypass -File .\setup_windows_scheduler.ps1 -Install`.

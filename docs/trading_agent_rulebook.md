@@ -19,25 +19,26 @@ Dette dokumentet definerer det operative regelverket for handel, risikostyring o
 * **Sektortak:** Maksimalt 2 posisjoner eller 35 % samlet kapital i én sektor.
 * **Circuit Breaker:** Porteføljetap over 6 % kutter automatisk alle nye innganger.
 
-### Agent 4: Execution & Slippage Controller
-* **Ordretype:** Kun Limit-ordrer med meglernative OCO brackets (Limit + Stop-Loss + Målkurs).
-* **Eksekveringsgrense:** Ingen ordre sendes uten godkjenning via Telegram HITL eller reserve e-post.
+### Agent 4: Execution, Cost Hurdle & Slippage Controller
+* **Deterministisk Cost & Tax Hurdle (`src/portfolio/tax_fee_fx_engine.py`):** Ingen ordre sendes til HITL før $\mathbb{E}[\text{Alpha}_{\text{gross}}] > C_{\text{all-in}} + \text{Alpha}_{\text{buffer}}$.
+* **Ordretype:** Kun Limit-ordrer med live Alpaca Market Data (`+0,1 %` marketable limit) og meglernative OCO brackets (Limit + Stop-Loss + Take-Profit).
+* **Eksekveringsgrense:** Ingen ordre sendes uten eksplisitt godkjenning via Telegram HITL, backup e-post eller Web Terminal.
 
 ---
 
-## 2. Strategiregler
+## 2. Strategiregler (US, Norden OMXN40 & Norge OBX 15)
 
-| Parameter | US Liquid Momentum | OBX 15 Momentum | AI Regime Switcher |
-| :--- | :--- | :--- | :--- |
-| **Univers** | S&P 500 / Nasdaq 100 (> $50M daglig) | Topp 15 OSE-aksjer | SPY, QQQ, T-Bills, Calls |
-| **Megler / Valuta** | Alpaca ($0 kurtasje, USD) | Saxo Bank (ASK, NOK) | Alpaca |
-| **Spesialfilter** | VIX < 22 og SPY > SMA200 | 2-dagers Brent Crude > -2.5% | VIX-bånd (18 / 24) |
-| **Stop-Loss** | $1.8 \times \text{ATR}(14)$ | $2.0 \times \text{ATR}(14)$ | Dynamisk regime |
-| **Reward/Risk** | 2.2 : 1 | 2.0 : 1 | Asymmetrisk |
+| Parameter | US Liquid Momentum | Norden (OMXN40) | Norge (OBX 15) | AI Regime Switcher |
+| :--- | :--- | :--- | :--- | :--- |
+| **Univers** | S&P 500 / Nasdaq 100 (> $50M daglig) | OMX Nordic 40 (40 selskaper: DK, SE, FI) | Topp 15 OSE-aksjer | SPY, QQQ, T-Bills, Calls |
+| **Anbefalt Konto / Megler** | **Alpaca Paper** (Dedikert USD-pool, $0 kurtasje) | **Nordnet ASK** (EØS, 0 % løpende skatt) | **Nordnet ASK** (NOK, 0 % FX) | **Alpaca Paper** |
+| **Spesialfilter** | VIX < 22 og SPY > SMA200 | Nordic FX-drag & trend over SMA200 | 2-dagers Brent Crude > -2.5% | VIX-bånd (18 / 24) |
+| **Stop-Loss** | $1.8 \times \text{ATR}(14)$ | $1.5\text{–}1.8 \times \text{ATR}(14)$ | $2.0 \times \text{ATR}(14)$ | Dynamisk regime |
+| **Reward/Risk** | 2.2 : 1 | 2.0 : 1 | 2.0 : 1 | Asymmetrisk |
 
 ---
 
-## 3. Redundant Godkjenningskjede (Failover)
-1. **Primær (Telegram):** Interaktive knapper med 5 minutters timeout.
-2. **Sekundær (E-post):** Formatert HTML med sikre `/approve` og `/reject` lenker.
-3. **Tertiær (Web Terminal):** Godkjenningsknapp i det visuelle dashbordet.
+## 3. Redundant Godkjenningskjede (3-Trinns Failover & Bekreftelse)
+1. **Primær (Telegram HITL):** Interaktive knapper (`✅ Godkjenn` / `❌ Avvis`) med umiddelbar bekreftelsesmelding og tidsstempel (`YYYY-MM-DD HH:MM:SS`), pluss automatisk varsel ved åpnet/lukket posisjon (`🔔 POSISJONSENDRING`) og daglig rapport kl. **22:15 CET**.
+2. **Sekundær (Backup E-post / SMTP):** Formatert HTML-epost via `failover_approver.py` med signerte `/approve`- og `/reject`-lenker og tidsstempel (`decided_at`).
+3. **Tertiær (Web Terminal):** Direkte godkjennings- og avvisningskø i dashbordet (`http://localhost:8000/`).

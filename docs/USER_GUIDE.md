@@ -9,26 +9,22 @@ Denne brukermanualen beskriver hvordan du setter opp, opererer, overvåker og re
 Alle flater leser fra samme backend (`runner_server.py` på port `8000`), live Alpaca Paper API v2, og de lokale databasene (`data/obx_analytics.duckdb` og `data/hitl_orders.db`):
 
 1. **AI Trading Desk — Hovedterminal (`index.html` på `http://localhost:8000/`):**
-   * **01 Overview:** Live Alpaca Paper egenkapital, tilgjengelig cash, aktive posisjoner, 1-klikks pipeline-kjøring og Windows Task Scheduler-status.
-   * **02 Portfolio:** Automatisk synkronisert oversikt over åpne posisjoner, urealisert P&L og siste ordrer fra Alpaca Paper (oppdateres automatisk hvert 15. sekund og rett etter hver ordre).
+   * **01 Overview:** Live Alpaca Paper egenkapital, tilgjengelig cash, dagens P&L, faktisk porteføljeutvikling mot S&P 500 benchmark, og live topp-posisjoner.
+   * **02 Portfolio:** Automatisk synkronisert oversikt over **Total Egenkapital**, **Realised P&L**, **Urealisert P&L**, åpne posisjoner og siste ordrer fra Alpaca Paper (oppdateres automatisk hvert 15. sekund).
    * **03 Trading:**
-     * **Strategi → Telegram (Anbefalt flyt):** Velg strategi i dropdown (f.eks. *Liquid S&P Momentum* eller *Aggressiv AI & Tech*), skriv totalbeløp i `$ USD`, systemet kontrollerer live cash-balanse, beregner aksjer + ATR(14) Stop-Loss / Take-Profit og sender forslagene til **Telegram** for godkjenning.
-     * **Manuell OCO Bracket-ordre:** Legg inn enkeltordre direkte (`symbol`, `qty`, `limit`, `SL`, `TP`) mot Alpaca Paper.
-     * **Agent Rulebook & 3-Trinns Failover:** Innebygd visning av [trading_agent_rulebook.md](trading_agent_rulebook.md) samt failover-kø med `/approve` og `/reject` fra `failover_approver.py`.
-   * **04 Markets:** Live BBO-kurser (`live_market_bridge.py`), AI Strategi- & Risikorådgiver (`telegram_strategy_advisor_bot.py`) og markedsregime.
-   * **05 Analytics:** US & Nordisk Multi-Universe Backtests, kostnadsdrag, Shadow Tracking og konseptdrift.
+     * **Strategi → Telegram (Anbefalt flyt):** Velg strategi i dropdown (f.eks. *1. Liquid S&P Momentum*), skriv totalbeløp i `$ USD` — `dynamic_recommender.py` henter **live børskurser fra Alpaca**, sjekker cash-balanse, beregner ATR(14) Stop-Loss / Take-Profit og sender forslagene til **Telegram** for godkjenning.
+     * **Manuell OCO Bracket-ordre:** Legg inn enkeltordre direkte (`symbol`, `qty`, `limit`, `SL`, `TP`) mot Alpaca Paper med lokal validering av ticker og SL/TP.
+   * **04 Markets:** Live BBO-kurser, **Norden (OMXN40 — 40 selskaper)** med landfilter (`DK / SE / FI`), **Norge (OBX 15)** og HITL-varsler.
+   * **05 Analytics:** US & Nordisk (OMXN40 / OBX 15) Multi-Universe Backtests, 6-Case matrise, AI Strategi-rådgiver, Agent Rulebook, 3-trinns Failover og **Deterministisk Tax, Fee & FX Hurdle-Motor** (`src/portfolio/tax_fee_fx_engine.py`).
+   * **06 Settings:** Lokal redigering av `.env` (Alpaca Paper, Telegram HITL, Backup E-post / SMTP, Ollama/Gemini) med **demo-maskering** (`xxxx••••`) for sikker skjermdeling.
 
-2. **Streamlit Kontrolltårn (`app.py` på `http://localhost:8501/`):**
-   * Interaktivt Python-kontrolltårn med live Alpaca-KPIer, Strategi → Telegram-modul, US/Nordisk backtest-grafer, HITL-ordrekø, Agent Rulebook, Failover-test og innebygde HTML-dashboards.
-
-3. **Spesialiserte HTML-Dashboards (`ui/dashboards/` via `http://localhost:8000/`):**
-   * `http://localhost:8000/streamlined` — **Streamlined & Clean Terminal** (`AI_Trading_Terminal_-_Streamlined___Clean.html`)
-   * `http://localhost:8000/bloomberg` — **NordQuant (Bloomberg-stil)**
-   * `http://localhost:8000/terminal` — **NordicQuant Terminal**
-   * `http://localhost:8000/strategi-radgiver` — **Strategi-Rådgiver Dashbord**
-   * `http://localhost:8000/meglerbord` — **7-Faners Meglerbord**
-   * `http://localhost:8000/kontrolltarn` — **Aurora Kontrolltårn**
-   * `http://localhost:8000/rulebook` — **Operativ Agent Rulebook**
+2. **Dokumentasjon i venstremenyen (alle tilgjengelig på `http://localhost:8000/`):**
+   * `http://localhost:8000/rulebook` — **📜 Agent Rulebook** (`docs/trading_agent_rulebook.md`)
+   * `http://localhost:8000/tax-fx` — **💰 Skatt, Gebyr & FX-Struktur** (`docs/anbefalte_opt_tax_fee_fx_struktur.md`)
+   * `http://localhost:8000/guide` — **🛠️ Brukermanual** (`docs/USER_GUIDE.md`)
+   * `http://localhost:8000/dummies` — **📘 Strategi for Dummies** (`docs/ai-trading-strategi-for-dummies.md`)
+   * `http://localhost:8000/brukertest` — **📲 Telegram UX-Protokoll** (`docs/ui_ux_bruker_test.md`)
+   * `http://localhost:8000/brukertest-nybegynner` — **🧪 Nybegynner-Brukertest** (`docs/bruker-test-nybegynner.md`)
 
 ---
 
