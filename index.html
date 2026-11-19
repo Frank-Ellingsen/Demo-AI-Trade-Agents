@@ -1123,7 +1123,7 @@
     <!-- ===================================================================== -->
     <!-- 02 PORTFOLIO: HOLDINGS, ASSET ALLOCATION & RECENT TRANSACTIONS        -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-portfolio">
+    <section class="workspace-section hidden" id="sec-portfolio">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">02 PORTFOLIO</span> Beholdning, Aktivallokering &amp; Transaksjonshistorikk</h2>
@@ -1257,7 +1257,7 @@
     <!-- ===================================================================== -->
     <!-- SEKSJON 1: OPERASJONELL PIPELINE (STEG 1–8) & LIVE TERMINAL           -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-pipeline">
+    <section class="workspace-section hidden" id="sec-pipeline" style="display:none !important;">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">SEKSJON 01</span> Operasjonell Pipeline &amp; Live Execution Terminal</h2>
@@ -1501,7 +1501,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <!-- ===================================================================== -->
     <!-- SEKSJON 2: DYNAMISK ALPACA PORTEFØLJERÅDGIVER & OCO BRACKET           -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-alpaca">
+    <section class="workspace-section hidden" id="sec-alpaca">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">SEKSJON 02</span> Dynamisk Alpaca Porteføljerådgiver &amp; OCO Bracket-Generator (<code>dynamic_recommender.py</code>)</h2>
@@ -1697,7 +1697,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <!-- ===================================================================== -->
     <!-- SEKSJON 3: MULTI-UNIVERS BACKTEST (US VS. NORDEN & 6-CASE MATRISE)    -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-backtest">
+    <section class="workspace-section hidden" id="sec-backtest">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">SEKSJON 03</span> Multi-Univers Kvantitativ Backtesting (US vs. Norden &amp; 6-Case)</h2>
@@ -1799,7 +1799,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <!-- ===================================================================== -->
     <!-- SEKSJON 4: LIVE MARKET BRIDGE & PRE-EXECUTION GUARDRAIL               -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-bridge">
+    <section class="workspace-section hidden" id="sec-bridge">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">SEKSJON 04</span> Live Market Bridge &amp; Pre-Execution Guardrail (<code>live_market_bridge.py</code> + <code>improved_execution.py</code>)</h2>
@@ -1984,7 +1984,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <!-- ===================================================================== -->
     <!-- SEKSJON 5: NORGE (OBX 15) UNIVERS, HITL ORDREKØ & AGENT 5 REVISJON    -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-obx-hitl">
+    <section class="workspace-section hidden" id="sec-obx-hitl">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">SEKSJON 05</span> Norge (OBX 15) Teknisk Univers, HITL Ordrekø (SQLite WAL) &amp; Agent 5 Revisjon</h2>
@@ -2112,7 +2112,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <!-- ===================================================================== -->
     <!-- SEKSJON 6: RISIKOPROFILER (ASK), DOKUMENTASJON & EKSTERNE DASHBOARDS  -->
     <!-- ===================================================================== -->
-    <section class="workspace-section" id="sec-docs">
+    <section class="workspace-section hidden" id="sec-docs">
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">SEKSJON 06</span> Norsk ASK Risikoprofil-Kalkulator, Brukermanual &amp; Eksterne Dashboards</h2>
@@ -4319,19 +4319,16 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
-    // Initialiser ved oppstart (Vis 01 Overview som fokusert startside)
-    renderAllSections();
-    syncStrategyOrderPreview();
-    renderSchedulerTable(SCHEDULER_JOBS_FALLBACK);
+    // Initialiser ved oppstart (Vis kun 01 Overview som ren startside)
     switchCategory("overview");
+    try { renderAllSections(); } catch (e) { console.error("renderAllSections:", e); }
+    try { syncStrategyOrderPreview(); } catch (e) {}
     checkServerConnection();
-    syncSchedulerStatus();
     loadRulebookAndFailover();
     loadOmxn40Universe();
     loadSettingsForm();
     evaluateTaxFeeFx();
     setInterval(checkServerConnection, 6000);
-    setInterval(syncSchedulerStatus, 15000);
     setInterval(refreshAlpacaPortfolio, 15000);
   </script>
 </body>
