@@ -1,0 +1,3154 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="aurora">
+  <title>NordQuant AI Trading Terminal &amp; Porteføljedashbord</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+
+      /* Page and surfaces: deep oceanic slate steps (Aurora) */
+      --background: #0c1214;
+      --surface-container-low: #111a1e;
+      --surface-container: #152024;
+      --surface-container-high: #1c2a30;
+
+      /* Text */
+      --on-surface: #edf3f5;
+      --on-surface-variant: #94a8b0;
+
+      /* Borders */
+      --outline: #38515c;
+      --outline-variant: #213138;
+
+      /* Accents */
+      --primary: #63c7d6;
+      --on-primary: #081214;
+      --primary-container: #163840;
+      --on-primary-container: #c7f0f7;
+      --secondary: #5d7882;
+      --tertiary: #87d69b;
+      --error: #f27474;
+      --on-error: #1a0606;
+
+      /* Semantic */
+      --positive: #87d69b;
+      --warning: #e8b954;
+      --focus: #63c7d6;
+
+      /* Data series */
+      --data-1: #63c7d6;
+      --data-2: #87d69b;
+      --data-3: #e8b954;
+      --data-4: #f08c70;
+      --data-context: #415861;
+
+      /* Fonts */
+      --font-headline: 'Instrument Sans', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'Geist Mono', monospace;
+
+      /* Type scale (Dashboard) */
+      --display-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Shape */
+      --rounded: 0.5rem;
+      --rounded-lg: 0.75rem;
+      --rounded-full: 9999px;
+
+      /* Effects & tokens */
+      --hairline: 1px solid var(--outline-variant);
+      --hairline-strong: 1px solid var(--outline);
+      --panel-gradient: linear-gradient(180deg, var(--surface-container) 0%, var(--surface-container-low) 100%);
+      --heading-tracking: -0.025em;
+      --label-tracking: 0.06em;
+      --sage-tint: color-mix(in srgb, var(--tertiary) 13%, transparent);
+      --sage-border: color-mix(in srgb, var(--tertiary) 35%, transparent);
+      --cyan-tint: color-mix(in srgb, var(--primary) 13%, transparent);
+      --cyan-border: color-mix(in srgb, var(--primary) 38%, transparent);
+      --amber-tint: color-mix(in srgb, var(--warning) 14%, transparent);
+      --amber-border: color-mix(in srgb, var(--warning) 38%, transparent);
+      --error-tint: color-mix(in srgb, var(--error) 14%, transparent);
+      --error-border: color-mix(in srgb, var(--error) 38%, transparent);
+      --surface-overlay: color-mix(in srgb, var(--background) 88%, transparent);
+
+      /* Spacing scale (4pt base) */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 6rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+
+      --sidebar-width: 17.5rem;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* App Shell Layout */
+    .terminal-shell {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      background: var(--surface-container-low);
+      border-right: var(--hairline);
+      padding: var(--space-lg) var(--space-md);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: var(--space-lg);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .brand-block {
+      padding: 0 var(--space-sm) var(--space-md);
+      border-bottom: var(--hairline);
+    }
+
+    .brand-eyebrow {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .brand-title {
+      font-family: var(--font-headline);
+      font-size: var(--subhead-size);
+      font-weight: 700;
+      letter-spacing: var(--heading-tracking);
+      margin: 0;
+      color: var(--on-surface);
+    }
+
+    .brand-sub {
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      margin: var(--space-xs) 0 0;
+    }
+
+    .nav-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .nav-btn {
+      width: 100%;
+      min-height: 2.75rem;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--rounded);
+      color: var(--on-surface-variant);
+      text-align: left;
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+
+    .nav-btn:hover {
+      background: var(--surface-container);
+      color: var(--on-surface);
+    }
+
+    .nav-btn.is-active {
+      background: var(--cyan-tint);
+      border-color: var(--cyan-border);
+      color: var(--on-surface);
+    }
+
+    .nav-num {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--primary);
+      min-width: 1.5rem;
+    }
+
+    .nav-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      flex: 1;
+    }
+
+    .nav-count {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      padding: 0.125rem 0.45rem;
+      border-radius: var(--rounded-full);
+      background: var(--surface-container-high);
+      color: var(--on-surface-variant);
+    }
+
+    .nav-btn.is-active .nav-count {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .sidebar-status {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      font-size: var(--label-size);
+    }
+
+    .status-name {
+      color: var(--on-surface-variant);
+    }
+
+    .status-val {
+      font-family: var(--font-label);
+      color: var(--tertiary);
+    }
+
+    .status-val.is-warn { color: var(--warning); }
+    .status-val.is-cyan { color: var(--primary); }
+
+    /* Main Content Workspace */
+    .main-area {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Failover Banner */
+    .failover-banner {
+      background: var(--surface-container-low);
+      border-bottom: var(--hairline);
+      padding: var(--space-sm) var(--space-lg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+    }
+
+    .failover-banner.is-degraded {
+      background: var(--amber-tint);
+      border-bottom-color: var(--amber-border);
+    }
+
+    .failover-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .failover-badge {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      text-transform: uppercase;
+      letter-spacing: var(--label-tracking);
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--rounded);
+      background: var(--sage-tint);
+      color: var(--tertiary);
+      border: 1px solid var(--sage-border);
+    }
+
+    .failover-banner.is-degraded .failover-badge {
+      background: var(--amber-tint);
+      color: var(--warning);
+      border-color: var(--amber-border);
+    }
+
+    .failover-text {
+      font-size: 0.85rem;
+      color: var(--on-surface-variant);
+    }
+
+    .failover-text strong {
+      color: var(--on-surface);
+      font-weight: 600;
+    }
+
+    .failover-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    /* Mobile Header Bar (only shown on narrow screens) */
+    .mobile-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-low);
+      border-bottom: var(--hairline);
+      gap: var(--space-sm);
+    }
+
+    .mobile-nav-select {
+      background: var(--background);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      color: var(--on-surface);
+      min-height: 2.75rem;
+      flex: 1;
+    }
+
+    /* Page Grid inside Main */
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    .view-section {
+      display: none;
+      flex-direction: column;
+      gap: var(--space-lg);
+      animation: fadeSlide var(--dur-short) var(--ease-out);
+    }
+    .view-section.is-active {
+      display: flex;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Headings & Header */
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: var(--hairline);
+    }
+
+    .section-head h1, .section-head h2 {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      letter-spacing: var(--heading-tracking);
+      line-height: 1.12;
+      margin: 0;
+      color: var(--on-surface);
+    }
+
+    .section-head h1 { font-size: var(--display-size); }
+    .section-head h2 { font-size: var(--headline-size); }
+
+    .section-lede {
+      color: var(--on-surface-variant);
+      margin: var(--space-xs) 0 0;
+      max-width: 65ch;
+      font-size: 0.92rem;
+    }
+
+    /* Panels & Cards (Aurora Treatment 1) */
+    .panel {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .panel-title {
+      font-family: var(--font-headline);
+      font-size: var(--subhead-size);
+      font-weight: 600;
+      letter-spacing: var(--heading-tracking);
+      margin: 0;
+      color: var(--on-surface);
+    }
+
+    .panel-sub {
+      font-size: 0.85rem;
+      color: var(--on-surface-variant);
+      margin: var(--space-xs) 0 0;
+    }
+
+    /* Grids */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+      gap: var(--space-lg);
+    }
+
+    .asymmetric-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+
+    /* Metric Tiles (Aurora Treatment 4) */
+    .metric-tile {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .data-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+
+    .metric-value {
+      font-family: var(--font-headline);
+      font-size: clamp(1.4rem, 1.2rem + 0.7vw, 1.85rem);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: var(--heading-tracking);
+      line-height: 1.15;
+      color: var(--on-surface);
+    }
+
+    .metric-delta {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--tertiary);
+    }
+
+    .metric-delta.is-warn { color: var(--warning); }
+    .metric-delta.is-cyan { color: var(--primary); }
+    .metric-delta.is-neg { color: var(--error); }
+
+    /* Chips & Badges */
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      background: var(--sage-tint);
+      color: var(--tertiary);
+      border: 1px solid var(--sage-border);
+      border-radius: var(--rounded);
+      padding: 0.15rem 0.5rem;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      white-space: nowrap;
+    }
+
+    .status-chip.is-cyan {
+      background: var(--cyan-tint);
+      color: var(--primary);
+      border-color: var(--cyan-border);
+    }
+
+    .status-chip.is-warn {
+      background: var(--amber-tint);
+      color: var(--warning);
+      border-color: var(--amber-border);
+    }
+
+    .status-chip.is-error {
+      background: var(--error-tint);
+      color: var(--error);
+      border-color: var(--error-border);
+    }
+
+    /* Buttons */
+    .btn {
+      min-height: 2.75rem;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-xs);
+      border: 1px solid transparent;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+    }
+
+    .btn-sm {
+      min-height: 2.25rem;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover {
+      background: var(--on-primary-container);
+    }
+
+    .btn-success {
+      background: var(--tertiary);
+      color: var(--on-primary);
+    }
+    .btn-success:hover {
+      opacity: 0.9;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: var(--hairline-strong);
+      color: var(--on-surface);
+    }
+    .btn-outline:hover {
+      background: var(--surface-container-high);
+    }
+
+    .btn-danger {
+      background: var(--error-tint);
+      border: 1px solid var(--error-border);
+      color: var(--error);
+    }
+    .btn-danger:hover {
+      background: var(--error);
+      color: var(--on-error);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Controls & Forms (Aurora Treatment 5 - Recessed wells) */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: var(--space-md);
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      min-width: 140px;
+    }
+
+    .field.is-grow { flex: 1; min-width: 210px; }
+
+    .field label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+
+    .field input, .field select, .field textarea {
+      min-height: 2.75rem;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-low);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      color: var(--on-surface);
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+    }
+
+    .field select {
+      padding-right: 2.25rem;
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      background: var(--background);
+    }
+
+    table.aurora-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    table.aurora-table th {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      text-align: left;
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: var(--hairline-strong);
+      background: var(--surface-container-low);
+      white-space: nowrap;
+    }
+
+    table.aurora-table td {
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: var(--hairline);
+      color: var(--on-surface);
+      vertical-align: middle;
+    }
+
+    table.aurora-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.aurora-table tbody tr:hover {
+      background: var(--surface-container-low);
+    }
+
+    .num {
+      text-align: right !important;
+      font-family: var(--font-label);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .mono {
+      font-family: var(--font-label);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .text-pos { color: var(--tertiary); }
+    .text-neg { color: var(--error); }
+    .text-warn { color: var(--warning); }
+    .text-cyan { color: var(--primary); }
+    .text-muted { color: var(--on-surface-variant); }
+
+    /* Nordnet Trade Ticket Card */
+    .ticket-card {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .ticket-card.is-ready {
+      border-color: var(--cyan-border);
+    }
+
+    .ticket-card.is-executed {
+      border-color: var(--sage-border);
+    }
+
+    .ticket-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      padding-bottom: var(--space-sm);
+      border-bottom: var(--hairline);
+    }
+
+    .ticket-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr));
+      gap: var(--space-sm) var(--space-md);
+    }
+
+    .ticket-kv {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .ticket-kv .k {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      text-transform: uppercase;
+    }
+
+    .ticket-kv .v {
+      font-family: var(--font-label);
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--on-surface);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .manual-guide-box {
+      background: var(--cyan-tint);
+      border: 1px solid var(--cyan-border);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .fill-entry-box {
+      background: var(--surface-container-low);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .devil-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: var(--space-sm);
+      background: var(--surface-container-low);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      border: var(--hairline);
+      font-size: 0.84rem;
+    }
+
+    /* Tooltips (Hover + Click/Focus accessible) */
+    .tip-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .tip-btn {
+      width: 1.15rem;
+      height: 1.15rem;
+      border-radius: var(--rounded-full);
+      border: var(--hairline-strong);
+      background: var(--surface-container-high);
+      color: var(--primary);
+      font-family: var(--font-label);
+      font-size: 0.7rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .tip-bubble {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 0.4rem);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 16rem;
+      max-width: 75vw;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-high);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: 0.78rem;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.4;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    .tip-wrap:hover .tip-bubble,
+    .tip-wrap:focus-within .tip-bubble,
+    .tip-wrap.is-open .tip-bubble {
+      display: block;
+    }
+
+    /* Chart containers */
+    .chart-box {
+      position: relative;
+      min-height: 290px;
+      width: 100%;
+    }
+
+    /* Code/Well block */
+    .well {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      font-family: var(--font-label);
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      color: var(--on-surface-variant);
+    }
+
+    /* Inline notification toast */
+    .inline-feedback {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      font-size: 0.85rem;
+      border: 1px solid var(--cyan-border);
+      background: var(--cyan-tint);
+      color: var(--on-primary-container);
+    }
+
+    /* Floating AI Strategy & Risk Advisor Widget */
+    .advisor-fab {
+      position: fixed;
+      right: var(--space-lg);
+      bottom: var(--space-lg);
+      z-index: 60;
+      min-height: 3rem;
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded-full);
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      box-shadow: 0 8px 24px var(--surface-overlay);
+    }
+
+    .advisor-drawer {
+      position: fixed;
+      right: var(--space-lg);
+      bottom: 5rem;
+      width: min(26rem, calc(100vw - 2rem));
+      max-height: min(36rem, calc(100vh - 7rem));
+      background: var(--surface-container-low);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded-lg);
+      z-index: 60;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .advisor-drawer.is-open {
+      display: flex;
+    }
+
+    .advisor-head {
+      padding: var(--space-md);
+      background: var(--surface-container);
+      border-bottom: var(--hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    .advisor-messages {
+      padding: var(--space-md);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      flex: 1;
+      min-height: 14rem;
+    }
+
+    .chat-msg {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      font-size: 0.85rem;
+      line-height: 1.45;
+      max-width: 92%;
+    }
+
+    .chat-msg.is-bot {
+      background: var(--surface-container);
+      border: var(--hairline);
+      align-self: flex-start;
+      color: var(--on-surface);
+    }
+
+    .chat-msg.is-user {
+      background: var(--primary-container);
+      border: 1px solid var(--cyan-border);
+      align-self: flex-end;
+      color: var(--on-primary-container);
+    }
+
+    .advisor-chips {
+      padding: var(--space-sm) var(--space-md);
+      border-top: var(--hairline);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      background: var(--background);
+    }
+
+    .chip-btn {
+      background: var(--surface-container);
+      border: var(--hairline-strong);
+      color: var(--on-surface-variant);
+      border-radius: var(--rounded-full);
+      padding: 0.28rem 0.65rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      min-height: 2rem;
+    }
+    .chip-btn:hover {
+      background: var(--surface-container-high);
+      color: var(--on-surface);
+    }
+
+    .advisor-input-row {
+      padding: var(--space-sm) var(--space-md);
+      border-top: var(--hairline);
+      display: flex;
+      gap: var(--space-sm);
+      background: var(--surface-container-low);
+      align-items: end;
+    }
+
+    .advisor-input-row .field {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .advisor-input-row input {
+      min-height: 2.5rem;
+    }
+
+    .footer-note {
+      padding: var(--space-md) var(--space-lg) var(--space-2xl);
+      color: var(--on-surface-variant);
+      font-size: 0.8rem;
+      border-top: var(--hairline);
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 920px) {
+      .asymmetric-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .terminal-shell {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        display: none;
+      }
+      .mobile-bar {
+        display: flex;
+      }
+      .page-grid {
+        padding: var(--space-md);
+      }
+      .failover-banner {
+        padding: var(--space-sm) var(--space-md);
+      }
+      .advisor-fab {
+        right: var(--space-md);
+        bottom: var(--space-md);
+      }
+      .advisor-drawer {
+        right: var(--space-md);
+        bottom: 4.5rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="terminal-shell">
+    <!-- Fast venstremeny (Left Sidebar) -->
+    <aside class="sidebar" aria-label="Hovedmeny">
+      <div>
+        <div class="brand-block">
+          <div class="brand-eyebrow">AI Trading Desk · v2.6</div>
+          <h2 class="brand-title">NordQuant Terminal</h2>
+          <p class="brand-sub">Alpaca US Quant + Nordnet ASK</p>
+        </div>
+
+        <nav style="margin-top: var(--space-md);">
+          <ul class="nav-list">
+            <li>
+              <button type="button" class="nav-btn is-active" data-view="oversikt" onclick="switchView('oversikt')">
+                <span class="nav-num">01</span>
+                <span class="nav-label">Oversikt</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="nav-btn" data-view="portefolje" onclick="switchView('portefolje')">
+                <span class="nav-num">02</span>
+                <span class="nav-label">Portefølje</span>
+                <span class="nav-count" id="navCountPositions">8</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="nav-btn" data-view="ordrer" onclick="switchView('ordrer')">
+                <span class="nav-num">03</span>
+                <span class="nav-label">Ordrer &amp; Trade Tickets</span>
+                <span class="nav-count" id="navCountTickets">3</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="nav-btn" data-view="markeder" onclick="switchView('markeder')">
+                <span class="nav-num">04</span>
+                <span class="nav-label">Markeder &amp; Smart Routing</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="nav-btn" data-view="strategier" onclick="switchView('strategier')">
+                <span class="nav-num">05</span>
+                <span class="nav-label">Strategier &amp; Analyse</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="sidebar-status">
+        <div class="data-label">Meglerbroer &amp; Drift</div>
+        <div class="status-row">
+          <span class="status-name">Alpaca Paper REST/WS</span>
+          <span class="status-val">ONLINE · $0</span>
+        </div>
+        <div class="status-row">
+          <span class="status-name">Nordnet ASK</span>
+          <span class="status-val is-cyan">MANUELL + CSV</span>
+        </div>
+        <div class="status-row">
+          <span class="status-name">Telegram HITL</span>
+          <span class="status-val" id="sidebarTgStatus">AKTIV (14t TTL)</span>
+        </div>
+        <div class="status-row">
+          <span class="status-name">Failover Backup</span>
+          <span class="status-val is-warn">E-POST + IN-APP</span>
+        </div>
+        <div class="status-row">
+          <span class="status-name">DuckDB Lagring</span>
+          <span class="status-val">WAL SYNK</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <!-- Mobil navigasjon -->
+      <div class="mobile-bar">
+        <label for="mobileNavSelect" class="data-label" style="margin:0;">Meny</label>
+        <select id="mobileNavSelect" class="mobile-nav-select" onchange="switchView(this.value)">
+          <option value="oversikt">01 Oversikt</option>
+          <option value="portefolje">02 Portefølje</option>
+          <option value="ordrer">03 Ordrer &amp; Trade Tickets</option>
+          <option value="markeder">04 Markeder &amp; Smart Routing</option>
+          <option value="strategier">05 Strategier &amp; Analyse</option>
+        </select>
+      </div>
+
+      <!-- Reservevarsling (Failover) Banner -->
+      <div class="failover-banner" id="failoverBanner" role="region" aria-label="Varsling og Failover-status">
+        <div class="failover-left">
+          <span class="failover-badge" id="failoverBadge">HITL Primær: Telegram OK</span>
+          <span class="failover-text" id="failoverMessage">
+            Reservevarsling klar: <strong>E-postvarsel (SMTP Backup)</strong> og <strong>In-App Godkjenning</strong> tar automatisk over dersom Telegram-bot ikke kvitterer innen 120 sek.
+          </span>
+        </div>
+        <div class="failover-actions">
+          <button type="button" class="btn btn-outline btn-sm" id="btnToggleFailover" onclick="toggleFailoverMode()">
+            Test Failover (Simuler Telegram-brudd)
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" id="btnSendEmailBackup" onclick="sendEmailBackupTest()">
+            Send E-postbackup
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="switchView('ordrer')">
+            Åpne In-App Kø
+          </button>
+        </div>
+      </div>
+
+      <main class="page-grid">
+        <!-- =============================================================== -->
+        <!-- 01 OVERSIKT                                                     -->
+        <!-- =============================================================== -->
+        <section id="view-oversikt" class="view-section is-active" aria-labelledby="head-oversikt">
+          <div class="section-head">
+            <div>
+              <h1 id="head-oversikt">Samlet Porteføljeoversikt &amp; Markedsregime</h1>
+              <p class="section-lede">
+                Institusjonell styringsmodell med helautomatisk Alpaca US-eksekvering og human-in-the-loop Nordnet ASK for nordiske primærnoteringer.
+              </p>
+            </div>
+            <div style="display:flex; gap:var(--space-sm); flex-wrap:wrap; align-items:center;">
+              <span class="status-chip">Regime: RISK-ON (OBX &gt; SMA200)</span>
+              <span class="status-chip is-cyan">Valutakurs: 1 USD = 10,65 NOK</span>
+            </div>
+          </div>
+
+          <!-- KPI Row -->
+          <div class="kpi-grid">
+            <div class="metric-tile">
+              <span class="data-label">Samlet Porteføljeverdi</span>
+              <div class="metric-value" id="kpiTotalPortfolio">2 048 450 NOK</div>
+              <div class="metric-delta" id="kpiTotalPnl">+18 420 NOK (+0,91 %) i dag</div>
+            </div>
+
+            <div class="metric-tile">
+              <span class="data-label">
+                Alpaca US Quant (Paper)
+                <span class="tip-wrap">
+                  <button type="button" class="tip-btn" onclick="toggleTip(this)" aria-label="Forklaring Alpaca">?</button>
+                  <span class="tip-bubble">Systematisk USA-portefølje (NYSE/Nasdaq) med API-basert OCO Bracket-utførelse og $0 standard aksjekurtasje.</span>
+                </span>
+              </span>
+              <div class="metric-value" id="kpiAlpacaValue">$104 280</div>
+              <div class="metric-delta">≈ 1 110 582 NOK · +$1 140 (+1,10 %)</div>
+            </div>
+
+            <div class="metric-tile">
+              <span class="data-label">
+                Nordnet ASK (Nordisk Core)
+                <span class="tip-wrap">
+                  <button type="button" class="tip-btn" onclick="toggleTip(this)" aria-label="Forklaring Nordnet ASK">?</button>
+                  <span class="tip-bubble">Aksjesparekonto gir utsatt skatt på gevinst og utbytte for kvalifiserte EØS-aksjer. Krever manuell ordrelegging og CSV-avstemming.</span>
+                </span>
+              </span>
+              <div class="metric-value" id="kpiNordnetValue">937 868 NOK</div>
+              <div class="metric-delta" id="kpiNordnetDelta">+6 280 NOK (+0,67 %) · 0 kr depot</div>
+            </div>
+
+            <div class="metric-tile">
+              <span class="data-label">
+                VIX &amp; Brent-Oljeregime
+                <span class="tip-wrap">
+                  <button type="button" class="tip-btn" onclick="toggleTip(this)" aria-label="Forklaring Regime">?</button>
+                  <span class="tip-bubble">Eksogent regimefilter: VIX &lt; 25 åpner for US Momentum, mens Brent over SMA50 støtter norsk energivekt på OBX.</span>
+                </span>
+              </span>
+              <div class="metric-value">VIX 16,4 · $74,8</div>
+              <div class="metric-delta is-cyan">Lav volatilitet · Brent +0,8 %</div>
+            </div>
+          </div>
+
+          <!-- Equity Curve + Connection Matrix -->
+          <div class="asymmetric-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">Utvikling siste 12 måneder (Indeksert = 100)</h2>
+                  <p class="panel-sub">Kombinert portefølje mot S&amp;P 500 og Oslo Børs OBX etter kurtasje, FX og spread</p>
+                </div>
+                <span class="status-chip">+18,4 % Netto YTD</span>
+              </div>
+              <div class="chart-box">
+                <canvas id="overviewEquityChart" aria-label="Porteføljeutvikling siste 12 måneder"></canvas>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">Megler- &amp; API-tilkoblingsstatus</h2>
+                  <p class="panel-sub">Hybrid arkitektur uten uoffisiell Nordnet-scraping</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="aurora-table">
+                  <thead>
+                    <tr>
+                      <th>Komponent</th>
+                      <th>Modus</th>
+                      <th class="num">Kostnad</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Alpaca Trading API</strong><br><span class="text-muted">NYSE / Nasdaq</span></td>
+                      <td><span class="status-chip">REST + WS</span></td>
+                      <td class="num">$0 kurtasje<br><span class="text-muted">+ CAT/TAF</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Nordnet ASK</strong><br><span class="text-muted">Oslo / CPH / STO</span></td>
+                      <td><span class="status-chip is-cyan">HITL + CSV</span></td>
+                      <td class="num">0,049 %<br><span class="text-muted">min 79 NOK</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Saxo OpenAPI</strong><br><span class="text-muted">Global / Reserve</span></td>
+                      <td><span class="status-chip is-warn">STANDBY</span></td>
+                      <td class="num">0,08 %<br><span class="text-muted">0,12 % depot</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Telegram HITL</strong><br><span class="text-muted">14t utløpstid</span></td>
+                      <td><span class="status-chip" id="overviewTgChip">TILKOBLET</span></td>
+                      <td class="num">0 kr<br><span class="text-muted">Failover klar</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Agent 3 (LLM)</strong><br><span class="text-muted">NewsWeb + Macro</span></td>
+                      <td><span class="status-chip">GUARDRAIL</span></td>
+                      <td class="num">Strukturert<br><span class="text-muted">Djevelens adv.</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Pipeline Summary -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Dagens Beslutningskø &amp; Styringspyramide</h2>
+                <p class="panel-sub">Deterministiske Python-signaler filtrert av Agent 3 før godkjenning og utførelse</p>
+              </div>
+              <button type="button" class="btn btn-primary btn-sm" onclick="switchView('ordrer')">
+                Behandle Nordnet Trade Tickets →
+              </button>
+            </div>
+            <div class="kpi-grid">
+              <div class="metric-tile">
+                <span class="data-label">1. Signalmotor (Python)</span>
+                <div class="metric-value" style="font-size:1.35rem;">5 kandidater</div>
+                <div class="metric-delta is-cyan">3 nordiske (OBX/CPH) · 2 US (Nasdaq)</div>
+              </div>
+              <div class="metric-tile">
+                <span class="data-label">2. Agent 3 (Djevelens advokat)</span>
+                <div class="metric-value" style="font-size:1.35rem;">4 GO · 1 NO-GO</div>
+                <div class="metric-delta">Blokkerte FRO.OL (kvartalstall om 2d)</div>
+              </div>
+              <div class="metric-tile">
+                <span class="data-label">3. All-in Cost Guardrail</span>
+                <div class="metric-value" style="font-size:1.35rem;">NetAlpha &gt; 1,8 %</div>
+                <div class="metric-delta">Alle godkjente scorer over terskel</div>
+              </div>
+              <div class="metric-tile">
+                <span class="data-label">4. Ventende utførelse</span>
+                <div class="metric-value" style="font-size:1.35rem;" id="overviewPendingCount">3 Trade Tickets</div>
+                <div class="metric-delta is-warn">Krever manuell godkjenning før børs</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- 02 PORTEFØLJE                                                   -->
+        <!-- =============================================================== -->
+        <section id="view-portefolje" class="view-section" aria-labelledby="head-portefolje">
+          <div class="section-head">
+            <div>
+              <h1 id="head-portefolje">Åpne Posisjoner &amp; Risikokontroll</h1>
+              <p class="section-lede">
+                Eksponering delt i US Systematic (Alpaca med OCO ATR-stopp) og Nordic Core ASK (Nordnet med EØS-skatteutsettelse og maks 2 posisjoner per sektor).
+              </p>
+            </div>
+            <div class="controls-row" style="padding: var(--space-sm) var(--space-md);">
+              <div class="field" style="min-width:170px;">
+                <label for="portfolioFilter">Kontofilter</label>
+                <select id="portfolioFilter" onchange="renderPortfolioTables()">
+                  <option value="ALL">Alle kontoer (US + ASK)</option>
+                  <option value="ALPACA">Kun US Systematic (Alpaca)</option>
+                  <option value="NORDNET">Kun Nordic Core ASK (Nordnet)</option>
+                </select>
+              </div>
+              <div class="field" style="min-width:170px;">
+                <label for="portfolioSectorFilter">Sektorfilter</label>
+                <select id="portfolioSectorFilter" onchange="renderPortfolioTables()">
+                  <option value="ALL">Alle sektorer</option>
+                  <option value="Teknologi">Teknologi &amp; AI</option>
+                  <option value="Energi">Energi</option>
+                  <option value="Forsvar">Forsvar / Industri</option>
+                  <option value="Helse">Helse / Pharma</option>
+                  <option value="Finans">Finans</option>
+                  <option value="Sjømat">Sjømat</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="metric-tile">
+              <span class="data-label">US Systematic (Alpaca)</span>
+              <div class="metric-value">$104 280</div>
+              <div class="metric-delta">$89 450 investert · $14 830 kontanter (14,2 %)</div>
+            </div>
+            <div class="metric-tile">
+              <span class="data-label">Nordic Core ASK (Nordnet)</span>
+              <div class="metric-value" id="portNordnetTotal">937 868 NOK</div>
+              <div class="metric-delta" id="portNordnetCash">792 400 NOK investert · 145 468 NOK kontanter</div>
+            </div>
+            <div class="metric-tile">
+              <span class="data-label">Sektorkonsentrasjon (OBX)</span>
+              <div class="metric-value">Maks 2 / sektor</div>
+              <div class="metric-delta">Energi 1/2 · Forsvar 1/2 · Sjømat 1/2 · Finans 1/2</div>
+            </div>
+            <div class="metric-tile">
+              <span class="data-label">Samlet ATR-risiko til Stop</span>
+              <div class="metric-value">-31 850 NOK</div>
+              <div class="metric-delta is-cyan">1,55 % av total egenkapital (Circuit Breaker: -6,0 %)</div>
+            </div>
+          </div>
+
+          <!-- US Systematic Table -->
+          <div class="panel" id="panelAlpacaPositions">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">US Systematic — Alpaca Trading API (USD)</h2>
+                <p class="panel-sub">Automatisk beskyttet med meglernative OCO Bracket Stop-Loss og Take-Profit</p>
+              </div>
+              <span class="status-chip">4 åpne posisjoner · $0 kurtasje</span>
+            </div>
+            <div class="table-wrap">
+              <table class="aurora-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Sektor / Børs</th>
+                    <th class="num">Antall</th>
+                    <th class="num">Snittkurs</th>
+                    <th class="num">Siste kurs</th>
+                    <th class="num">
+                      ATR-stopp
+                      <span class="tip-wrap">
+                        <button type="button" class="tip-btn" onclick="toggleTip(this)" aria-label="Forklaring ATR-stopp">?</button>
+                        <span class="tip-bubble">Volatilitetsbasert stop-loss beregnet som Entry minus 1.8x–2.5x 14-dagers Average True Range (ATR).</span>
+                      </span>
+                    </th>
+                    <th class="num">Vekt %</th>
+                    <th class="num">Markedsverdi</th>
+                    <th class="num">Urealisert P&amp;L</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyAlpacaPositions"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Nordic Core ASK Table -->
+          <div class="panel" id="panelNordnetPositions">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Nordic Core ASK — Nordnet Aksjesparekonto (NOK)</h2>
+                <p class="panel-sub">Primærnoteringer i EØS for skatteutsettelse og unngått ADR-gebyr/likviditetsdrag</p>
+              </div>
+              <span class="status-chip is-cyan" id="nordnetPosBadge">4 åpne posisjoner · ASK 37,84 % utsatt</span>
+            </div>
+            <div class="table-wrap">
+              <table class="aurora-table">
+                <thead>
+                  <tr>
+                    <th>Ticker / ISIN</th>
+                    <th>Sektor / Børs</th>
+                    <th class="num">Antall</th>
+                    <th class="num">Snittkurs</th>
+                    <th class="num">Siste kurs</th>
+                    <th class="num">ATR-stopp</th>
+                    <th class="num">Vekt %</th>
+                    <th class="num">Markedsverdi (NOK)</th>
+                    <th class="num">Urealisert P&amp;L</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyNordnetPositions"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- 03 ORDRER & TRADE TICKETS                                       -->
+        <!-- =============================================================== -->
+        <section id="view-ordrer" class="view-section" aria-labelledby="head-ordrer">
+          <div class="section-head">
+            <div>
+              <h1 id="head-ordrer">Ordrer, Nordnet Trade Tickets &amp; CSV-Avstemming</h1>
+              <p class="section-lede">
+                Automatisk Alpaca OCO-kø side om side med den semi-automatiske Nordnet-arbeidsflyten: AI-generert Trade Ticket → Godkjenn for manuell handel → Registrer fill / Importer CSV → DuckDB avstemming.
+              </p>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="resetDemoOrders()">
+              Tilbakestill demo-kø
+            </button>
+          </div>
+
+          <div id="orderActionFeedback" class="inline-feedback" style="display:none;" role="status"></div>
+
+          <!-- Alpaca OCO Bracket Queue -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Alpaca OCO Bracket-ordrekø &amp; Telegram HITL</h2>
+                <p class="panel-sub">US-ordrer sendes via Alpaca v2 API ved godkjenning i Telegram eller via In-App Failover</p>
+              </div>
+              <span class="status-chip" id="alpacaQueueBadge">2 ordrer i kø</span>
+            </div>
+            <div class="table-wrap">
+              <table class="aurora-table">
+                <thead>
+                  <tr>
+                    <th>Ordre-ID</th>
+                    <th>Ticker</th>
+                    <th>Type / Antall</th>
+                    <th class="num">Limit ($)</th>
+                    <th class="num">Stop-Loss</th>
+                    <th class="num">Take-Profit</th>
+                    <th class="num">R/R</th>
+                    <th>Telegram HITL / Status</th>
+                    <th class="num">Handling</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyAlpacaQueue"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Dedicated Nordnet Execution Dashboard -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Nordnet Execution Dashboard — Ferdig Analyserte Trade Tickets</h2>
+                <p class="panel-sub">
+                  Guardrail: <code>READY_FOR_MANUAL_EXECUTION</code> oppretter aldri posisjon i databasen før faktisk fill er registrert eller avstemt via CSV.
+                </p>
+              </div>
+              <div style="display:flex; gap:var(--space-sm); flex-wrap:wrap; align-items:center;">
+                <span class="status-chip is-cyan" id="nordnetTicketSummary">3 aktive tickets</span>
+              </div>
+            </div>
+
+            <div class="card-grid" id="nordnetTicketsGrid" style="grid-template-columns: 1fr;"></div>
+          </div>
+
+          <!-- CSV Reconciliation Module -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">
+                  Nordnet CSV-Avstemming (Reconciliation Engine)
+                  <span class="tip-wrap">
+                    <button type="button" class="tip-btn" onclick="toggleTip(this)" aria-label="Forklaring CSV-avstemming">?</button>
+                    <span class="tip-bubble">Leser eksportfilen transactions.csv fra Nordnet, dedupliserer på transaksjons-ID, matcher ISIN mot execution_queue og beregner faktisk All-In Cost.</span>
+                  </span>
+                </h2>
+                <p class="panel-sub">
+                  Pipeline: <code>transactions.csv</code> → <code>staging_nordnet_transactions</code> → <code>deduplicate</code> → <code>match execution_queue</code> → <code>fact_trades (DuckDB)</code>
+                </p>
+              </div>
+              <span class="status-chip" id="csvReconBadge">Klar for avstemming</span>
+            </div>
+
+            <div class="controls-row">
+              <div class="field is-grow">
+                <label for="csvFileInput">Last opp Nordnet transactions.csv (semikolon- eller kommaseparert)</label>
+                <input type="file" id="csvFileInput" accept=".csv,text/csv" onchange="handleCsvUpload(this)">
+              </div>
+              <button type="button" class="btn btn-primary" onclick="simulateNordnetCsv()">
+                Simuler Nordnet transactions.csv
+              </button>
+              <button type="button" class="btn btn-outline" onclick="downloadSampleCsv()">
+                Last ned mal-CSV
+              </button>
+            </div>
+
+            <div id="csvReconOutput" style="margin-top: var(--space-md); display:none;">
+              <div class="kpi-grid" id="csvReconKpis" style="margin-bottom: var(--space-md);"></div>
+              <div class="table-wrap">
+                <table class="aurora-table">
+                  <thead>
+                    <tr>
+                      <th>Tx-ID / Dato</th>
+                      <th>Verdipapir / ISIN</th>
+                      <th class="num">Antall</th>
+                      <th class="num">Faktisk kurs</th>
+                      <th class="num">Kurtasje</th>
+                      <th class="num">Planlagt vs. Faktisk</th>
+                      <th>Avstemmingsstatus</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyCsvRecon"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- 04 MARKEDER & SMART ROUTING                                     -->
+        <!-- =============================================================== -->
+        <section id="view-markeder" class="view-section" aria-labelledby="head-markeder">
+          <div class="section-head">
+            <div>
+              <h1 id="head-markeder">Markeder (S&amp;P 500 &amp; OBX) &amp; Smart Routing-Kalkulator</h1>
+              <p class="section-lede">
+                Teknisk overvåkingsliste for amerikanske og norske kjerneaksjer, samt Transaction Cost &amp; Tax Engine for å velge optimal børs, valuta og megler.
+              </p>
+            </div>
+          </div>
+
+          <!-- Interactive Smart Routing Calculator -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Smart Routing &amp; All-In Cost Kalkulator (Nordnet ASK vs. Alpaca vs. Saxo)</h2>
+                <p class="panel-sub">
+                  Beregner <code>NetAlpha = GrossAlpha - Commission - Spread - Slippage - FX - Regulatory - Custody - TaxDrag</code>
+                </p>
+              </div>
+              <div style="display:flex; gap:var(--space-xs); flex-wrap:wrap;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadRoutingPreset('novo')">Preset: Novo Nordisk (CPH vs. NVO ADR)</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadRoutingPreset('eqnr')">Preset: Equinor (OSL vs. EQNR ADR)</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadRoutingPreset('nvda')">Preset: Nvidia (Nasdaq)</button>
+              </div>
+            </div>
+
+            <div class="controls-row">
+              <div class="field">
+                <label for="rtAssetLabel">Aksje / Case</label>
+                <input type="text" id="rtAssetLabel" value="Novo Nordisk (NOVO B vs NVO)" oninput="computeSmartRouting()">
+              </div>
+              <div class="field">
+                <label for="rtAmountNok">Ordrestørrelse (NOK)</label>
+                <input type="number" id="rtAmountNok" value="50000" min="2000" step="5000" oninput="computeSmartRouting()">
+              </div>
+              <div class="field">
+                <label for="rtGrossAlpha">Forventet Brutto Alfa (%)</label>
+                <input type="number" id="rtGrossAlpha" value="4.20" min="0" max="50" step="0.1" oninput="computeSmartRouting()">
+              </div>
+              <div class="field">
+                <label for="rtHoldDays">Holdeperiode (dager)</label>
+                <input type="number" id="rtHoldDays" value="90" min="1" max="1095" step="5" oninput="computeSmartRouting()">
+              </div>
+              <div class="field">
+                <label for="rtNordnetTier">Nordnet Prisklasse</label>
+                <select id="rtNordnetTier" onchange="computeSmartRouting()">
+                  <option value="normal">Normal (0,049 % / min 79 kr)</option>
+                  <option value="mini">Mini (0,15 % / min 29 kr)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="rtFxMode">Nordnet Valutaveksling</label>
+                <select id="rtFxMode" onchange="computeSmartRouting()">
+                  <option value="auto">Automatisk FX (0,25 % per vei)</option>
+                  <option value="sub">Valutakonto (0,15 % per vei — kun AF)</option>
+                  <option value="none">NOK Hjemmemarked (0,00 % FX)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="routingVerdictBox" style="margin-top: var(--space-md);"></div>
+
+            <div class="table-wrap" style="margin-top: var(--space-md);">
+              <table class="aurora-table">
+                <thead>
+                  <tr>
+                    <th>Kostnadselement (Tur-Retur)</th>
+                    <th class="num">Rute A: Nordnet ASK (Primær EØS)</th>
+                    <th class="num">Rute B: Alpaca (USA / ADR)</th>
+                    <th class="num">Rute C: Saxo Classic (Nordisk/Global)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodySmartRouting"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Watchlists S&P 500 & OBX 15 -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Overvåkingslister: OBX Kjerneunivers &amp; S&amp;P 500 Momentum</h2>
+                <p class="panel-sub">
+                  Euronext OBX består offisielt av de 25 mest omsatte verdipapirene på Oslo Børs; tabellen under viser våre 15 likvide kjerneaksjer samt utvalgte S&amp;P 500-kandidater.
+                </p>
+              </div>
+              <div class="controls-row" style="padding: var(--space-sm) var(--space-md);">
+                <div class="field" style="min-width:160px;">
+                  <label for="wlMarketSelect">Marked</label>
+                  <select id="wlMarketSelect" onchange="renderWatchlist()">
+                    <option value="ALL">Alle (OBX + S&amp;P 500)</option>
+                    <option value="OBX">Oslo Børs OBX (15 kjerne)</option>
+                    <option value="SP500">S&amp;P 500 / Nasdaq</option>
+                  </select>
+                </div>
+                <div class="field" style="min-width:180px;">
+                  <label for="wlSearchInput">Søk ticker eller sektor</label>
+                  <input type="text" id="wlSearchInput" placeholder="F.eks. EQNR, NVDA, Energi" oninput="renderWatchlist()">
+                </div>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="aurora-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Selskap &amp; Marked</th>
+                    <th>Sektor</th>
+                    <th class="num">Siste kurs</th>
+                    <th class="num">RSI(2)</th>
+                    <th class="num">vs. SMA200</th>
+                    <th class="num">ATR(14)</th>
+                    <th class="num">Tick-size / Bånd</th>
+                    <th>Signal / Ruting</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyWatchlist"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =============================================================== -->
+        <!-- 05 STRATEGIER & ANALYSE                                          -->
+        <!-- =============================================================== -->
+        <section id="view-strategier" class="view-section" aria-labelledby="head-strategier">
+          <div class="section-head">
+            <div>
+              <h1 id="head-strategier">Backtest-Sammenligning, Shadow Tracking &amp; Risikoprofil</h1>
+              <p class="section-lede">
+                Walk-forward evaluering mot look-ahead bias, survivorship bias og urealistisk friksjon, kombinert med A/B-evaluering av AI-filteret.
+              </p>
+            </div>
+          </div>
+
+          <!-- Risk Profile Selector (Consistent 100% allocation math) -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Risikoprofilvelger (Norsk ASK &amp; Systematisk Portefølje)</h2>
+                <p class="panel-sub">
+                  Alle posisjonsvekter er oppgitt som andel av total portefølje og summerer konsistent til 100 % inkludert kontantreserve.
+                </p>
+              </div>
+              <span class="status-chip is-cyan">Skatt: ASK 37,84 % utsatt</span>
+            </div>
+
+            <div class="controls-row">
+              <div class="field is-grow">
+                <label for="riskProfileSelect">Velg Risikoprofil</label>
+                <select id="riskProfileSelect" onchange="renderRiskProfile()">
+                  <option value="konservativ">Konservativ — 4 plasser à 20,0 % (80 % aksjer + 20 % kontant) · 1.5x ATR</option>
+                  <option value="balansert" selected>Balansert — 4 plasser à 22,5 % (90 % aksjer + 10 % kontant) · 2.0x ATR</option>
+                  <option value="aggressiv">Aggressiv — 3 plasser à 31,6 % (95 % aksjer + 5 % kontant) · 2.5x ATR</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="riskCapitalInput">Porteføljekapital (NOK)</label>
+                <input type="number" id="riskCapitalInput" value="250000" min="50000" step="25000" oninput="renderRiskProfile()">
+              </div>
+            </div>
+
+            <div class="kpi-grid" id="riskProfileKpis" style="margin-top: var(--space-md);"></div>
+          </div>
+
+          <!-- Backtest Comparison Chart & 6-Case Matrix -->
+          <div class="two-col-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">US vs. Nordisk Backtest (Netto Avkastning vs. MaxDD)</h2>
+                  <p class="panel-sub">Viser hvorfor eksogene regimefiltre (VIX / Brent) kutter nedsiderisiko</p>
+                </div>
+              </div>
+              <div class="chart-box">
+                <canvas id="strategyBacktestChart" aria-label="Backtest sammenligning av strategier"></canvas>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">Shadow Tracking (Agent 3 A/B-Attribuering)</h2>
+                  <p class="panel-sub">Måler avviste signaler (NO-GO) mot godkjente (GO) i DuckDB</p>
+                </div>
+                <span class="status-chip">+0,29 Sortino Edge</span>
+              </div>
+              <div class="table-wrap">
+                <table class="aurora-table">
+                  <thead>
+                    <tr>
+                      <th>Kohort</th>
+                      <th class="num">Antall</th>
+                      <th class="num">Vinn %</th>
+                      <th class="num">Snitt 20d</th>
+                      <th class="num">Sortino</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Kohort A</strong> · Alle rå signaler</td>
+                      <td class="num">142</td>
+                      <td class="num">55,4 %</td>
+                      <td class="num">+1,42 %</td>
+                      <td class="num">0,89</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Kohort B</strong> · AI GO (Godkjent)</td>
+                      <td class="num">96</td>
+                      <td class="num text-pos">61,8 %</td>
+                      <td class="num text-pos">+2,14 %</td>
+                      <td class="num text-pos">1,18</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Kohort C1</strong> · EARNINGS_SOON</td>
+                      <td class="num">21</td>
+                      <td class="num text-neg">38,2 %</td>
+                      <td class="num text-neg">-1,85 %</td>
+                      <td class="num text-neg">0,31</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Kohort C2</strong> · COMPANY_SHOCK</td>
+                      <td class="num">14</td>
+                      <td class="num text-neg">29,5 %</td>
+                      <td class="num text-neg">-3,40 %</td>
+                      <td class="num text-neg">0,14</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Kohort C3</strong> · MACRO_NOISE</td>
+                      <td class="num">11</td>
+                      <td class="num text-warn">52,0 %</td>
+                      <td class="num text-warn">+0,95 %</td>
+                      <td class="num text-warn">0,78</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6-Case Empirical Matrix -->
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">6-Case Walk-Forward Backtest-Matrise (DuckDB <code>obx_analytics.duckdb</code>)</h2>
+                <p class="panel-sub">Signal på Close(T) → Utførelse på Open(T+1) med 5–10 bps spread, kurtasjetrapp og minst 50 MNOK daglig omsetning</p>
+              </div>
+              <span class="status-chip is-warn">Stage-Gate: MaxDD &lt; 18 % · Cost Drag &lt; 20 %</span>
+            </div>
+            <div class="table-wrap">
+              <table class="aurora-table">
+                <thead>
+                  <tr>
+                    <th>Case ID</th>
+                    <th>Strategi &amp; Megler</th>
+                    <th>Regimefilter</th>
+                    <th class="num">Handler</th>
+                    <th class="num">Vinn %</th>
+                    <th class="num">Netto Avk.</th>
+                    <th class="num">Max DD</th>
+                    <th class="num">Sortino</th>
+                    <th class="num">Cost Drag</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyBacktestCases"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer-note">
+        Kildegrunnlag: Intern AI Trading Desk-arkitektur (DuckDB / SQLite WAL / Telegram HITL / Alpaca Trading API / Nordnet ASK CSV-avstemming), offentlig prisinformasjon fra Nordnet, Saxo Bank og Alpaca Markets, samt forskningsrammeverk for walk-forward backtesting og menneskelig kontroll. Alle demokurser og åpne testordre i terminalen er simulerte arbeidsdata som lagres lokalt i arbeidsøkten.
+      </footer>
+    </div>
+  </div>
+
+  <!-- Flytende AI Strategi- og Risikorådgiver -->
+  <button type="button" class="advisor-fab" id="advisorFab" onclick="toggleAdvisorDrawer()" aria-expanded="false" aria-controls="advisorDrawer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    <span>AI Strategi- &amp; Risikorådgiver</span>
+  </button>
+
+  <section class="advisor-drawer" id="advisorDrawer" aria-label="AI Strategi- og Risikorådgiver">
+    <div class="advisor-head">
+      <div>
+        <div class="panel-title" style="font-size:0.95rem;">AI Strategi- &amp; Risikorådgiver</div>
+        <div class="panel-sub" style="font-size:0.75rem; margin:0;">Guardrail-basert beslutningsstøtte (ingen fri ordreautonomi)</div>
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="toggleAdvisorDrawer()" aria-label="Lukk rådgiver">Lukk</button>
+    </div>
+
+    <div class="advisor-messages" id="advisorMessages">
+      <div class="chat-msg is-bot">
+        Hei! Jeg overvåker markedsregimet (VIX 16,4 · Brent $74,80 · OBX &gt; SMA200), Nordnet ASK vs. Alpaca-ruting og ATR-risikoregler. Velg et hurtigtema under eller still et spørsmål.
+      </div>
+    </div>
+
+    <div class="advisor-chips">
+      <button type="button" class="chip-btn" onclick="askAdvisorPreset('regime')">Markedsregime &amp; VIX</button>
+      <button type="button" class="chip-btn" onclick="askAdvisorPreset('nordnet_alpaca')">Nordnet ASK vs. Alpaca</button>
+      <button type="button" class="chip-btn" onclick="askAdvisorPreset('manuell_flyt')">Manuell Nordnet-flyt</button>
+      <button type="button" class="chip-btn" onclick="askAdvisorPreset('risiko')">ATR-risiko &amp; Guardrails</button>
+      <button type="button" class="chip-btn" onclick="askAdvisorPreset('djevel')">Djevelens advokat</button>
+    </div>
+
+    <form class="advisor-input-row" onsubmit="submitAdvisorQuestion(event)">
+      <div class="field">
+        <label for="advisorInput">Spør rådgiveren</label>
+        <input type="text" id="advisorInput" placeholder="Skriv stikkord f.eks. Novo Nordisk, CSV, Sortino...">
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Send</button>
+    </form>
+  </section>
+
+  <api-shim></api-shim>
+
+  <script>
+    const USD_NOK = 10.65;
+
+    const INITIAL_POSITIONS_ALPACA = [
+      { ticker: `NVDA`, name: `Nvidia Corp`, market: `Nasdaq`, sector: `Teknologi`, qty: 85, avg: 128.40, last: 145.20, atrStop: 132.10, weight: 11.8 },
+      { ticker: `MSFT`, name: `Microsoft Corp`, market: `Nasdaq`, sector: `Teknologi`, qty: 62, avg: 412.00, last: 432.80, atrStop: 408.50, weight: 25.7 },
+      { ticker: `JPM`, name: `JPMorgan Chase`, market: `NYSE`, sector: `Finans`, qty: 110, avg: 214.50, last: 238.90, atrStop: 224.00, weight: 25.2 },
+      { ticker: `XOM`, name: `Exxon Mobil`, market: `NYSE`, sector: `Energi`, qty: 205, avg: 111.20, last: 117.10, atrStop: 109.80, weight: 23.0 }
+    ];
+
+    const INITIAL_POSITIONS_NORDNET = [
+      { ticker: `EQNR`, isin: `NO0010096985`, name: `Equinor ASA`, market: `Oslo Børs`, sector: `Energi`, qty: 780, avg: 268.40, last: 284.20, atrStop: 269.50, weight: 23.6 },
+      { ticker: `KOG`, isin: `NO0003043309`, name: `Kongsberg Gruppen`, market: `Oslo Børs`, sector: `Forsvar`, qty: 190, avg: 1085.00, last: 1218.00, atrStop: 1142.00, weight: 24.7 },
+      { ticker: `DNB`, isin: `NO0010161288`, name: `DNB Bank ASA`, market: `Oslo Børs`, sector: `Finans`, qty: 720, avg: 219.50, last: 231.40, atrStop: 221.00, weight: 17.8 },
+      { ticker: `MOWI`, isin: `NO0003054108`, name: `Mowi ASA`, market: `Oslo Børs`, sector: `Sjømat`, qty: 860, avg: 189.20, last: 201.00, atrStop: 191.40, weight: 18.4 }
+    ];
+
+    const INITIAL_ALPACA_QUEUE = [
+      { id: `ALP-409`, ticker: `AVGO`, side: `BUY`, qty: 95, limit: 174.50, sl: 161.20, tp: 203.80, rr: `2.20:1`, hitlStatus: `VENTER TELEGRAM`, state: `PENDING` },
+      { id: `ALP-410`, ticker: `AMZN`, side: `BUY`, qty: 75, limit: 206.40, sl: 195.80, tp: 229.70, rr: `2.20:1`, hitlStatus: `GODKJENT VIA TELEGRAM`, state: `APPROVED` }
+    ];
+
+    const DEFAULT_NORDNET_TICKETS = [
+      {
+        id: `NN-2026-101`,
+        action: `BUY`,
+        company: `Equinor ASA`,
+        ticker: `EQNR`,
+        isin: `NO0010096985`,
+        market: `Oslo Børs (XOSL)`,
+        account: `ASK`,
+        currency: `NOK`,
+        fxToNok: 1.0,
+        qty: 150,
+        maxPosPct: 5.0,
+        orderType: `LIMIT`,
+        limitPrice: 284.20,
+        stopLoss: 269.50,
+        commissionPct: 0.049,
+        minFeeNok: 79,
+        spreadPct: 0.06,
+        slippagePct: 0.03,
+        fxPct: 0.00,
+        grossAlphaPct: 3.45,
+        riskStatus: `PASS`,
+        bullCase: `RSI(2) = 7,1 over stigende SMA200 med Brent stabil over $74/fat og sterk fri kontantstrøm.`,
+        devilsAdvocate: `Ingen børsmeldinger siste 48t; kortsiktig risiko dersom OPEC+ varsler økt produksjon før helgen.`,
+        status: `PROPOSED`,
+        actualFillPrice: null,
+        actualFeeNok: null,
+        reconciledTxId: null
+      },
+      {
+        id: `NN-2026-102`,
+        action: `BUY`,
+        company: `Novo Nordisk B`,
+        ticker: `NOVO B`,
+        isin: `DK0062498333`,
+        market: `Nasdaq København (XCSE)`,
+        account: `ASK`,
+        currency: `DKK`,
+        fxToNok: 1.54,
+        qty: 55,
+        maxPosPct: 5.5,
+        orderType: `LIMIT`,
+        limitPrice: 742.50,
+        stopLoss: 704.00,
+        commissionPct: 0.049,
+        minFeeNok: 79,
+        spreadPct: 0.07,
+        slippagePct: 0.04,
+        fxPct: 0.25,
+        grossAlphaPct: 4.15,
+        riskStatus: `PASS`,
+        bullCase: `20-dagers trendbrudd etter konsolidering; primærnotering i København på ASK sparer ADR-gebyr og gir utsatt EØS-skatt.`,
+        devilsAdvocate: `Automatisk FX-påslag på 0,25 % i ASK trekker kostnaden opp; følsom for amerikanske prisforhandlinger på GLP-1.`,
+        status: `PROPOSED`,
+        actualFillPrice: null,
+        actualFeeNok: null,
+        reconciledTxId: null
+      },
+      {
+        id: `NN-2026-103`,
+        action: `BUY`,
+        company: `Kongsberg Gruppen`,
+        ticker: `KOG`,
+        isin: `NO0003043309`,
+        market: `Oslo Børs (XOSL)`,
+        account: `ASK`,
+        currency: `NOK`,
+        fxToNok: 1.0,
+        qty: 35,
+        maxPosPct: 4.5,
+        orderType: `LIMIT`,
+        limitPrice: 1218.00,
+        stopLoss: 1148.00,
+        commissionPct: 0.049,
+        minFeeNok: 79,
+        spreadPct: 0.08,
+        slippagePct: 0.04,
+        fxPct: 0.00,
+        grossAlphaPct: 3.90,
+        riskStatus: `PASS`,
+        bullCase: `Sterk ordreinngang innen forsvar/maritim og brudd over 20-dagers høyeste med 1,6x snittvolum.`,
+        devilsAdvocate: `Høy verdsettelse og større absolutt tick-size (1,00 NOK i Band 6 over 1000 kr) krever streng limit-disiplin.`,
+        status: `PROPOSED`,
+        actualFillPrice: null,
+        actualFeeNok: null,
+        reconciledTxId: null
+      }
+    ];
+
+    const WATCHLIST_DATA = [
+      { ticker: `EQNR`, name: `Equinor ASA`, market: `OBX`, exchange: `Oslo`, sector: `Energi`, price: `284,20 NOK`, rsi2: 7.1, smaDiff: `+4,8 %`, atr: `7,35 NOK`, tick: `0,10 (Bånd 6)`, signal: `BUY · ASK`, tone: `pos` },
+      { ticker: `KOG`, name: `Kongsberg Gruppen`, market: `OBX`, exchange: `Oslo`, sector: `Forsvar`, price: `1 218,00 NOK`, rsi2: 64.2, smaDiff: `+16,4 %`, atr: `28,10 NOK`, tick: `1,00 (Bånd 6)`, signal: `BREAKOUT · ASK`, tone: `pos` },
+      { ticker: `DNB`, name: `DNB Bank ASA`, market: `OBX`, exchange: `Oslo`, sector: `Finans`, price: `231,40 NOK`, rsi2: 41.5, smaDiff: `+3,2 %`, atr: `4,60 NOK`, tick: `0,10 (Bånd 6)`, signal: `HOLD · ASK`, tone: `cyan` },
+      { ticker: `AKRBP`, name: `Aker BP ASA`, market: `OBX`, exchange: `Oslo`, sector: `Energi`, price: `242,50 NOK`, rsi2: 14.8, smaDiff: `+1,1 %`, atr: `6,15 NOK`, tick: `0,20 (Bånd 5)`, signal: `OVERVÅK · ASK`, tone: `warn` },
+      { ticker: `MOWI`, name: `Mowi ASA`, market: `OBX`, exchange: `Oslo`, sector: `Sjømat`, price: `201,00 NOK`, rsi2: 33.4, smaDiff: `+5,6 %`, atr: `4,20 NOK`, tick: `0,10 (Bånd 6)`, signal: `HOLD · ASK`, tone: `cyan` },
+      { ticker: `SALM`, name: `SalMar ASA`, market: `OBX`, exchange: `Oslo`, sector: `Sjømat`, price: `574,00 NOK`, rsi2: 22.9, smaDiff: `+2,4 %`, atr: `14,50 NOK`, tick: `0,50 (Bånd 5)`, signal: `OVERVÅK · ASK`, tone: `warn` },
+      { ticker: `GJF`, name: `Gjensidige Forsikring`, market: `OBX`, exchange: `Oslo`, sector: `Finans`, price: `198,60 NOK`, rsi2: 51.0, smaDiff: `+6,1 %`, atr: `3,40 NOK`, tick: `0,05 (Bånd 6)`, signal: `NØYTRAL`, tone: `muted` },
+      { ticker: `ORK`, name: `Orkla ASA`, market: `OBX`, exchange: `Oslo`, sector: `Konsum`, price: `98,40 NOK`, rsi2: 46.7, smaDiff: `+4,2 %`, atr: `1,75 NOK`, tick: `0,05 (Bånd 5)`, signal: `NØYTRAL`, tone: `muted` },
+      { ticker: `TEL`, name: `Telenor ASA`, market: `OBX`, exchange: `Oslo`, sector: `Telekom`, price: `134,80 NOK`, rsi2: 38.2, smaDiff: `+2,9 %`, atr: `2,20 NOK`, tick: `0,05 (Bånd 6)`, signal: `NØYTRAL`, tone: `muted` },
+      { ticker: `YAR`, name: `Yara International`, market: `OBX`, exchange: `Oslo`, sector: `Materialer`, price: `318,00 NOK`, rsi2: 18.4, smaDiff: `-2,1 %`, atr: `7,90 NOK`, tick: `0,20 (Bånd 5)`, signal: `UNDER SMA200`, tone: `neg` },
+      { ticker: `FRO`, name: `Frontline plc`, market: `OBX`, exchange: `Oslo`, sector: `Shipping`, price: `214,60 NOK`, rsi2: 9.4, smaDiff: `+3,7 %`, atr: `8,40 NOK`, tick: `0,10 (Bånd 6)`, signal: `NO-GO (TALL 2d)`, tone: `neg` },
+      { ticker: `NHY`, name: `Norsk Hydro ASA`, market: `OBX`, exchange: `Oslo`, sector: `Materialer`, price: `66,80 NOK`, rsi2: 53.1, smaDiff: `+4,4 %`, atr: `1,85 NOK`, tick: `0,02 (Bånd 6)`, signal: `NØYTRAL`, tone: `muted` },
+      { ticker: `SUBC`, name: `Subsea 7 S.A.`, market: `OBX`, exchange: `Oslo`, sector: `Energi`, price: `186,30 NOK`, rsi2: 29.8, smaDiff: `+7,5 %`, atr: `5,20 NOK`, tick: `0,10 (Bånd 4)`, signal: `SEKTORSPERRE`, tone: `warn` },
+      { ticker: `TOM`, name: `Tomra Systems`, market: `OBX`, exchange: `Oslo`, sector: `Industri`, price: `154,20 NOK`, rsi2: 44.0, smaDiff: `+1,9 %`, atr: `4,90 NOK`, tick: `0,10 (Bånd 4)`, signal: `NØYTRAL`, tone: `muted` },
+      { ticker: `STB`, name: `Storebrand ASA`, market: `OBX`, exchange: `Oslo`, sector: `Finans`, price: `122,40 NOK`, rsi2: 61.5, smaDiff: `+9,8 %`, atr: `2,55 NOK`, tick: `0,05 (Bånd 5)`, signal: `HOLD · ASK`, tone: `cyan` },
+      { ticker: `NVDA`, name: `Nvidia Corp`, market: `SP500`, exchange: `Nasdaq`, sector: `Teknologi`, price: `$145,20`, rsi2: 58.4, smaDiff: `+19,2 %`, atr: `$5,15`, tick: `$0,01 (US)`, signal: `HOLD · ALPACA`, tone: `pos` },
+      { ticker: `AVGO`, name: `Broadcom Inc`, market: `SP500`, exchange: `Nasdaq`, sector: `Teknologi`, price: `$174,50`, rsi2: 12.6, smaDiff: `+11,4 %`, atr: `$5,32`, tick: `$0,01 (US)`, signal: `BUY · ALPACA`, tone: `pos` },
+      { ticker: `MSFT`, name: `Microsoft Corp`, market: `SP500`, exchange: `Nasdaq`, sector: `Teknologi`, price: `$432,80`, rsi2: 48.2, smaDiff: `+6,7 %`, atr: `$8,40`, tick: `$0,01 (US)`, signal: `HOLD · ALPACA`, tone: `cyan` },
+      { ticker: `JPM`, name: `JPMorgan Chase`, market: `SP500`, exchange: `NYSE`, sector: `Finans`, price: `$238,90`, rsi2: 66.1, smaDiff: `+12,8 %`, atr: `$4,95`, tick: `$0,01 (US)`, signal: `HOLD · ALPACA`, tone: `cyan` },
+      { ticker: `AMZN`, name: `Amazon.com Inc`, market: `SP500`, exchange: `Nasdaq`, sector: `Teknologi`, price: `$206,40`, rsi2: 14.1, smaDiff: `+10,5 %`, atr: `$4,42`, tick: `$0,01 (US)`, signal: `OCO KLAR · ALPACA`, tone: `pos` }
+    ];
+
+    const BACKTEST_CASES = [
+      { id: `01_ENDO_MEAN_REV`, desc: `OBX Mean Reversion · Nordnet Mini`, regime: `Kun OBX > SMA200`, trades: 68, win: `57,4 %`, ret: `+11,2 %`, dd: `-14,8 %`, sortino: `0,94`, drag: `16,8 %` },
+      { id: `02_EXO_MEAN_REV`, desc: `OBX Mean Reversion · Saxo Classic`, regime: `OBX > SMA200 + VIX < 25 + Brent`, trades: 44, win: `63,6 %`, ret: `+14,9 %`, dd: `-8,6 %`, sortino: `1,38`, drag: `9,4 %` },
+      { id: `03_ENDO_BREAKOUT`, desc: `OBX Trend Breakout · Nordnet Normal`, regime: `Kun OBX > SMA200`, trades: 52, win: `48,1 %`, ret: `+12,4 %`, dd: `-13,2 %`, sortino: `1,05`, drag: `12,1 %` },
+      { id: `04_EXO_BREAKOUT`, desc: `OBX Trend Breakout · Saxo Classic`, regime: `OBX > SMA200 + Brent > SMA50`, trades: 35, win: `54,3 %`, ret: `+15,6 %`, dd: `-9,1 %`, sortino: `1,42`, drag: `7,8 %` },
+      { id: `05_US_MOMENTUM`, desc: `S&P 500 Liquid Momentum · Alpaca`, regime: `VIX < 25 + SPY > SMA200`, trades: 61, win: `59,0 %`, ret: `+19,4 %`, dd: `-10,4 %`, sortino: `1,54`, drag: `3,2 %` },
+      { id: `06_SINGLE_EQNR`, desc: `Enkeltaksje Referanse (EQNR alene)`, regime: `Ingen porteføljesperre`, trades: 118, win: `50,8 %`, ret: `+7,8 %`, dd: `-21,5 %`, sortino: `0,62`, drag: `24,6 %` }
+    ];
+
+    const RISK_PROFILES = {
+      konservativ: {
+        name: `Konservativ Profil`,
+        slots: 4,
+        posPct: 20.0,
+        cashPct: 20.0,
+        atrMult: 1.5,
+        maxPerSector: 1,
+        circuitBreaker: `-4,0 %`
+      },
+      balansert: {
+        name: `Balansert Profil`,
+        slots: 4,
+        posPct: 22.5,
+        cashPct: 10.0,
+        atrMult: 2.0,
+        maxPerSector: 2,
+        circuitBreaker: `-6,0 %`
+      },
+      aggressiv: {
+        name: `Aggressiv Profil`,
+        slots: 3,
+        posPct: 31.6,
+        cashPct: 5.0,
+        atrMult: 2.5,
+        maxPerSector: 2,
+        circuitBreaker: `-9,5 %`
+      }
+    };
+
+    const APP_STATE = {
+      activeView: `oversikt`,
+      failoverActive: false,
+      alpacaQueue: JSON.parse(JSON.stringify(INITIAL_ALPACA_QUEUE)),
+      nordnetTickets: JSON.parse(JSON.stringify(DEFAULT_NORDNET_TICKETS)),
+      csvReconciledRows: [],
+      riskProfile: `balansert`,
+      riskCapital: 250000
+    };
+
+    let overviewChartInstance = null;
+    let backtestChartInstance = null;
+
+    function formatNum(val, decimals = 2) {
+      return Number(val).toLocaleString(`nb-NO`, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    function getCssToken(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function toggleTip(btn) {
+      const wrap = btn.closest(`.tip-wrap`);
+      if (!wrap) return;
+      const wasOpen = wrap.classList.contains(`is-open`);
+      document.querySelectorAll(`.tip-wrap.is-open`).forEach((el) => el.classList.remove(`is-open`));
+      if (!wasOpen) wrap.classList.add(`is-open`);
+    }
+
+    document.addEventListener(`click`, (e) => {
+      if (!e.target.closest(`.tip-wrap`)) {
+        document.querySelectorAll(`.tip-wrap.is-open`).forEach((el) => el.classList.remove(`is-open`));
+      }
+    });
+
+    async function persistState() {
+      if (!window.notebookAppApi || typeof window.notebookAppApi.setAppState !== `function`) return;
+      try {
+        await window.notebookAppApi.setAppState({
+          activeView: APP_STATE.activeView,
+          failoverActive: APP_STATE.failoverActive,
+          alpacaQueue: APP_STATE.alpacaQueue,
+          nordnetTickets: APP_STATE.nordnetTickets,
+          csvReconciledRows: APP_STATE.csvReconciledRows,
+          riskProfile: APP_STATE.riskProfile,
+          riskCapital: APP_STATE.riskCapital
+        });
+      } catch (err) {
+        // Ignore persistence errors silently in standalone mode
+      }
+    }
+
+    function switchView(viewSlug) {
+      APP_STATE.activeView = viewSlug;
+      document.querySelectorAll(`.view-section`).forEach((sec) => {
+        sec.classList.toggle(`is-active`, sec.id === `view-${viewSlug}`);
+      });
+      document.querySelectorAll(`.nav-btn`).forEach((btn) => {
+        btn.classList.toggle(`is-active`, btn.dataset.view === viewSlug);
+      });
+      const mobileSel = document.getElementById(`mobileNavSelect`);
+      if (mobileSel) mobileSel.value = viewSlug;
+
+      if (viewSlug === `oversikt`) renderOverviewChart();
+      if (viewSlug === `strategier`) renderBacktestChart();
+      persistState();
+    }
+
+    function toggleFailoverMode() {
+      APP_STATE.failoverActive = !APP_STATE.failoverActive;
+      applyFailoverUI();
+      persistState();
+    }
+
+    function applyFailoverUI() {
+      const banner = document.getElementById(`failoverBanner`);
+      const badge = document.getElementById(`failoverBadge`);
+      const msg = document.getElementById(`failoverMessage`);
+      const btn = document.getElementById(`btnToggleFailover`);
+      const sideTg = document.getElementById(`sidebarTgStatus`);
+      const ovTg = document.getElementById(`overviewTgChip`);
+
+      if (!banner || !badge || !msg || !btn) return;
+
+      if (APP_STATE.failoverActive) {
+        banner.classList.add(`is-degraded`);
+        badge.textContent = `FAILOVER AKTIV: E-POST + IN-APP`;
+        msg.innerHTML = `Telegram-webhook utilgjengelig — <strong>E-postvarsel sendt til backup-adresse</strong> og <strong>In-App Godkjenning</strong> er aktivert for alle ventende ordrer.`;
+        btn.textContent = `Gjenopprett Telegram HITL`;
+        if (sideTg) {
+          sideTg.textContent = `FAILOVER AKTIV`;
+          sideTg.classList.add(`is-warn`);
+        }
+        if (ovTg) {
+          ovTg.textContent = `FAILOVER`;
+          ovTg.className = `status-chip is-warn`;
+        }
+      } else {
+        banner.classList.remove(`is-degraded`);
+        badge.textContent = `HITL Primær: Telegram OK`;
+        msg.innerHTML = `Reservevarsling klar: <strong>E-postvarsel (SMTP Backup)</strong> og <strong>In-App Godkjenning</strong> tar automatisk over dersom Telegram-bot ikke kvitterer innen 120 sek.`;
+        btn.textContent = `Test Failover (Simuler Telegram-brudd)`;
+        if (sideTg) {
+          sideTg.textContent = `AKTIV (14t TTL)`;
+          sideTg.classList.remove(`is-warn`);
+        }
+        if (ovTg) {
+          ovTg.textContent = `TILKOBLET`;
+          ovTg.className = `status-chip`;
+        }
+      }
+      renderAlpacaQueue();
+    }
+
+    function sendEmailBackupTest() {
+      const msg = document.getElementById(`failoverMessage`);
+      if (msg) {
+        msg.innerHTML = `Simulert e-postvarsel sendt med signert engangskode og <strong>6-felts Trade Ticket-sammendrag</strong> for ${APP_STATE.nordnetTickets.filter((t) => t.status === `PROPOSED`).length} ventende Nordnet-ordrer.`;
+      }
+    }
+
+    function showOrderFeedback(text) {
+      const box = document.getElementById(`orderActionFeedback`);
+      if (!box) return;
+      box.textContent = text;
+      box.style.display = `block`;
+    }
+
+    function renderPortfolioTables() {
+      const accFilterEl = document.getElementById(`portfolioFilter`);
+      const secFilterEl = document.getElementById(`portfolioSectorFilter`);
+      const accFilter = accFilterEl ? accFilterEl.value : `ALL`;
+      const secFilter = secFilterEl ? secFilterEl.value : `ALL`;
+
+      const alpacaPanel = document.getElementById(`panelAlpacaPositions`);
+      const nordnetPanel = document.getElementById(`panelNordnetPositions`);
+      if (alpacaPanel) alpacaPanel.style.display = accFilter === `NORDNET` ? `none` : `block`;
+      if (nordnetPanel) nordnetPanel.style.display = accFilter === `ALPACA` ? `none` : `block`;
+
+      const tbodyAlp = document.getElementById(`tbodyAlpacaPositions`);
+      if (tbodyAlp) {
+        const rows = INITIAL_POSITIONS_ALPACA.filter((p) => secFilter === `ALL` || p.sector === secFilter);
+        tbodyAlp.innerHTML = rows.map((p) => {
+          const mv = p.qty * p.last;
+          const pnl = (p.last - p.avg) * p.qty;
+          const pnlPct = ((p.last - p.avg) / p.avg) * 100;
+          return `<tr>
+            <td><strong>${p.ticker}</strong><br><span class="text-muted" style="font-size:0.78rem;">${p.name}</span></td>
+            <td>${p.sector}<br><span class="text-muted" style="font-size:0.78rem;">${p.market}</span></td>
+            <td class="num">${p.qty}</td>
+            <td class="num">$${formatNum(p.avg)}</td>
+            <td class="num">$${formatNum(p.last)}</td>
+            <td class="num text-warn">$${formatNum(p.atrStop)}</td>
+            <td class="num">${formatNum(p.weight, 1)} %</td>
+            <td class="num">$${formatNum(mv, 0)}</td>
+            <td class="num ${pnl >= 0 ? `text-pos` : `text-neg`}">+${formatNum(pnl, 0)} $<br><span style="font-size:0.75rem;">(+${formatNum(pnlPct)} %)</span></td>
+          </tr>`;
+        }).join(``) || `<tr><td colspan="9" class="text-muted">Ingen Alpaca-posisjoner matcher valgt sektorfilter.</td></tr>`;
+      }
+
+      const tbodyNn = document.getElementById(`tbodyNordnetPositions`);
+      if (tbodyNn) {
+        const rows = INITIAL_POSITIONS_NORDNET.filter((p) => secFilter === `ALL` || p.sector === secFilter);
+        tbodyNn.innerHTML = rows.map((p) => {
+          const mv = p.qty * p.last;
+          const pnl = (p.last - p.avg) * p.qty;
+          const pnlPct = ((p.last - p.avg) / p.avg) * 100;
+          return `<tr>
+            <td><strong>${p.ticker}</strong><br><span class="mono text-muted" style="font-size:0.75rem;">${p.isin}</span></td>
+            <td>${p.sector}<br><span class="text-muted" style="font-size:0.78rem;">${p.market} · ASK</span></td>
+            <td class="num">${p.qty}</td>
+            <td class="num">${formatNum(p.avg)} kr</td>
+            <td class="num">${formatNum(p.last)} kr</td>
+            <td class="num text-warn">${formatNum(p.atrStop)} kr</td>
+            <td class="num">${formatNum(p.weight, 1)} %</td>
+            <td class="num">${formatNum(mv, 0)} kr</td>
+            <td class="num ${pnl >= 0 ? `text-pos` : `text-neg`}">+${formatNum(pnl, 0)} kr<br><span style="font-size:0.75rem;">(+${formatNum(pnlPct)} %)</span></td>
+          </tr>`;
+        }).join(``) || `<tr><td colspan="9" class="text-muted">Ingen Nordnet ASK-posisjoner matcher valgt sektorfilter.</td></tr>`;
+      }
+    }
+
+    function renderAlpacaQueue() {
+      const tbody = document.getElementById(`tbodyAlpacaQueue`);
+      const badge = document.getElementById(`alpacaQueueBadge`);
+      if (!tbody) return;
+
+      const activeCount = APP_STATE.alpacaQueue.filter((o) => o.state === `PENDING`).length;
+      if (badge) {
+        badge.textContent = `${activeCount} venter godkjenning · ${APP_STATE.alpacaQueue.length} totalt`;
+      }
+
+      tbody.innerHTML = APP_STATE.alpacaQueue.map((o) => {
+        let chipClass = `status-chip is-warn`;
+        let statusLabel = o.hitlStatus;
+        if (o.state === `APPROVED` || o.state === `SENT`) {
+          chipClass = `status-chip`;
+          statusLabel = o.state === `SENT` ? `SENDT TIL ALPACA OCO` : `GODKJENT (KLAR)`;
+        } else if (o.state === `REJECTED`) {
+          chipClass = `status-chip is-error`;
+          statusLabel = `AVVIST`;
+        } else if (APP_STATE.failoverActive) {
+          statusLabel = `FAILOVER: IN-APP KLAR`;
+        }
+
+        const actionHtml = o.state === `PENDING`
+          ? `<button type="button" class="btn btn-primary btn-sm" onclick="approveAlpacaOrder('${o.id}')">Godkjenn &amp; Send OCO</button>
+             <button type="button" class="btn btn-danger btn-sm" onclick="rejectAlpacaOrder('${o.id}')">Avvis</button>`
+          : `<span class="text-muted mono" style="font-size:0.78rem;">Behandlet</span>`;
+
+        return `<tr>
+          <td class="mono">${o.id}</td>
+          <td><strong>${o.ticker}</strong></td>
+          <td>${o.side} ${o.qty} stk</td>
+          <td class="num">$${formatNum(o.limit)}</td>
+          <td class="num text-warn">$${formatNum(o.sl)}</td>
+          <td class="num text-pos">$${formatNum(o.tp)}</td>
+          <td class="num">${o.rr}</td>
+          <td><span class="${chipClass}">${statusLabel}</span></td>
+          <td class="num">${actionHtml}</td>
+        </tr>`;
+      }).join(``);
+    }
+
+    function approveAlpacaOrder(orderId) {
+      const item = APP_STATE.alpacaQueue.find((o) => o.id === orderId);
+      if (!item) return;
+      item.state = `SENT`;
+      item.hitlStatus = APP_STATE.failoverActive ? `GODKJENT VIA FAILOVER IN-APP` : `GODKJENT & SENDT`;
+      showOrderFeedback(`Alpaca OCO Bracket-ordre ${item.id} (${item.ticker} ${item.qty} stk @ $${formatNum(item.limit)}) sendt til Alpaca Paper Trading.`);
+      renderAlpacaQueue();
+      persistState();
+    }
+
+    function rejectAlpacaOrder(orderId) {
+      const item = APP_STATE.alpacaQueue.find((o) => o.id === orderId);
+      if (!item) return;
+      item.state = `REJECTED`;
+      item.hitlStatus = `AVVIST`;
+      showOrderFeedback(`Alpaca-ordre ${item.id} (${item.ticker}) ble avvist og logget som REJECTED.`);
+      renderAlpacaQueue();
+      persistState();
+    }
+
+    function computeTicketCosts(t) {
+      const notionalNok = t.qty * t.limitPrice * t.fxToNok;
+      const commOneWayNok = Math.max(t.minFeeNok, notionalNok * (t.commissionPct / 100));
+      const commPct = (commOneWayNok / notionalNok) * 100;
+      const allInPct = commPct + t.spreadPct + t.slippagePct + t.fxPct;
+      const netAlphaPct = t.grossAlphaPct - allInPct;
+      return { notionalNok, commOneWayNok, commPct, allInPct, netAlphaPct };
+    }
+
+    function renderNordnetTickets() {
+      const grid = document.getElementById(`nordnetTicketsGrid`);
+      const summary = document.getElementById(`nordnetTicketSummary`);
+      const navCount = document.getElementById(`navCountTickets`);
+      const ovCount = document.getElementById(`overviewPendingCount`);
+      if (!grid) return;
+
+      const pendingCount = APP_STATE.nordnetTickets.filter((t) => t.status === `PROPOSED` || t.status === `READY_FOR_MANUAL_EXECUTION`).length;
+      if (summary) summary.textContent = `${pendingCount} aktive · ${APP_STATE.nordnetTickets.length} totalt`;
+      if (navCount) navCount.textContent = String(pendingCount);
+      if (ovCount) ovCount.textContent = `${pendingCount} Trade Tickets`;
+
+      grid.innerHTML = APP_STATE.nordnetTickets.map((t) => {
+        const calc = computeTicketCosts(t);
+        let statusChip = `<span class="status-chip is-warn">PROPOSED · Venter godkjenning</span>`;
+        let cardClass = `ticket-card`;
+
+        if (t.status === `READY_FOR_MANUAL_EXECUTION`) {
+          statusChip = `<span class="status-chip is-cyan">READY_FOR_MANUAL_EXECUTION</span>`;
+          cardClass += ` is-ready`;
+        } else if (t.status === `EXECUTED`) {
+          statusChip = `<span class="status-chip">EXECUTED · Registrert i fact_trades</span>`;
+          cardClass += ` is-executed`;
+        } else if (t.status === `REJECTED`) {
+          statusChip = `<span class="status-chip is-error">REJECTED · Avvist</span>`;
+        }
+
+        let manualGuideHtml = ``;
+        if (t.status === `READY_FOR_MANUAL_EXECUTION`) {
+          manualGuideHtml = `
+            <div class="manual-guide-box">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-sm);">
+                <strong>Manuell Nordnet-instruks (Legges inn i Nordnet-appen / web)</strong>
+                <span class="mono" style="font-size:0.78rem; color:var(--on-primary-container);">Merk: Posisjonen er IKKE bokført før fill registreres</span>
+              </div>
+              <div class="well" style="color:var(--on-surface);">Konto: Aksjesparekonto (ASK) | Handling: ${t.action} | Ticker/ISIN: ${t.ticker} (${t.isin})
+Marked: ${t.market} | Antall: ${t.qty} aksjer | Ordretype: ${t.orderType}
+Limit-kurs: ${formatNum(t.limitPrice)} ${t.currency} | Anbefalt Stop-Loss i Nordnet: ${formatNum(t.stopLoss)} ${t.currency}</div>
+              <div class="fill-entry-box">
+                <strong style="font-size:0.88rem;">Registrer utført handel (Mark as Executed)</strong>
+                <div class="controls-row" style="padding:var(--space-sm);">
+                  <div class="field">
+                    <label for="fillPrice-${t.id}">Faktisk fill-kurs (${t.currency})</label>
+                    <input type="number" id="fillPrice-${t.id}" value="${t.limitPrice}" step="0.05">
+                  </div>
+                  <div class="field">
+                    <label for="fillFee-${t.id}">Faktisk kurtasje (NOK)</label>
+                    <input type="number" id="fillFee-${t.id}" value="${Math.round(calc.commOneWayNok)}" step="1">
+                  </div>
+                  <button type="button" class="btn btn-success" onclick="markTicketExecuted('${t.id}')">
+                    Registrer utført handel
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        let executedHtml = ``;
+        if (t.status === `EXECUTED`) {
+          const fillVal = t.actualFillPrice || t.limitPrice;
+          const feeVal = t.actualFeeNok !== null ? t.actualFeeNok : Math.round(calc.commOneWayNok);
+          const slipDiffPct = ((fillVal - t.limitPrice) / t.limitPrice) * 100;
+          executedHtml = `
+            <div class="inline-feedback" style="border-color: var(--sage-border); background: var(--sage-tint); color: var(--on-surface);">
+              <strong>Utført og bokført:</strong> ${t.qty} stk ${t.ticker} @ <span class="mono">${formatNum(fillVal)} ${t.currency}</span>
+              · Kurtasje: <span class="mono">${formatNum(feeVal, 0)} NOK</span>
+              · Avvik mot limit: <span class="mono">${slipDiffPct >= 0 ? `+` : ``}${formatNum(slipDiffPct)} %</span>
+              ${t.reconciledTxId ? `· Avstemt via CSV (${t.reconciledTxId})` : `· Manuelt registrert (klar for CSV-kontroll)`}
+            </div>
+          `;
+        }
+
+        let buttonsHtml = ``;
+        if (t.status === `PROPOSED`) {
+          buttonsHtml = `
+            <button type="button" class="btn btn-primary btn-sm" onclick="approveTicketManual('${t.id}')">
+              Godkjenn for manuell handel
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" onclick="rejectNordnetTicket('${t.id}')">
+              Avvis
+            </button>
+          `;
+        } else if (t.status === `READY_FOR_MANUAL_EXECUTION`) {
+          buttonsHtml = `
+            <button type="button" class="btn btn-danger btn-sm" onclick="rejectNordnetTicket('${t.id}')">
+              Avbryt / Avvis
+            </button>
+          `;
+        }
+
+        return `
+          <article class="${cardClass}" id="ticket-${t.id}">
+            <div class="ticket-header">
+              <div>
+                <div style="display:flex; align-items:center; gap:var(--space-sm); flex-wrap:wrap;">
+                  <span class="mono text-cyan" style="font-size:0.8rem;">${t.id}</span>
+                  <h3 class="panel-title" style="margin:0;">${t.action} ${t.company} (${t.ticker})</h3>
+                  ${statusChip}
+                </div>
+                <p class="panel-sub" style="margin-top:0.2rem;">
+                  ISIN: <span class="mono">${t.isin}</span> · Marked: ${t.market} · Kontotype: <strong>${t.account}</strong>
+                </p>
+              </div>
+              <div style="display:flex; gap:var(--space-sm); flex-wrap:wrap;">
+                ${buttonsHtml}
+              </div>
+            </div>
+
+            <div class="ticket-meta-grid">
+              <div class="ticket-kv">
+                <span class="k">Foreslått Limit-kurs</span>
+                <span class="v">${formatNum(t.limitPrice)} ${t.currency}</span>
+              </div>
+              <div class="ticket-kv">
+                <span class="k">Volum / Vekt</span>
+                <span class="v">${t.qty} stk (${formatNum(calc.notionalNok, 0)} NOK · ${t.maxPosPct} %)</span>
+              </div>
+              <div class="ticket-kv">
+                <span class="k">Stop-Loss (ATR)</span>
+                <span class="v text-warn">${formatNum(t.stopLoss)} ${t.currency}</span>
+              </div>
+              <div class="ticket-kv">
+                <span class="k">All-in Cost (est.)</span>
+                <span class="v">${formatNum(calc.allInPct)} % <span class="text-muted" style="font-weight:400; font-size:0.78rem;">(${formatNum(calc.commPct)}%+${t.spreadPct}%+${t.slippagePct}%${t.fxPct > 0 ? `+${t.fxPct}% FX` : ``})</span></span>
+              </div>
+              <div class="ticket-kv">
+                <span class="k">Netto forventet alfa</span>
+                <span class="v text-pos">+${formatNum(calc.netAlphaPct)} % <span class="text-muted" style="font-weight:400; font-size:0.78rem;">(Brutto +${formatNum(t.grossAlphaPct)} %)</span></span>
+              </div>
+              <div class="ticket-kv">
+                <span class="k">Risikosjekk</span>
+                <span class="v text-pos">${t.riskStatus}</span>
+              </div>
+            </div>
+
+            <div class="devil-box">
+              <div><strong class="text-pos">Bull-case:</strong> ${t.bullCase}</div>
+              <div><strong class="text-warn">Djevelens advokat:</strong> ${t.devilsAdvocate}</div>
+            </div>
+
+            ${manualGuideHtml}
+            ${executedHtml}
+          </article>
+        `;
+      }).join(``);
+    }
+
+    function approveTicketManual(ticketId) {
+      const t = APP_STATE.nordnetTickets.find((x) => x.id === ticketId);
+      if (!t) return;
+      t.status = `READY_FOR_MANUAL_EXECUTION`;
+      showOrderFeedback(`Trade Ticket ${t.id} (${t.ticker}) er satt til READY_FOR_MANUAL_EXECUTION. Legg ordren i Nordnet-appen og registrer faktisk fill etterpå.`);
+      renderNordnetTickets();
+      persistState();
+    }
+
+    function rejectNordnetTicket(ticketId) {
+      const t = APP_STATE.nordnetTickets.find((x) => x.id === ticketId);
+      if (!t) return;
+      t.status = `REJECTED`;
+      showOrderFeedback(`Trade Ticket ${t.id} (${t.ticker}) ble avvist og lagret til Shadow Tracking.`);
+      renderNordnetTickets();
+      persistState();
+    }
+
+    function markTicketExecuted(ticketId) {
+      const t = APP_STATE.nordnetTickets.find((x) => x.id === ticketId);
+      if (!t) return;
+      const priceEl = document.getElementById(`fillPrice-${ticketId}`);
+      const feeEl = document.getElementById(`fillFee-${ticketId}`);
+      const fillPrice = priceEl ? parseFloat(priceEl.value) : t.limitPrice;
+      const fillFee = feeEl ? parseFloat(feeEl.value) : 79;
+      if (Number.isNaN(fillPrice) || fillPrice <= 0) {
+        showOrderFeedback(`Ugyldig fill-kurs for ${t.ticker}. Angi et positivt tall.`);
+        return;
+      }
+      t.actualFillPrice = fillPrice;
+      t.actualFeeNok = Number.isNaN(fillFee) ? 0 : fillFee;
+      t.status = `EXECUTED`;
+      showOrderFeedback(`Utført handel registrert for ${t.ticker}: ${t.qty} stk @ ${formatNum(fillPrice)} ${t.currency} (Kurtasje ${formatNum(t.actualFeeNok, 0)} NOK).`);
+      renderNordnetTickets();
+      persistState();
+    }
+
+    function resetDemoOrders() {
+      APP_STATE.alpacaQueue = JSON.parse(JSON.stringify(INITIAL_ALPACA_QUEUE));
+      APP_STATE.nordnetTickets = JSON.parse(JSON.stringify(DEFAULT_NORDNET_TICKETS));
+      APP_STATE.csvReconciledRows = [];
+      const out = document.getElementById(`csvReconOutput`);
+      if (out) out.style.display = `none`;
+      const badge = document.getElementById(`csvReconBadge`);
+      if (badge) badge.textContent = `Klar for avstemming`;
+      showOrderFeedback(`Demo-køen og Nordnet Trade Tickets ble tilbakestilt.`);
+      renderAlpacaQueue();
+      renderNordnetTickets();
+      persistState();
+    }
+
+    function parseNordnetCsv(csvText) {
+      const lines = csvText.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length < 2) return [];
+      const sep = lines[0].includes(`;`) ? `;` : `,`;
+      const headers = lines[0].split(sep).map((h) => h.trim().toLowerCase());
+
+      const idxId = headers.findIndex((h) => h.includes(`id`));
+      const idxDate = headers.findIndex((h) => h.includes(`handelsdag`) || h.includes(`dato`));
+      const idxType = headers.findIndex((h) => h.includes(`transaksjonstype`) || h.includes(`type`));
+      const idxName = headers.findIndex((h) => h.includes(`verdipapir`) || h.includes(`ticker`));
+      const idxIsin = headers.findIndex((h) => h.includes(`isin`));
+      const idxQty = headers.findIndex((h) => h.includes(`antall`));
+      const idxPrice = headers.findIndex((h) => h.includes(`kurs`));
+      const idxFee = headers.findIndex((h) => h.includes(`avgifter`) || h.includes(`kurtasje`));
+
+      const parsed = [];
+      const seenIds = new Set();
+
+      for (let i = 1; i < lines.length; i += 1) {
+        const cols = lines[i].split(sep).map((c) => c.trim());
+        const txId = idxId >= 0 ? cols[idxId] : `ROW-${i}`;
+        if (seenIds.has(txId)) continue;
+        seenIds.add(txId);
+
+        const rawQty = idxQty >= 0 ? cols[idxQty].replace(/\s/g, ``).replace(`,`, `.`) : `0`;
+        const rawPrice = idxPrice >= 0 ? cols[idxPrice].replace(/\s/g, ``).replace(`,`, `.`) : `0`;
+        const rawFee = idxFee >= 0 ? cols[idxFee].replace(/\s/g, ``).replace(`,`, `.`) : `0`;
+
+        parsed.push({
+          txId,
+          date: idxDate >= 0 ? cols[idxDate] : `2026-11-19`,
+          type: idxType >= 0 ? cols[idxType].toUpperCase() : `KJØPT`,
+          name: idxName >= 0 ? cols[idxName] : `Ukjent`,
+          isin: idxIsin >= 0 ? cols[idxIsin] : ``,
+          qty: Math.abs(parseFloat(rawQty) || 0),
+          price: parseFloat(rawPrice) || 0,
+          fee: Math.abs(parseFloat(rawFee) || 0)
+        });
+      }
+      return parsed;
+    }
+
+    function runCsvReconciliation(csvText) {
+      const rows = parseNordnetCsv(csvText);
+      if (rows.length === 0) {
+        showOrderFeedback(`Fant ingen gyldige transaksjonslinjer i CSV-filen.`);
+        return;
+      }
+
+      const reconResults = rows.map((r) => {
+        const match = APP_STATE.nordnetTickets.find((t) =>
+          t.isin === r.isin && t.qty === r.qty && t.status !== `REJECTED`
+        );
+
+        if (match) {
+          match.status = `EXECUTED`;
+          match.actualFillPrice = r.price;
+          match.actualFeeNok = r.fee;
+          match.reconciledTxId = r.txId;
+          const diffPct = ((r.price - match.limitPrice) / match.limitPrice) * 100;
+          return {
+            txId: r.txId,
+            date: r.date,
+            name: `${r.name} (${r.isin})`,
+            qty: r.qty,
+            price: r.price,
+            currency: match.currency,
+            fee: r.fee,
+            planText: `Limit ${formatNum(match.limitPrice)} (${diffPct >= 0 ? `+` : ``}${formatNum(diffPct)} %)`,
+            status: `AVSTEMT · ${match.id}`
+          };
+        }
+
+        return {
+          txId: r.txId,
+          date: r.date,
+          name: `${r.name} (${r.isin || `Uten ISIN`})`,
+          qty: r.qty,
+          price: r.price,
+          currency: `NOK`,
+          fee: r.fee,
+          planText: `Ingen åpen ticket`,
+          status: `HISTORISK / EKSTERN`
+        };
+      });
+
+      APP_STATE.csvReconciledRows = reconResults;
+      renderCsvReconciliation();
+      renderNordnetTickets();
+      persistState();
+    }
+
+    function renderCsvReconciliation() {
+      const out = document.getElementById(`csvReconOutput`);
+      const kpis = document.getElementById(`csvReconKpis`);
+      const tbody = document.getElementById(`tbodyCsvRecon`);
+      const badge = document.getElementById(`csvReconBadge`);
+      if (!out || !kpis || !tbody) return;
+
+      if (!APP_STATE.csvReconciledRows || APP_STATE.csvReconciledRows.length === 0) {
+        out.style.display = `none`;
+        return;
+      }
+
+      out.style.display = `block`;
+      const matched = APP_STATE.csvReconciledRows.filter((r) => r.status.startsWith(`AVSTEMT`)).length;
+      const totalFees = APP_STATE.csvReconciledRows.reduce((s, r) => s + r.fee, 0);
+
+      if (badge) badge.textContent = `${matched} avstemt mot Trade Tickets`;
+
+      kpis.innerHTML = `
+        <div class="metric-tile">
+          <span class="data-label">Importerte CSV-linjer</span>
+          <div class="metric-value" style="font-size:1.3rem;">${APP_STATE.csvReconciledRows.length}</div>
+          <div class="metric-delta is-cyan">Deduplisert på Tx-ID</div>
+        </div>
+        <div class="metric-tile">
+          <span class="data-label">Matchet Trade Tickets</span>
+          <div class="metric-value" style="font-size:1.3rem;">${matched}</div>
+          <div class="metric-delta">Koblet på ISIN + Antall → EXECUTED</div>
+        </div>
+        <div class="metric-tile">
+          <span class="data-label">Total registrert kurtasje</span>
+          <div class="metric-value" style="font-size:1.3rem;">${formatNum(totalFees, 0)} NOK</div>
+          <div class="metric-delta is-cyan">Lagret i ActualAllInCost</div>
+        </div>
+      `;
+
+      tbody.innerHTML = APP_STATE.csvReconciledRows.map((r) => `
+        <tr>
+          <td class="mono">${r.txId}<br><span class="text-muted">${r.date}</span></td>
+          <td>${r.name}</td>
+          <td class="num">${r.qty}</td>
+          <td class="num">${formatNum(r.price)} ${r.currency}</td>
+          <td class="num">${formatNum(r.fee, 0)} kr</td>
+          <td class="num">${r.planText}</td>
+          <td><span class="status-chip ${r.status.startsWith(`AVSTEMT`) ? `` : `is-cyan`}">${r.status}</span></td>
+        </tr>
+      `).join(``);
+    }
+
+    function getSampleCsvText() {
+      return [
+        `Id;Bokføringsdag;Handelsdag;Portefølje;Transaksjonstype;Verdipapir;ISIN;Antall;Kurs;Avgifter;Valuta`,
+        `NN-884102;2026-11-19;2026-11-19;ASK;KJØPT;Equinor ASA;NO0010096985;150;283,90;79;NOK`,
+        `NN-884109;2026-11-19;2026-11-19;ASK;KJØPT;Novo Nordisk B;DK0062498333;55;741,80;79;DKK`,
+        `NN-883901;2026-11-12;2026-11-12;ASK;UTBYTTE;DNB Bank ASA;NO0010161288;720;16,00;0;NOK`
+      ].join(`\n`);
+    }
+
+    function simulateNordnetCsv() {
+      runCsvReconciliation(getSampleCsvText());
+      showOrderFeedback(`Simulert Nordnet transactions.csv behandlet: matchet Equinor (EQNR) og Novo Nordisk B mot Trade Tickets og avstemte faktiske fills.`);
+    }
+
+    function handleCsvUpload(inputEl) {
+      const file = inputEl.files && inputEl.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = String(ev.target && ev.target.result ? ev.target.result : ``);
+        runCsvReconciliation(text);
+        showOrderFeedback(`Lastet opp og avstemte ${file.name}.`);
+      };
+      reader.readAsText(file, `UTF-8`);
+    }
+
+    function downloadSampleCsv() {
+      const csv = getSampleCsvText();
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: csv,
+          contentType: `text/csv`,
+          encoding: `UTF-8`,
+          filename: `nordnet_transactions_mal.csv`
+        });
+      }
+      showOrderFeedback(`Mal for Nordnet transactions.csv klargjort for nedlasting.`);
+    }
+
+    function loadRoutingPreset(preset) {
+      const label = document.getElementById(`rtAssetLabel`);
+      const amt = document.getElementById(`rtAmountNok`);
+      const alpha = document.getElementById(`rtGrossAlpha`);
+      const days = document.getElementById(`rtHoldDays`);
+      const fx = document.getElementById(`rtFxMode`);
+      if (!label || !amt || !alpha || !days || !fx) return;
+
+      if (preset === `novo`) {
+        label.value = `Novo Nordisk (NOVO B København vs. NVO ADR NYSE)`;
+        amt.value = 50000;
+        alpha.value = 4.20;
+        days.value = 180;
+        fx.value = `auto`;
+      } else if (preset === `eqnr`) {
+        label.value = `Equinor (EQNR Oslo Børs vs. EQNR ADR NYSE)`;
+        amt.value = 60000;
+        alpha.value = 3.50;
+        days.value = 120;
+        fx.value = `none`;
+      } else {
+        label.value = `Nvidia (NVDA Nasdaq — Amerikansk Tech)`;
+        amt.value = 50000;
+        alpha.value = 4.80;
+        days.value = 45;
+        fx.value = `auto`;
+      }
+      computeSmartRouting();
+    }
+
+    function computeSmartRouting() {
+      const labelEl = document.getElementById(`rtAssetLabel`);
+      const amtEl = document.getElementById(`rtAmountNok`);
+      const alphaEl = document.getElementById(`rtGrossAlpha`);
+      const daysEl = document.getElementById(`rtHoldDays`);
+      const tierEl = document.getElementById(`rtNordnetTier`);
+      const fxEl = document.getElementById(`rtFxMode`);
+      const tbody = document.getElementById(`tbodySmartRouting`);
+      const verdictBox = document.getElementById(`routingVerdictBox`);
+      if (!amtEl || !alphaEl || !daysEl || !tierEl || !fxEl || !tbody || !verdictBox) return;
+
+      const assetName = labelEl ? labelEl.value : `Valgt instrument`;
+      const amount = Math.max(1000, parseFloat(amtEl.value) || 50000);
+      const grossAlpha = parseFloat(alphaEl.value) || 0;
+      const days = Math.max(1, parseFloat(daysEl.value) || 90);
+      const isMini = tierEl.value === `mini`;
+      const fxMode = fxEl.value;
+      const isPureUs = assetName.toLowerCase().includes(`nvidia`) || assetName.toLowerCase().includes(`nvda`);
+
+      // Route A: Nordnet ASK (EØS primary)
+      const nnCommRate = isMini ? 0.0015 : 0.00049;
+      const nnMinFee = isMini ? 29 : 79;
+      const nnCommRtNok = 2 * Math.max(nnMinFee, amount * nnCommRate);
+      const nnCommPct = (nnCommRtNok / amount) * 100;
+      const nnSpreadPct = isPureUs ? 0.14 : 0.12;
+      const nnSlippagePct = 0.06;
+      const nnFxPct = isPureUs ? 0.50 : (fxMode === `none` ? 0.0 : (fxMode === `sub` ? 0.30 : 0.50));
+      const nnRegPct = 0.0;
+      const nnCustodyPct = 0.0;
+      const nnTaxDragPct = isPureUs ? 0.65 : 0.10; // ASK skjerming/utsatt skatt for EØS; ikke ASK-kvalifisert for US
+      const nnTotalCostPct = nnCommPct + nnSpreadPct + nnSlippagePct + nnFxPct + nnRegPct + nnCustodyPct + nnTaxDragPct;
+      const nnNetAlpha = grossAlpha - nnTotalCostPct;
+
+      // Route B: Alpaca (US / ADR)
+      const alpCommPct = 0.0;
+      const alpSpreadPct = isPureUs ? 0.04 : 0.18;
+      const alpSlippagePct = isPureUs ? 0.04 : 0.12;
+      const alpFxPct = 0.35; // Kapitaloverføring / veksling (Local Currency Transfer opp til 1.5% maks $40 ved kontofinansiering)
+      const alpRegPct = 0.02; // CAT + FINRA TAF
+      const alpCustodyPct = 0.0;
+      const alpTaxDragPct = isPureUs ? 0.35 : 0.85; // Realisasjonsskatt uten ASK-skjold på ADR
+      const alpTotalCostPct = alpCommPct + alpSpreadPct + alpSlippagePct + alpFxPct + alpRegPct + alpCustodyPct + alpTaxDragPct;
+      const alpNetAlpha = grossAlpha - alpTotalCostPct;
+
+      // Route C: Saxo Classic
+      const saxoCommRtNok = 2 * Math.max(10, amount * 0.0008);
+      const saxoCommPct = (saxoCommRtNok / amount) * 100;
+      const saxoSpreadPct = isPureUs ? 0.06 : 0.12;
+      const saxoSlippagePct = 0.06;
+      const saxoFxPct = fxMode === `none` ? 0.0 : 0.50;
+      const saxoRegPct = 0.0;
+      const saxoCustodyPct = (0.12 * (days / 365));
+      const saxoTaxDragPct = isPureUs ? 0.40 : 0.25;
+      const saxoTotalCostPct = saxoCommPct + saxoSpreadPct + saxoSlippagePct + saxoFxPct + saxoRegPct + saxoCustodyPct + saxoTaxDragPct;
+      const saxoNetAlpha = grossAlpha - saxoTotalCostPct;
+
+      const routes = [
+        { name: `Nordnet ASK (Primær EØS)`, net: nnNetAlpha, cost: nnTotalCostPct },
+        { name: `Alpaca (USA / ADR)`, net: alpNetAlpha, cost: alpTotalCostPct },
+        { name: `Saxo Classic`, net: saxoNetAlpha, cost: saxoTotalCostPct }
+      ].sort((a, b) => b.net - a.net);
+
+      const best = routes[0];
+      const verdictClass = best.net <= 0 ? `is-error` : (best.name.includes(`Nordnet`) ? `is-cyan` : ``);
+
+      verdictBox.innerHTML = best.net <= 0
+        ? `<div class="inline-feedback" style="background: var(--error-tint); border-color: var(--error-border); color: var(--on-surface);">
+             <strong>NO TRADE-GUARDRAIL UTLØST:</strong> Beste rute (${best.name}) gir netto alfa på <span class="mono">${formatNum(best.net)} %</span> etter alle kostnader (${formatNum(best.cost)} %). Handel avvises automatisk.
+           </div>`
+        : `<div class="inline-feedback" style="${verdictClass === `is-cyan` ? `` : `background: var(--sage-tint); border-color: var(--sage-border);`}">
+             <strong>Anbefalt ruting for ${assetName}:</strong> <span class="mono">${best.name}</span> gir høyest netto forventet alfa på <span class="mono">+${formatNum(best.net)} %</span> (Total friksjon + skattedrag: <span class="mono">${formatNum(best.cost)} %</span>).
+           </div>`;
+
+      tbody.innerHTML = `
+        <tr>
+          <td>Kurtasje tur-retur</td>
+          <td class="num">${formatNum(nnCommPct)} % <span class="text-muted">(${formatNum(nnCommRtNok, 0)} kr)</span></td>
+          <td class="num">$0 (${formatNum(alpCommPct)} %)</td>
+          <td class="num">${formatNum(saxoCommPct)} % <span class="text-muted">(${formatNum(saxoCommRtNok, 0)} kr)</span></td>
+        </tr>
+        <tr>
+          <td>Bid-Ask Spread + Slippage</td>
+          <td class="num">${formatNum(nnSpreadPct + nnSlippagePct)} %</td>
+          <td class="num">${formatNum(alpSpreadPct + alpSlippagePct)} %</td>
+          <td class="num">${formatNum(saxoSpreadPct + saxoSlippagePct)} %</td>
+        </tr>
+        <tr>
+          <td>Valutakostnad (FX tur-retur / finansiering)</td>
+          <td class="num">${formatNum(nnFxPct)} %</td>
+          <td class="num">${formatNum(alpFxPct)} %</td>
+          <td class="num">${formatNum(saxoFxPct)} %</td>
+        </tr>
+        <tr>
+          <td>Regulatoriske avgifter &amp; Depot (${days}d)</td>
+          <td class="num">0,00 %</td>
+          <td class="num">${formatNum(alpRegPct)} % <span class="text-muted">(CAT/TAF)</span></td>
+          <td class="num">${formatNum(saxoCustodyPct)} % <span class="text-muted">(0,12% p.a.)</span></td>
+        </tr>
+        <tr>
+          <td>Estimert Skattedrag (ASK vs. direkte realisasjon)</td>
+          <td class="num">${formatNum(nnTaxDragPct)} %</td>
+          <td class="num">${formatNum(alpTaxDragPct)} %</td>
+          <td class="num">${formatNum(saxoTaxDragPct)} %</td>
+        </tr>
+        <tr>
+          <td><strong>Total All-In Friksjon</strong></td>
+          <td class="num"><strong>${formatNum(nnTotalCostPct)} %</strong></td>
+          <td class="num"><strong>${formatNum(alpTotalCostPct)} %</strong></td>
+          <td class="num"><strong>${formatNum(saxoTotalCostPct)} %</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Netto Forventet Alfa</strong></td>
+          <td class="num ${nnNetAlpha > 0 ? `text-pos` : `text-neg`}"><strong>${nnNetAlpha >= 0 ? `+` : ``}${formatNum(nnNetAlpha)} %</strong></td>
+          <td class="num ${alpNetAlpha > 0 ? `text-pos` : `text-neg`}"><strong>${alpNetAlpha >= 0 ? `+` : ``}${formatNum(alpNetAlpha)} %</strong></td>
+          <td class="num ${saxoNetAlpha > 0 ? `text-pos` : `text-neg`}"><strong>${saxoNetAlpha >= 0 ? `+` : ``}${formatNum(saxoNetAlpha)} %</strong></td>
+        </tr>
+      `;
+    }
+
+    function renderWatchlist() {
+      const mEl = document.getElementById(`wlMarketSelect`);
+      const sEl = document.getElementById(`wlSearchInput`);
+      const tbody = document.getElementById(`tbodyWatchlist`);
+      if (!tbody) return;
+
+      const market = mEl ? mEl.value : `ALL`;
+      const q = sEl ? sEl.value.trim().toLowerCase() : ``;
+
+      const filtered = WATCHLIST_DATA.filter((w) => {
+        const matchM = market === `ALL` || w.market === market;
+        const matchQ = !q || w.ticker.toLowerCase().includes(q) || w.name.toLowerCase().includes(q) || w.sector.toLowerCase().includes(q);
+        return matchM && matchQ;
+      });
+
+      tbody.innerHTML = filtered.map((w) => {
+        let chipClass = `status-chip is-cyan`;
+        if (w.tone === `pos`) chipClass = `status-chip`;
+        if (w.tone === `warn`) chipClass = `status-chip is-warn`;
+        if (w.tone === `neg`) chipClass = `status-chip is-error`;
+        return `<tr>
+          <td><strong>${w.ticker}</strong></td>
+          <td>${w.name}<br><span class="text-muted" style="font-size:0.78rem;">${w.exchange} (${w.market})</span></td>
+          <td>${w.sector}</td>
+          <td class="num">${w.price}</td>
+          <td class="num">${formatNum(w.rsi2, 1)}</td>
+          <td class="num ${w.smaDiff.startsWith(`-`) ? `text-neg` : `text-pos`}">${w.smaDiff}</td>
+          <td class="num">${w.atr}</td>
+          <td class="num">${w.tick}</td>
+          <td><span class="${chipClass}">${w.signal}</span></td>
+        </tr>`;
+      }).join(``) || `<tr><td colspan="9" class="text-muted">Ingen aksjer matcher søket "${q}".</td></tr>`;
+    }
+
+    function renderRiskProfile() {
+      const sel = document.getElementById(`riskProfileSelect`);
+      const capEl = document.getElementById(`riskCapitalInput`);
+      const container = document.getElementById(`riskProfileKpis`);
+      if (!sel || !capEl || !container) return;
+
+      const key = sel.value;
+      const cap = Math.max(10000, parseFloat(capEl.value) || 250000);
+      APP_STATE.riskProfile = key;
+      APP_STATE.riskCapital = cap;
+
+      const prof = RISK_PROFILES[key] || RISK_PROFILES.balansert;
+      const perPosNok = cap * (prof.posPct / 100);
+      const cashNok = cap * (prof.cashPct / 100);
+      const feeDragNormalPct = (79 / perPosNok) * 100;
+
+      container.innerHTML = `
+        <div class="metric-tile">
+          <span class="data-label">Posisjonsstørrelse (${prof.slots} plasser)</span>
+          <div class="metric-value">${formatNum(perPosNok, 0)} NOK</div>
+          <div class="metric-delta is-cyan">${formatNum(prof.posPct, 1)} % per posisjon · Maks ${prof.maxPerSector}/sektor</div>
+        </div>
+        <div class="metric-tile">
+          <span class="data-label">Kontantreserve (Buffer)</span>
+          <div class="metric-value">${formatNum(cashNok, 0)} NOK</div>
+          <div class="metric-delta">${formatNum(prof.cashPct, 1)} % kontanter · Sum = 100 %</div>
+        </div>
+        <div class="metric-tile">
+          <span class="data-label">ATR Stop-Loss &amp; Circuit Breaker</span>
+          <div class="metric-value">${formatNum(prof.atrMult, 1)}x ATR(14)</div>
+          <div class="metric-delta is-warn">Portefølje Circuit Breaker: ${prof.circuitBreaker}</div>
+        </div>
+        <div class="metric-tile">
+          <span class="data-label">Nordnet Normal Minstekurtasje</span>
+          <div class="metric-value">${formatNum(feeDragNormalPct, 2)} %</div>
+          <div class="metric-delta ${feeDragNormalPct > 0.25 ? `is-warn` : ``}">79 NOK av ${formatNum(perPosNok, 0)} NOK per vei</div>
+        </div>
+      `;
+      persistState();
+    }
+
+    function renderBacktestTable() {
+      const tbody = document.getElementById(`tbodyBacktestCases`);
+      if (!tbody) return;
+      tbody.innerHTML = BACKTEST_CASES.map((c) => `
+        <tr>
+          <td class="mono"><strong>${c.id}</strong></td>
+          <td>${c.desc}</td>
+          <td>${c.regime}</td>
+          <td class="num">${c.trades}</td>
+          <td class="num">${c.win}</td>
+          <td class="num text-pos">${c.ret}</td>
+          <td class="num text-neg">${c.dd}</td>
+          <td class="num ${parseFloat(c.sortino.replace(`,`, `.`)) >= 1.2 ? `text-pos` : `text-warn`}">${c.sortino}</td>
+          <td class="num">${c.drag}</td>
+        </tr>
+      `).join(``);
+    }
+
+    function renderOverviewChart() {
+      const canvas = document.getElementById(`overviewEquityChart`);
+      if (!canvas || typeof Chart === `undefined`) return;
+      if (overviewChartInstance) {
+        overviewChartInstance.destroy();
+      }
+      const c1 = getCssToken(`--data-1`);
+      const c2 = getCssToken(`--data-2`);
+      const cCtx = getCssToken(`--data-context`);
+      const gridColor = getCssToken(`--outline-variant`);
+      const tickColor = getCssToken(`--on-surface-variant`);
+
+      overviewChartInstance = new Chart(canvas.getContext(`2d`), {
+        type: `line`,
+        data: {
+          labels: [`Des`, `Jan`, `Feb`, `Mar`, `Apr`, `Mai`, `Jun`, `Jul`, `Aug`, `Sep`, `Okt`, `Nov`],
+          datasets: [
+            {
+              label: `Kombinert (Alpaca + Nordnet ASK)`,
+              data: [100, 102.1, 103.8, 105.4, 104.2, 107.9, 110.2, 112.1, 111.5, 114.6, 116.8, 118.4],
+              borderColor: c1,
+              backgroundColor: getCssToken(`--cyan-tint`),
+              borderWidth: 2,
+              fill: true,
+              tension: 0.28
+            },
+            {
+              label: `Oslo Børs OBX`,
+              data: [100, 100.8, 101.9, 103.1, 101.5, 104.0, 105.6, 106.2, 104.8, 107.4, 109.1, 110.8],
+              borderColor: c2,
+              borderWidth: 2,
+              tension: 0.28
+            },
+            {
+              label: `S&P 500 (NOK-justert)`,
+              data: [100, 101.4, 102.5, 103.9, 100.8, 104.8, 107.1, 108.9, 108.2, 111.0, 113.2, 114.7],
+              borderColor: cCtx,
+              borderDash: [4, 4],
+              borderWidth: 1.5,
+              tension: 0.28
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: tickColor } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: tickColor } },
+            y: { grid: { color: gridColor }, ticks: { color: tickColor } }
+          }
+        }
+      });
+    }
+
+    function renderBacktestChart() {
+      const canvas = document.getElementById(`strategyBacktestChart`);
+      if (!canvas || typeof Chart === `undefined`) return;
+      if (backtestChartInstance) {
+        backtestChartInstance.destroy();
+      }
+      const c1 = getCssToken(`--data-1`);
+      const c4 = getCssToken(`--data-4`);
+      const gridColor = getCssToken(`--outline-variant`);
+      const tickColor = getCssToken(`--on-surface-variant`);
+
+      backtestChartInstance = new Chart(canvas.getContext(`2d`), {
+        type: `bar`,
+        data: {
+          labels: [`01 Endo MR`, `02 Exo MR`, `03 Endo TB`, `04 Exo TB`, `05 US Mom`, `06 EQNR`],
+          datasets: [
+            {
+              label: `Netto Avkastning (%)`,
+              data: [11.2, 14.9, 12.4, 15.6, 19.4, 7.8],
+              backgroundColor: c1,
+              borderRadius: 3
+            },
+            {
+              label: `Max Drawdown (%)`,
+              data: [-14.8, -8.6, -13.2, -9.1, -10.4, -21.5],
+              backgroundColor: c4,
+              borderRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: tickColor } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: tickColor } },
+            y: { grid: { color: gridColor }, ticks: { color: tickColor } }
+          }
+        }
+      });
+    }
+
+    /* Floating AI Strategy & Risk Advisor */
+    function toggleAdvisorDrawer() {
+      const drawer = document.getElementById(`advisorDrawer`);
+      const fab = document.getElementById(`advisorFab`);
+      if (!drawer || !fab) return;
+      const open = !drawer.classList.contains(`is-open`);
+      drawer.classList.toggle(`is-open`, open);
+      fab.setAttribute(`aria-expanded`, open ? `true` : `false`);
+    }
+
+    function appendAdvisorMessage(text, isUser) {
+      const box = document.getElementById(`advisorMessages`);
+      if (!box) return;
+      const div = document.createElement(`div`);
+      div.className = `chat-msg ${isUser ? `is-user` : `is-bot`}`;
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function getAdvisorResponse(query) {
+      const q = query.toLowerCase();
+      if (q.includes(`regime`) || q.includes(`vix`) || q.includes(`brent`)) {
+        return `Markedsregime nå: VIX er 16,4 (under 25-terskelen), S&P 500 og OBX handler over SMA200, og Brent-olje ligger på $74,80/fat. Det åpner både US Momentum på Alpaca og selektive OBX-oppsett, men sektorsperren på maks 2 energiaksjer på OBX gjelder fortsatt.`;
+      }
+      if (q.includes(`nordnet`) && (q.includes(`alpaca`) || q.includes(`ask`) || q.includes(`ruting`))) {
+        return `Rutingregel: Norske og nordiske/EØS-aksjer (EQNR, KOG, NOVO B) kjøpes i primærmarkedet via Nordnet ASK for utsatt 37,84 % skatt og null depotgebyr. Amerikanske selskaper (NVDA, AVGO, MSFT) kjøres via Alpaca Trading API ($0 kurtasje og automatisk OCO Bracket).`;
+      }
+      if (q.includes(`manuell`) || q.includes(`csv`) || q.includes(`api`)) {
+        return `Nordnet onboarder ikke nye API-kunder, og browser-scraping medfører høy operasjonell risiko. Derfor produserer AI-desken ferdige Trade Tickets: du trykker "Godkjenn for manuell handel" (status blir READY_FOR_MANUAL_EXECUTION), legger inn ordren i Nordnet, og avstemmer via transactions.csv eller manuell fill-registrering.`;
+      }
+      if (q.includes(`risiko`) || q.includes(`atr`) || q.includes(`guardrail`) || q.includes(`cost`)) {
+        return `Alle handler passerer deterministiske sperrer utenfor språkmodellen: 1) Maks 2 posisjoner per OBX-sektor, 2) Stop-loss på 1,5x–2,5x ATR(14), 3) NetAlpha = Brutto alfa minus kurtasje, spread, slippage, FX og skattedrag må være positiv, ellers utløses NO TRADE.`;
+      }
+      if (q.includes(`djevel`) || q.includes(`shadow`) || q.includes(`agent`)) {
+        return `Agent 3 opptrer som "Djevelens advokat" og sjekker NewsWeb og kvartalskalenderen (blokkerte f.eks. FRO.OL pga. tall om 2 dager). I tråd med beste praksis fra institusjonell forvaltning støtter AI-en menneskelig skjønn, og vi måler effekten i DuckDB via Shadow Tracking (+0,29 Sortino Edge i Kohort B).`;
+      }
+      return `Godt spørsmål. I terminalen skiller vi strengt mellom deterministisk signalberegning (Close T → Open T+1), kvalitativ nyhetskontroll (Agent 3) og manuell eller API-basert ordreutførelse. Spør gjerne konkret om VIX-regime, Nordnet ASK vs. Alpaca, CSV-avstemming eller ATR-stopp.`;
+    }
+
+    function askAdvisorPreset(key) {
+      const labels = {
+        regime: `Forklar nåværende markedsregime og VIX`,
+        nordnet_alpaca: `Når velger jeg Nordnet ASK vs. Alpaca?`,
+        manuell_flyt: `Hvordan fungerer manuell Nordnet-flyt og CSV?`,
+        risiko: `Hvilke ATR- og kostnads-guardrails gjelder?`,
+        djevel: `Hva gjør Djevelens advokat og Shadow Tracking?`
+      };
+      const prompt = labels[key] || `Markedsregime`;
+      appendAdvisorMessage(prompt, true);
+      appendAdvisorMessage(getAdvisorResponse(prompt), false);
+    }
+
+    function submitAdvisorQuestion(ev) {
+      ev.preventDefault();
+      const input = document.getElementById(`advisorInput`);
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      appendAdvisorMessage(text, true);
+      input.value = ``;
+      appendAdvisorMessage(getAdvisorResponse(text), false);
+    }
+
+    async function initApp() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+        try {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved) {
+            if (saved.activeView) APP_STATE.activeView = saved.activeView;
+            if (typeof saved.failoverActive === `boolean`) APP_STATE.failoverActive = saved.failoverActive;
+            if (Array.isArray(saved.alpacaQueue)) APP_STATE.alpacaQueue = saved.alpacaQueue;
+            if (Array.isArray(saved.nordnetTickets)) APP_STATE.nordnetTickets = saved.nordnetTickets;
+            if (Array.isArray(saved.csvReconciledRows)) APP_STATE.csvReconciledRows = saved.csvReconciledRows;
+            if (saved.riskProfile) APP_STATE.riskProfile = saved.riskProfile;
+            if (saved.riskCapital) APP_STATE.riskCapital = saved.riskCapital;
+          }
+        } catch (err) {
+          // Fallback to default state
+        }
+      }
+
+      const rpSel = document.getElementById(`riskProfileSelect`);
+      const rpCap = document.getElementById(`riskCapitalInput`);
+      if (rpSel) rpSel.value = APP_STATE.riskProfile;
+      if (rpCap) rpCap.value = APP_STATE.riskCapital;
+
+      applyFailoverUI();
+      renderPortfolioTables();
+      renderAlpacaQueue();
+      renderNordnetTickets();
+      renderCsvReconciliation();
+      computeSmartRouting();
+      renderWatchlist();
+      renderRiskProfile();
+      renderBacktestTable();
+      switchView(APP_STATE.activeView);
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    document.addEventListener(`DOMContentLoaded`, initApp);
+  </script>
+</body>
+</html>

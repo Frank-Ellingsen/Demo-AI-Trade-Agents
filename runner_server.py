@@ -1003,6 +1003,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/nordicquant": "AI_Trading_Terminal___Porteføljedashbord.html",
             "/streamlined": "AI_Trading_Terminal_-_Streamlined___Clean.html",
             "/clean": "AI_Trading_Terminal_-_Streamlined___Clean.html",
+            "/nordquant-ai": "Bygging_av_AI-tradingagenter_i_Python.html",
+            "/bygging": "Bygging_av_AI-tradingagenter_i_Python.html",
         }
         if parsed.path in dashboard_routes:
             fname = dashboard_routes[parsed.path]

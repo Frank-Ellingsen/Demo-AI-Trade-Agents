@@ -718,6 +718,7 @@ def main() -> None:
             "Velg dashboard-visning:",
             options=[
                 "⚡ Streamlined & Clean AI Trading Terminal (AI_Trading_Terminal_-_Streamlined___Clean.html)",
+                "🤖 NordQuant AI Trading Terminal (Bygging_av_AI-tradingagenter_i_Python.html)",
                 "NordQuant Terminal (Bloomberg-stil Indeks- & Porteføljedashbord)",
                 "NordicQuant Terminal (Institusjonelt Aksjehandels- & Porteføljedashbord)",
                 "AI-Trading & Strategi-Rådgiver Dashbord (S&P 500, OBX, Alpaca & Saxo)",
@@ -732,6 +733,10 @@ def main() -> None:
             st_path = dash_dir / "AI_Trading_Terminal_-_Streamlined___Clean.html"
             if st_path.exists():
                 render_embedded_html(st_path.read_text(encoding="utf-8"), height=1100)
+        elif view_choice.startswith("🤖 NordQuant AI"):
+            nqai_path = dash_dir / "Bygging_av_AI-tradingagenter_i_Python.html"
+            if nqai_path.exists():
+                render_embedded_html(nqai_path.read_text(encoding="utf-8"), height=1100)
         elif view_choice.startswith("NordQuant Terminal"):
             bb_path = dash_dir / "Bloomberg-stil_Indeks-_og_Porteføljedashbord.html"
             if bb_path.exists():
