@@ -1,5 +1,11 @@
 # AI Trading Strategi for Dummies
 
+> **⚠️ VIKTIG ANSVARSFRASKRIVELSE & RISIKOADVARSEL (DEMO / PAPER TRADING)**  
+> Dette systemet og dokumentet er utelukkende laget for **demonstrasjon, læring, kvantitativ forskning og risikofri papirhandel (Paper Trading)**.  
+> * Innholdet utgjør **ikke** finansiell rådgivning, investeringsrådgivning eller en anbefaling om å kjøpe eller selge verdipapirer.  
+> * Historiske simuleringer (*backtests*) og fiktive resultater er **ingen garanti for fremtidig avkastning**.  
+> * All handel i verdipapirer med ekte penger innebærer risiko for betydelig tap — du er selv 100 % ansvarlig for alle egne investeringsbeslutninger.
+
 Å bygge en automatisert tradingstrategi som kombinerer kvantitative metoder med kunstig intelligens handler verken om ufeilbarlige spådommer eller lynrask datatrafikk på millisekundnivå. Tvert imot bygger vellykket swing-trading på disiplinert kapitalbevaring, matematisk risikostyring og kontroll over friksjonskostnader. Mange nybegynnere taper penger fordi de undervurderer effekten av spread, kurtasje og manglende stop-loss, eller fordi de handler illikvide aksjer uten sikkerhetsmargin.
 
 Dette dokumentet gir en praktisk og lettfattelig innføring i hvordan **AI Trading Desk** er bygget opp, hvordan du velger riktig risikoprofil for **Alpaca Paper Trading**, hvorfor likviditet og meglernative OCO Bracket-ordrer er avgjørende, og hvordan du evaluerer strategien uke for uke.
