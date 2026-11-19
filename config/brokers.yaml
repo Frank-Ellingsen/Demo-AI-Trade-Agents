@@ -1,0 +1,26 @@
+# Broker Fee Structures & Tax Configuration (NOK / Oslo Børs)
+
+tax_account:
+  account_type: "ASK"               # Aksjesparekonto (deferred capital gains tax)
+  statutory_tax_rate: 0.3784        # 37.84% effective equity tax rate upon withdrawal > principal
+  fx_conversion_drag_pct: 0.0       # 0% FX drag (all OBX 15 settled in NOK)
+
+execution_assumptions:
+  estimated_half_spread_pct: 0.0005 # 0.05% half-spread on OBX 15
+  extra_slippage_pct: 0.0005        # 0.05% conservative slippage penalty per leg
+  max_cost_drag_ratio: 0.20         # Total fees + slippage must be < 20% of gross profit
+
+brokers:
+  saxo_classic:
+    name: "Saxo Bank (OpenAPI v2 - Classic)"
+    commission_pct: 0.0008          # 0.08% per leg
+    min_commission_nok: 10.0        # 10 NOK minimum
+    custody_fee_annual_pct: 0.0000  # 0.00% on Norwegian ASK (set to 0.0012 for legacy custody stress-test)
+    rate_limit_requests_per_min: 120
+    rate_limit_orders_per_sec: 1
+
+  nordnet_mini:
+    name: "Nordnet (Mini Tier)"
+    commission_pct: 0.0015          # 0.15% per leg
+    min_commission_nok: 29.0        # 29 NOK minimum
+    custody_fee_annual_pct: 0.0000  # 0 kr custody fee on Nordic stocks

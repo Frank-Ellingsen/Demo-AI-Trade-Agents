@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables & local secrets
+.env
+.env.*
+!.env.example
+
+# Local databases, logs, and raw feeds
+data/*.duckdb
+data/*.duckdb.wal
+data/*.duckdb.tmp
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/raw_news/
+data/scheduler_state.json
+*.log
+
+# Pytest & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local tooling / IDE / OS
+.goals/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

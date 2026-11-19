@@ -1,0 +1,71 @@
+# Strategy & Regime Matrix Configuration
+# All technical indicators operate on dividend-adjusted prices (adj_close).
+# Order execution and share sizing operate on raw prices (raw_open / raw_close).
+
+holding_windows:
+  short_swing:
+    min_days: 1
+    max_days: 10
+  medium_swing:
+    min_days: 1
+    max_days: 20
+  long_swing:
+    min_days: 1
+    max_days: 30
+
+execution_guardrails:
+  signal_bar: "CLOSE_T"
+  execution_bar: "OPEN_T_PLUS_1"
+  max_gap_up_pct: 0.015       # Cancel BUY if Open(T+1) > Close(T) * 1.015
+  max_gap_down_pct: -0.020    # Cancel BUY if Open(T+1) < Close(T) * 0.980
+  earnings_blackout_days: 3   # Block BUY if quarterly earnings < 3 trading days away
+
+exogenous_filters:
+  market_trend:
+    benchmark: "OBX.OL"
+    sma_period: 200
+    require_above_sma: true
+  volatility_regime:
+    index: "^VIX"
+    max_vix: 25.0
+    energy_shipping_vix_override:
+      enabled: true
+      min_brent_2d_pct: 0.015  # Allow Energy/Shipping if VIX >= 25 when Brent 2d > +1.5%
+  energy_commodity_filter:
+    benchmark: "BZ=F"          # Brent Crude
+    lookback_days: 2
+    min_change_pct: -0.025     # Require 2d Brent change > -2.5% for Energy stocks
+  sector_momentum:
+    lookback_days: 10
+    require_positive_rel_obx: true
+
+endogenous_strategies:
+  rsi_mean_reversion:
+    enabled: true
+    trend_sma_period: 200
+    rsi_period: 2
+    rsi_entry_threshold: 10.0
+    exit_sma_period: 5
+    catastrophic_stop_atr_mult: 3.0
+    atr_period: 14
+    tie_breaker_metric: "lowest_rsi2"
+
+  trend_breakout:
+    enabled: true
+    breakout_high_period: 20
+    volume_sma_period: 20
+    min_volume_ratio: 1.3
+    exit_low_period: 10
+    trailing_stop_atr_mult: 2.5
+    atr_period: 14
+    tie_breaker_metric: "highest_volume_ratio"
+
+  bollinger_squeeze:
+    enabled: false  # Disabled after 2019-2026 OBX baseline showed negative alpha & bull-trap drag
+    bb_period: 20
+    bb_std_dev: 2.0
+    squeeze_lookback_days: 60
+    exit_middle_band_sma: 20
+    trailing_stop_atr_mult: 2.0
+    atr_period: 14
+    tie_breaker_metric: "highest_volume_ratio"

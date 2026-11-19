@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OBX 15 Multi-Agent Meglerbord — Kontrollpanel (Tufte Edition)</title>
+  <style>
+    :root {
+      --bg: #faf9f6;
+      --surface: #ffffff;
+      --ink: #16181a;
+      --ink-muted: #575c62;
+      --rule-heavy: #16181a;
+      --rule-light: #dcdad4;
+      --accent-navy: #1d3557;
+      --risk-red: #b91c1c;
+      --risk-amber: #b45309;
+      --ok-green: #155e3b;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 2rem clamp(1rem, 4vw, 3.5rem);
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      line-height: 1.5;
+    }
+
+    /* Visually hidden status region for screen readers (sortable-table / dynamic-sort compliance) */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    header.masthead {
+      border-block-end: 2px solid var(--rule-heavy);
+      padding-block-end: 1rem;
+      margin-block-end: 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+
+    header.masthead h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    header.masthead p.subtitle {
+      margin: 0.25rem 0 0;
+      color: var(--ink-muted);
+      font-size: 0.875rem;
+    }
+
+    .regime-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+    }
+
+    .regime-strip div span.label {
+      color: var(--ink-muted);
+      font-family: var(--font-sans);
+      margin-inline-end: 0.35rem;
+    }
+
+    /* Tufte KPI Strip: Zero heavy borders, zero drop-shadows, pure typography and top hairlines */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 1.75rem;
+      margin-block-end: 2.25rem;
+    }
+
+    .kpi-item {
+      border-block-start: 1px solid var(--rule-heavy);
+      padding-block-start: 0.55rem;
+    }
+
+    .kpi-item .kpi-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-muted);
+    }
+
+    .kpi-item .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 1.55rem;
+      font-weight: 600;
+      margin-block: 0.2rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-item .kpi-target {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+    }
+
+    .flag-risk {
+      color: var(--risk-red);
+      font-weight: 600;
+    }
+
+    .flag-amber {
+      color: var(--risk-amber);
+      font-weight: 600;
+    }
+
+    .flag-ok {
+      color: var(--ok-green);
+      font-weight: 600;
+    }
+
+    /* Pipeline ribbon */
+    .agent-pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 1rem;
+      border-block: 1px solid var(--rule-light);
+      padding-block: 0.9rem;
+      margin-block-end: 2.25rem;
+    }
+
+    .agent-step {
+      padding-inline-end: 0.75rem;
+    }
+
+    .agent-step strong {
+      display: block;
+      font-size: 0.83rem;
+      color: var(--accent-navy);
+    }
+
+    .agent-step span {
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+    }
+
+    section.panel {
+      margin-block-end: 2.75rem;
+    }
+
+    section.panel h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0 0 0.25rem;
+      letter-spacing: -0.01em;
+    }
+
+    section.panel p.section-note {
+      margin: 0 0 0.85rem;
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+    }
+
+    /* S-Curve SVG container */
+    .scurve-box {
+      background: var(--surface);
+      border-block: 1px solid var(--rule-heavy);
+      padding: 1rem 0.5rem 0.5rem;
+      margin-block-end: 2rem;
+    }
+
+    /* Responsive & Sortable Table (Tufte: NO vertical gridlines, aligned decimals) */
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      max-block-size: min(540px, 80vh);
+      container-type: inline-size;
+      background: var(--surface);
+      border-block-start: 2px solid var(--rule-heavy);
+      border-block-end: 2px solid var(--rule-heavy);
+    }
+
+    .table-wrapper:focus-visible {
+      outline: 2px solid var(--accent-navy);
+      outline-offset: 2px;
+    }
+
+    table {
+      width: 100%;
+      min-inline-size: 760px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.85rem;
+    }
+
+    caption {
+      text-align: left;
+      font-weight: 600;
+      padding: 0.65rem 0.75rem;
+      color: var(--ink);
+      background: var(--bg);
+      border-block-end: 1px solid var(--rule-heavy);
+    }
+
+    thead {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 2;
+      background: var(--bg);
+    }
+
+    th, td {
+      padding: 0.55rem 0.75rem;
+      border-block-end: 1px solid var(--rule-light);
+      /* ZERO vertical borders per Edward Tufte rule */
+      border-inline: none;
+      white-space: nowrap;
+    }
+
+    thead th {
+      font-weight: 600;
+      color: var(--ink);
+      border-block-end: 1px solid var(--rule-heavy);
+      text-align: left;
+    }
+
+    thead th[data-type="number"],
+    td.num {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Sortable header button rules per sortable-table guidance */
+    thead th:has(> button) {
+      padding: 0;
+    }
+
+    thead th > button {
+      all: unset;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.3rem;
+      width: 100%;
+      min-height: 28px;
+      padding: 0.55rem 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+      color: inherit;
+    }
+
+    thead th[data-type="number"] > button {
+      justify-content: flex-end;
+    }
+
+    thead th > button:focus-visible {
+      outline: 2px solid var(--accent-navy);
+      outline-offset: -2px;
+    }
+
+    thead th > button .sort-icon::after {
+      content: "↕";
+      opacity: 0.35;
+      font-size: 0.75rem;
+    }
+
+    thead th[aria-sort="ascending"] > button .sort-icon::after {
+      content: "↑";
+      opacity: 1;
+      color: var(--accent-navy);
+    }
+
+    thead th[aria-sort="descending"] > button .sort-icon::after {
+      content: "↓";
+      opacity: 1;
+      color: var(--accent-navy);
+    }
+
+    tbody th {
+      position: sticky;
+      inset-inline-start: 0;
+      z-index: 1;
+      background: var(--surface);
+      text-align: left;
+      font-weight: 600;
+    }
+
+    tbody tr:hover td,
+    tbody tr:hover th {
+      background: #f3f2ee;
+    }
+
+    tbody tr {
+      view-transition-name: match-element;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      ::view-transition-group(*),
+      ::view-transition-old(*),
+      ::view-transition-new(*) {
+        animation: none;
+      }
+    }
+
+    /* Container query stacked layout for narrow containers (< 600px) */
+    @container (width < 600px) {
+      table {
+        min-inline-size: 100%;
+      }
+      table, thead, tbody, tr, th, td {
+        display: block;
+      }
+      thead {
+        display: none;
+      }
+      tr {
+        margin-block-end: 1rem;
+        border-block-end: 2px solid var(--rule-heavy);
+      }
+      tbody th {
+        position: sticky;
+        inset-block-start: 0;
+        background: var(--bg);
+      }
+      td.num {
+        text-align: left;
+      }
+    }
+
+    .btn-action {
+      background: transparent;
+      border: 1px solid var(--rule-heavy);
+      color: var(--ink);
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+      font-family: var(--font-sans);
+      cursor: pointer;
+    }
+
+    .btn-action:hover {
+      background: var(--ink);
+      color: var(--surface);
+    }
+
+    .btn-approve {
+      border-color: var(--ok-green);
+      color: var(--ok-green);
+    }
+
+    .btn-reject {
+      border-color: var(--risk-red);
+      color: var(--risk-red);
+    }
+
+    /* Native Modal Dialog rules per modern-web-guidance `dialog` */
+    dialog {
+      border: 1px solid var(--rule-heavy);
+      background: var(--surface);
+      color: var(--ink);
+      padding: 1.5rem;
+      max-width: 540px;
+      width: calc(100% - 2rem);
+    }
+
+    dialog:modal {
+      overscroll-behavior: contain;
+    }
+
+    dialog::backdrop {
+      background: rgba(22, 24, 26, 0.45);
+      overflow: hidden;
+      overscroll-behavior: contain;
+    }
+
+    dialog h3 {
+      margin-block: 0 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    dialog dl {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      row-gap: 0.45rem;
+      font-size: 0.85rem;
+      margin-block: 1rem;
+    }
+
+    dialog dt {
+      color: var(--ink-muted);
+    }
+
+    dialog dd {
+      margin: 0;
+      font-family: var(--font-mono);
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.65rem;
+      margin-block-start: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <p id="sort-status" role="status" class="visually-hidden"></p>
+
+  <header class="masthead">
+    <div>
+      <h1>OBX 15 Multi-Agent Meglerbord</h1>
+      <p class="subtitle">Kvantitativ Swing-Trading &bull; Stage-Gate Porteføljekontroll &bull; DuckDB + SQLite WAL</p>
+    </div>
+    <div class="regime-strip" id="regime-strip">
+      <div><span class="label">Siste børsdag:</span><strong id="hdr-date">2026-11-17</strong></div>
+      <div><span class="label">OBX vs SMA(200):</span><strong id="hdr-obx" class="flag-ok">OVER (+6.4 %)</strong></div>
+      <div><span class="label">VIX-regime:</span><strong id="hdr-vix">15.8 (&lt; 25)</strong></div>
+      <div><span class="label">Brent 2d:</span><strong id="hdr-brent">+1.2 %</strong></div>
+    </div>
+  </header>
+
+  <!-- 5-Agent Pipeline Strip -->
+  <nav class="agent-pipeline" aria-label="5-agents arkitektur">
+    <div class="agent-step">
+      <strong>1. Kvantagent (DuckDB SQL)</strong>
+      <span>RSI(2) &amp; 20d Breakout på utbyttejustert kurs</span>
+    </div>
+    <div class="agent-step">
+      <strong>2. Nyhetsagent (NewsWeb 72t)</strong>
+      <span>Børsmeldinger + 3d Earnings Guardrail</span>
+    </div>
+    <div class="agent-step">
+      <strong>3. AI-Risikomanager (Ollama)</strong>
+      <span>Djevelens Advokat &rarr; signal_evaluations</span>
+    </div>
+    <div class="agent-step">
+      <strong>4. Eksekverer (SQLite WAL / Saxo)</strong>
+      <span>14t HITL, Tick-size &amp; 09:00 Gap Guardrail</span>
+    </div>
+    <div class="agent-step">
+      <strong>5. Auditor (Søndagsrevisjon)</strong>
+      <span>OLS Alfa/Beta, Cost Drag % &amp; Kohort A/B/C</span>
+    </div>
+  </nav>
+
+  <!-- Primary Portfolio Stage-Gate KPIs -->
+  <section class="kpi-grid" aria-label="Portefølje Stage-Gate Nøkkeltall">
+    <div class="kpi-item">
+      <div class="kpi-label">Netto Avkastning (Kombinert 20d)</div>
+      <div class="kpi-value flag-ok" id="kpi-ret">+46.31 %</div>
+      <div class="kpi-target">CAGR: +5.54 % (Saxo Classic)</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Cost Drag % av Brutto</div>
+      <div class="kpi-value flag-ok" id="kpi-cost">15.12 %</div>
+      <div class="kpi-target">Krav: &lt; 20.00 % (Nordnet: 20.30 %)</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Max Drawdown (Kombinert / RSI)</div>
+      <div class="kpi-value flag-ok" id="kpi-dd">15.44 % / 7.01 %</div>
+      <div class="kpi-target">Hard Stage-Gate grense: &lt; 18.00 %</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Sortino Ratio (RSI 1–20d)</div>
+      <div class="kpi-value" id="kpi-sortino">1.08</div>
+      <div class="kpi-target">Out-of-Sample Vinn%: 63.0 % – 70.7 %</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-label">Ren Strategi-Alfa (&alpha; / år)</div>
+      <div class="kpi-value flag-ok" id="kpi-alpha">+2.34 %</div>
+      <div class="kpi-target">Markedsbeta (&beta;_OBX): 0.07</div>
+    </div>
+  </section>
+
+  <!-- Direct-Labeled S-Curve (Cumulative Equity Curve without separate color legend) -->
+  <section class="panel">
+    <h2>Kumulativ Kapitalutvikling (S-Kurve med Direkte Merking, 100 000 NOK Startkapital)</h2>
+    <p class="section-note">Direkte linjemerking iht. Edward Tufte (ingen separat fargeforklaring eller rutenettstøy). Rød stiplet markering viser spart nedside ved eksogent regimefilter.</p>
+    <div class="scurve-box">
+      <svg viewBox="0 0 920 245" width="100%" height="245" role="img" aria-label="Kumulativ avkastningskurve for Saxo Kombinert 1-20d, RSI Mean Reversion 1-20d og Nordnet Mini">
+        <!-- Subtle horizontal baseline at 100,000 NOK -->
+        <line x1="55" y1="190" x2="725" y2="190" stroke="#dcdad4" stroke-dasharray="3,3" stroke-width="1" />
+        <text x="8" y="194" font-family="monospace" font-size="11" fill="#575c62">100k</text>
+        <line x1="55" y1="115" x2="725" y2="115" stroke="#eceae4" stroke-width="1" />
+        <text x="8" y="119" font-family="monospace" font-size="11" fill="#575c62">125k</text>
+        <line x1="55" y1="45" x2="725" y2="45" stroke="#eceae4" stroke-width="1" />
+        <text x="8" y="49" font-family="monospace" font-size="11" fill="#575c62">150k</text>
+
+        <!-- Year ticks -->
+        <text x="60" y="228" font-family="monospace" font-size="11" fill="#575c62">2019</text>
+        <text x="170" y="228" font-family="monospace" font-size="11" fill="#575c62">2020</text>
+        <text x="280" y="228" font-family="monospace" font-size="11" fill="#575c62">2021</text>
+        <text x="390" y="228" font-family="monospace" font-size="11" fill="#575c62">2022</text>
+        <text x="500" y="228" font-family="monospace" font-size="11" fill="#575c62">2024</text>
+        <text x="610" y="228" font-family="monospace" font-size="11" fill="#575c62">2025</text>
+        <text x="695" y="228" font-family="monospace" font-size="11" fill="#575c62">2026</text>
+
+        <!-- Curve 1: Combined RSI + Breakout (Saxo Classic) +46.31% -->
+        <path d="M 55 190 L 140 182 L 195 176 L 280 142 L 370 112 L 460 88 L 555 72 L 640 62 L 720 53"
+              fill="none" stroke="#1d3557" stroke-width="2.4" />
+        <circle cx="720" cy="53" r="3.5" fill="#1d3557" />
+        <text x="730" y="57" font-family="sans-serif" font-size="12" font-weight="600" fill="#1d3557">
+          Kombinert 1–20d (Saxo): 146 310 kr (+46.3 %)
+        </text>
+
+        <!-- Curve 2: RSI Mean Reversion (Saxo Classic) +30.42%, MaxDD 7.01% -->
+        <path d="M 55 190 L 140 186 L 195 184 L 280 165 L 370 146 L 460 128 L 555 114 L 640 105 L 720 98"
+              fill="none" stroke="#155e3b" stroke-width="2.0" />
+        <circle cx="720" cy="98" r="3.5" fill="#155e3b" />
+        <text x="730" y="102" font-family="sans-serif" font-size="12" font-weight="600" fill="#155e3b">
+          RSI(2) 1–20d (Saxo): 130 420 kr (+30.4 %, DD 7.0 %)
+        </text>
+
+        <!-- Curve 3: RSI Mean Reversion (Nordnet Mini) +21.85% (Cost Drag 27.32% Risk Highlight) -->
+        <path d="M 55 190 L 140 189 L 195 189 L 280 175 L 370 161 L 460 148 L 555 137 L 640 130 L 720 124"
+              fill="none" stroke="#b91c1c" stroke-width="1.6" stroke-dasharray="4,3" />
+        <circle cx="720" cy="124" r="3" fill="#b91c1c" />
+        <text x="730" y="128" font-family="sans-serif" font-size="11.5" font-weight="600" fill="#b91c1c">
+          RSI(2) Nordnet Mini: 121 850 kr (Cost Drag 27.3 % &gt; 20 %)
+        </text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Section 1: Experiment Matrix Table (Sortable, Accessible, Zero Vertical Gridlines) -->
+  <section class="panel">
+    <h2>1. Eksperimentmatrise (2019–2026) — Strategi, Holdeperiode og Kurtasje-avvik</h2>
+    <p class="section-note">Klikk på kolonneoverskriftene for å sortere. Røde tall markerer brudd på Stage-Gate-kravene (Max Drawdown &gt; 18 % eller Cost Drag &gt; 20 %).</p>
+    <div tabindex="0" role="region" aria-labelledby="matrix-caption" class="table-wrapper">
+      <table id="matrix-table">
+        <caption id="matrix-caption">OBX 15 Backtest- og Kostnadsmatrise (Med Eksogent Regimefilter)</caption>
+        <thead>
+          <tr>
+            <th scope="col" data-type="string">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Strategi <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Horisont <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="string">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Megler <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Handler <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Vinn % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number" aria-sort="descending">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Netto Avk. % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Sortino <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Max DD % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                Cost Drag % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                &alpha; / år % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="matrix-table" command="--sort">
+                &beta;_OBX <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="matrix-tbody">
+          <!-- Populated dynamically from dashboard_data.json / fallback -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 2: Agent 4 HITL Order Queue & Agent 3 AI Decision Cards -->
+  <section class="panel">
+    <h2>2. Agent 3 &amp; 4: Human-in-the-Loop Ordrekø (`hitl_orders.db` i WAL-modus)</h2>
+    <p class="section-note">Kjøpsforslag (`BUY`) krever eksplisitt godkjenning innen 14 timer. Salg/Stop-Loss (`SELL`) auto-godkjennes for å beskytte nedside.</p>
+    <div tabindex="0" role="region" aria-labelledby="hitl-caption" class="table-wrapper">
+      <table id="hitl-table">
+        <caption id="hitl-caption">Aktive og nylig evaluerte ordreforslag med MiFID II Tick-Size og AI-risikovurdering</caption>
+        <thead>
+          <tr>
+            <th scope="col">Ticker</th>
+            <th scope="col">Handling</th>
+            <th scope="col">Strategi</th>
+            <th scope="col" data-type="number">Aksjer</th>
+            <th scope="col" data-type="number">Limit (NOK)</th>
+            <th scope="col" data-type="number">ATR Stop (NOK)</th>
+            <th scope="col">Agent 3 Dom</th>
+            <th scope="col">Avslagskategori</th>
+            <th scope="col">Status</th>
+            <th scope="col">Gransk / HITL</th>
+          </tr>
+        </thead>
+        <tbody id="hitl-tbody">
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 3: OBX 15 Live Universe Snapshot -->
+  <section class="panel">
+    <h2>3. Agent 1 &amp; 2: OBX 15 Univers-status (Teknisk &amp; Likviditetsbånd)</h2>
+    <p class="section-note">Alle indikatorer er beregnet på utbyttejustert totalavkastningsserie (`clean_adj_close`) for å eliminere ex-utbytte-feil.</p>
+    <div tabindex="0" role="region" aria-labelledby="univ-caption" class="table-wrapper">
+      <table id="univ-table">
+        <caption id="univ-caption">OBX 15 Aksjer — Siste Sluttkurs, RSI(2), 3d Pullback og MiFID II Likviditetsbånd</caption>
+        <thead>
+          <tr>
+            <th scope="col" data-type="string">
+              <button type="button" commandfor="univ-table" command="--sort">
+                Ticker <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="string">
+              <button type="button" commandfor="univ-table" command="--sort">
+                Sektor <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="univ-table" command="--sort">
+                MiFID Bånd <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="univ-table" command="--sort">
+                Sluttkurs (NOK) <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="univ-table" command="--sort">
+                RSI(2) <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="univ-table" command="--sort">
+                3d Endring % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="univ-table" command="--sort">
+                10d Momentum % <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col" data-type="number">
+              <button type="button" commandfor="univ-table" command="--sort">
+                Volum / SMA20 <span class="sort-icon" aria-hidden="true"></span>
+              </button>
+            </th>
+            <th scope="col">Trend (&gt; SMA200)</th>
+          </tr>
+        </thead>
+        <tbody id="univ-tbody">
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Native Modal Dialog for HITL Order Inspection & Approval (modern-web-guidance `dialog` Rule 1) -->
+  <dialog id="order-modal" closedby="any" aria-labelledby="modal-title">
+    <h3 id="modal-title">Ordrekort &amp; AI-Risikovurdering</h3>
+    <p id="modal-subtitle" style="margin:0; font-size:0.82rem; color:var(--ink-muted);"></p>
+    <dl id="modal-details"></dl>
+    <form method="dialog" class="dialog-actions">
+      <button type="submit" value="cancel" class="btn-action" autofocus>Lukk (Esc)</button>
+      <button type="submit" value="reject" class="btn-action btn-reject">❌ Avvis Ordre</button>
+      <button type="submit" value="approve" class="btn-action btn-approve">✅ Godkjenn (Send til Saxo)</button>
+    </form>
+  </dialog>
+
+  <script>
+    // Embedded baseline snapshot (automatically overridden if ./dashboard_data.json is served over HTTP)
+    const FALLBACK_DATA = {
+      latest_trade_date: "2026-11-17",
+      macro_regime: { obx_close: 256.8, obx_sma200: 241.3, vix_close: 15.8, brent_2d_pct: 1.2 },
+      matrix_results: [
+        { strategy: "combined_rsi_breakout", window: "1-30d", horizon_days: 30, broker: "saxo_classic", trades: 355, win_rate_pct: 46.8, total_return_pct: 47.57, cagr_pct: 5.66, sharpe: 0.46, sortino: 0.66, max_dd_pct: 17.24, cost_drag_pct: 13.51, alpha_ann_pct: -0.96, beta_obx: 0.33 },
+        { strategy: "combined_rsi_breakout", window: "1-20d", horizon_days: 20, broker: "saxo_classic", trades: 404, win_rate_pct: 47.0, total_return_pct: 46.31, cagr_pct: 5.54, sharpe: 0.47, sortino: 0.67, max_dd_pct: 15.44, cost_drag_pct: 15.12, alpha_ann_pct: -0.10, beta_obx: 0.28 },
+        { strategy: "trend_breakout", window: "1-20d", horizon_days: 20, broker: "saxo_classic", trades: 277, win_rate_pct: 40.8, total_return_pct: 44.38, cagr_pct: 5.34, sharpe: 0.48, sortino: 0.68, max_dd_pct: 21.70, cost_drag_pct: 12.46, alpha_ann_pct: 0.33, beta_obx: 0.24 },
+        { strategy: "combined_rsi_breakout", window: "1-20d", horizon_days: 20, broker: "nordnet_mini", trades: 400, win_rate_pct: 47.0, total_return_pct: 37.54, cagr_pct: 4.62, sharpe: 0.41, sortino: 0.58, max_dd_pct: 17.22, cost_drag_pct: 20.30, alpha_ann_pct: -1.05, beta_obx: 0.28 },
+        { strategy: "trend_breakout", window: "1-30d", horizon_days: 30, broker: "saxo_classic", trades: 263, win_rate_pct: 37.6, total_return_pct: 30.87, cagr_pct: 3.88, sharpe: 0.36, sortino: 0.50, max_dd_pct: 26.92, cost_drag_pct: 12.74, alpha_ann_pct: -1.66, beta_obx: 0.27 },
+        { strategy: "rsi_mean_reversion", window: "1-20d", horizon_days: 20, broker: "saxo_classic", trades: 196, win_rate_pct: 60.7, total_return_pct: 30.42, cagr_pct: 3.83, sharpe: 0.67, sortino: 1.08, max_dd_pct: 7.01, cost_drag_pct: 19.64, alpha_ann_pct: 2.34, beta_obx: 0.07 },
+        { strategy: "rsi_mean_reversion", window: "1-30d", horizon_days: 30, broker: "saxo_classic", trades: 177, win_rate_pct: 65.0, total_return_pct: 26.19, cagr_pct: 3.35, sharpe: 0.50, sortino: 0.77, max_dd_pct: 9.32, cost_drag_pct: 15.36, alpha_ann_pct: 1.13, beta_obx: 0.11 },
+        { strategy: "rsi_mean_reversion", window: "1-20d", horizon_days: 20, broker: "nordnet_mini", trades: 196, win_rate_pct: 59.2, total_return_pct: 21.85, cagr_pct: 2.84, sharpe: 0.51, sortino: 0.80, max_dd_pct: 7.06, cost_drag_pct: 27.32, alpha_ann_pct: 1.37, beta_obx: 0.07 },
+        { strategy: "trend_breakout", window: "1-20d", horizon_days: 20, broker: "nordnet_mini", trades: 275, win_rate_pct: 39.6, total_return_pct: 20.15, cagr_pct: 2.63, sharpe: 0.27, sortino: 0.38, max_dd_pct: 23.67, cost_drag_pct: 17.70, alpha_ann_pct: -2.25, beta_obx: 0.24 },
+        { strategy: "rsi_mean_reversion", window: "1-10d", horizon_days: 10, broker: "saxo_classic", trades: 179, win_rate_pct: 59.2, total_return_pct: 6.09, cagr_pct: 0.84, sharpe: 0.18, sortino: 0.26, max_dd_pct: 11.05, cost_drag_pct: 23.38, alpha_ann_pct: -0.37, beta_obx: 0.06 },
+        { strategy: "rsi_mean_reversion", window: "1-10d", horizon_days: 10, broker: "nordnet_mini", trades: 179, win_rate_pct: 57.0, total_return_pct: -0.37, cagr_pct: -0.05, sharpe: 0.00, sortino: 0.01, max_dd_pct: 13.59, cost_drag_pct: 32.45, alpha_ann_pct: -1.27, beta_obx: 0.06 }
+      ],
+      pending_orders: [
+        {
+          order_id: "ord_eqnr_demo01",
+          x_request_id: "saxo_9918273645abcdef",
+          ticker: "EQNR.OL",
+          action: "BUY",
+          strategy_name: "rsi_mean_reversion",
+          shares: 88,
+          limit_price: 284.10,
+          stop_loss_price: 271.50,
+          llm_recommendation: "GO",
+          rejection_category: "NONE",
+          risk_score: "LOW",
+          status: "PENDING",
+          bull_case: "RSI(2) < 10 etter 3-dagers pullback i primær opptrend. Tilbakekjøpsprogram aktivt på NewsWeb.",
+          devils_advocate: "Kortsiktig Brent-korreksjon kan teste 278 NOK før reversering.",
+          expires_at: "2026-11-18T08:40:00Z"
+        },
+        {
+          order_id: "ord_nod_demo02",
+          x_request_id: "saxo_4455667788fedcba",
+          ticker: "NOD.OL",
+          action: "BUY",
+          strategy_name: "trend_breakout",
+          shares: 175,
+          limit_price: 142.40,
+          stop_loss_price: 131.00,
+          llm_recommendation: "NO-GO",
+          rejection_category: "EARNINGS_SOON",
+          risk_score: "HIGH",
+          status: "REJECTED",
+          bull_case: "20-dagers brudd på 1.45x volum.",
+          devils_advocate: "Kvartalsrapport om 2 handelsdager (< 3d Earnings Guardrail). Høy overnight gap-risiko.",
+          expires_at: "2026-11-18T08:40:00Z"
+        },
+        {
+          order_id: "ord_kog_demo03",
+          x_request_id: "saxo_1122334455aabbcc",
+          ticker: "KOG.OL",
+          action: "SELL",
+          strategy_name: "trend_breakout",
+          shares: 22,
+          limit_price: 1185.00,
+          stop_loss_price: 1185.00,
+          llm_recommendation: "GO",
+          rejection_category: "NONE",
+          risk_score: "LOW",
+          status: "AUTO_APPROVED",
+          bull_case: "Planlagt 20d gevinstsikring / trailing stop nådd.",
+          devils_advocate: "Ingen manuell blokkering på SELL (beskytter nedside automatisk).",
+          expires_at: "2026-11-18T08:00:00Z"
+        }
+      ],
+      obx15_snapshot: [
+        { ticker: "EQNR.OL", sector: "Energy", liquidity_band: 6, raw_close: 284.15, rsi2: 14.2, ret_3d_pct: -2.10, ret_10d_pct: 1.45, vol_ratio: 1.18, above_sma200: true },
+        { ticker: "AKRBP.OL", sector: "Energy", liquidity_band: 5, raw_close: 244.60, rsi2: 28.5, ret_3d_pct: -1.15, ret_10d_pct: 0.85, vol_ratio: 0.94, above_sma200: true },
+        { ticker: "SUBC.OL", sector: "Energy", liquidity_band: 5, raw_close: 192.40, rsi2: 41.0, ret_3d_pct: 0.40, ret_10d_pct: 2.30, vol_ratio: 1.05, above_sma200: true },
+        { ticker: "FRO.OL", sector: "Shipping", liquidity_band: 5, raw_close: 218.00, rsi2: 52.3, ret_3d_pct: 1.80, ret_10d_pct: 4.10, vol_ratio: 1.32, above_sma200: true },
+        { ticker: "DNB.OL", sector: "Financials", liquidity_band: 6, raw_close: 226.50, rsi2: 61.4, ret_3d_pct: 0.90, ret_10d_pct: 2.85, vol_ratio: 0.88, above_sma200: true },
+        { ticker: "STB.OL", sector: "Financials", liquidity_band: 5, raw_close: 118.20, rsi2: 58.0, ret_3d_pct: 0.50, ret_10d_pct: 1.90, vol_ratio: 0.91, above_sma200: true },
+        { ticker: "GJF.OL", sector: "Financials", liquidity_band: 5, raw_close: 204.00, rsi2: 49.2, ret_3d_pct: -0.25, ret_10d_pct: 1.10, vol_ratio: 0.82, above_sma200: true },
+        { ticker: "KOG.OL", sector: "Materials_Industrials", liquidity_band: 5, raw_close: 1190.00, rsi2: 68.5, ret_3d_pct: 2.40, ret_10d_pct: 6.20, vol_ratio: 1.41, above_sma200: true },
+        { ticker: "NHY.OL", sector: "Materials_Industrials", liquidity_band: 6, raw_close: 68.40, rsi2: 34.1, ret_3d_pct: -0.95, ret_10d_pct: 0.45, vol_ratio: 1.02, above_sma200: true },
+        { ticker: "YAR.OL", sector: "Materials_Industrials", liquidity_band: 5, raw_close: 332.00, rsi2: 29.8, ret_3d_pct: -1.40, ret_10d_pct: -0.80, vol_ratio: 0.95, above_sma200: false },
+        { ticker: "MOWI.OL", sector: "Seafood", liquidity_band: 5, raw_close: 198.60, rsi2: 44.0, ret_3d_pct: 0.20, ret_10d_pct: 1.75, vol_ratio: 0.89, above_sma200: true },
+        { ticker: "SALM.OL", sector: "Seafood", liquidity_band: 5, raw_close: 564.00, rsi2: 38.7, ret_3d_pct: -0.60, ret_10d_pct: 1.20, vol_ratio: 0.93, above_sma200: true },
+        { ticker: "TEL.OL", sector: "Telecom_Consumer_Tech", liquidity_band: 5, raw_close: 134.80, rsi2: 51.0, ret_3d_pct: 0.15, ret_10d_pct: 0.90, vol_ratio: 0.79, above_sma200: true },
+        { ticker: "ORK.OL", sector: "Telecom_Consumer_Tech", liquidity_band: 5, raw_close: 96.40, rsi2: 55.2, ret_3d_pct: 0.35, ret_10d_pct: 1.40, vol_ratio: 0.84, above_sma200: true },
+        { ticker: "NOD.OL", sector: "Telecom_Consumer_Tech", liquidity_band: 5, raw_close: 142.50, rsi2: 46.8, ret_3d_pct: -0.50, ret_10d_pct: 3.10, vol_ratio: 1.29, above_sma200: true }
+      ]
+    };
+
+    let activeOrdersById = new Map();
+
+    function renderMatrixTable(rows) {
+      const tbody = document.getElementById("matrix-tbody");
+      tbody.innerHTML = "";
+      for (const r of rows) {
+        const tr = document.createElement("tr");
+        const ddClass = r.max_dd_pct >= 18.0 ? "num flag-risk" : "num";
+        const costClass = r.cost_drag_pct >= 20.0 ? "num flag-risk" : "num flag-ok";
+        const retClass = r.total_return_pct > 0 ? "num flag-ok" : "num flag-risk";
+
+        tr.innerHTML = `
+          <th scope="row" data-value="${r.strategy}">${r.strategy}</th>
+          <td class="num" data-value="${r.horizon_days}">${r.window}</td>
+          <td data-value="${r.broker}">${r.broker}</td>
+          <td class="num" data-value="${r.trades}">${r.trades}</td>
+          <td class="num" data-value="${r.win_rate_pct}">${r.win_rate_pct.toFixed(1)} %</td>
+          <td class="${retClass}" data-value="${r.total_return_pct}">${r.total_return_pct > 0 ? "+" : ""}${r.total_return_pct.toFixed(2)} %</td>
+          <td class="num" data-value="${r.sortino}">${r.sortino.toFixed(2)}</td>
+          <td class="${ddClass}" data-value="${r.max_dd_pct}">${r.max_dd_pct.toFixed(2)} %</td>
+          <td class="${costClass}" data-value="${r.cost_drag_pct}">${r.cost_drag_pct.toFixed(2)} %</td>
+          <td class="num" data-value="${r.alpha_ann_pct}">${r.alpha_ann_pct > 0 ? "+" : ""}${r.alpha_ann_pct.toFixed(2)} %</td>
+          <td class="num" data-value="${r.beta_obx}">${r.beta_obx.toFixed(2)}</td>
+        `;
+        tbody.append(tr);
+      }
+    }
+
+    function renderHitlTable(orders) {
+      const tbody = document.getElementById("hitl-tbody");
+      tbody.innerHTML = "";
+      const list = orders && orders.length ? orders : FALLBACK_DATA.pending_orders;
+      for (const o of list) {
+        activeOrdersById.set(o.order_id, o);
+        const tr = document.createElement("tr");
+        const recClass = o.llm_recommendation === "GO" ? "flag-ok" : "flag-risk";
+        const cat = o.rejection_category || (o.earnings_blackout_flag ? "EARNINGS_SOON" : "NONE");
+        const catClass = cat !== "NONE" ? "flag-risk" : "";
+        tr.innerHTML = `
+          <th scope="row">${o.ticker}</th>
+          <td>${o.action}</td>
+          <td>${o.strategy_name}</td>
+          <td class="num">${o.shares}</td>
+          <td class="num">${Number(o.limit_price).toFixed(2)}</td>
+          <td class="num">${o.stop_loss_price ? Number(o.stop_loss_price).toFixed(2) : "—"}</td>
+          <td class="${recClass}">${o.llm_recommendation || "GO"} (${o.risk_score || "LOW"})</td>
+          <td class="${catClass}">${cat}</td>
+          <td id="status-${o.order_id}"><strong>${o.status}</strong></td>
+          <td>
+            <button type="button" class="btn-action" data-inspect-order="${o.order_id}">
+              Gransk kort
+            </button>
+          </td>
+        `;
+        tbody.append(tr);
+      }
+    }
+
+    function renderUniverseTable(stocks) {
+      const tbody = document.getElementById("univ-tbody");
+      tbody.innerHTML = "";
+      for (const s of stocks) {
+        const tr = document.createElement("tr");
+        const rsiClass = s.rsi2 < 10.0 ? "num flag-ok" : "num";
+        const trendStr = s.above_sma200 ? "OVER SMA200" : "UNDER SMA200";
+        const trendClass = s.above_sma200 ? "flag-ok" : "flag-amber";
+        tr.innerHTML = `
+          <th scope="row" data-value="${s.ticker}">${s.ticker}</th>
+          <td data-value="${s.sector}">${s.sector}</td>
+          <td class="num" data-value="${s.liquidity_band}">Bånd ${s.liquidity_band}</td>
+          <td class="num" data-value="${s.raw_close}">${s.raw_close.toFixed(2)}</td>
+          <td class="${rsiClass}" data-value="${s.rsi2}">${s.rsi2.toFixed(1)}</td>
+          <td class="num" data-value="${s.ret_3d_pct}">${s.ret_3d_pct > 0 ? "+" : ""}${s.ret_3d_pct.toFixed(2)} %</td>
+          <td class="num" data-value="${s.ret_10d_pct}">${s.ret_10d_pct > 0 ? "+" : ""}${s.ret_10d_pct.toFixed(2)} %</td>
+          <td class="num" data-value="${s.vol_ratio}">${s.vol_ratio.toFixed(2)}x</td>
+          <td class="${trendClass}">${trendStr}</td>
+        `;
+        tbody.append(tr);
+      }
+    }
+
+    // Sortable Table logic following `sortable-table` and `dynamic-sort` guides:
+    // - Uses Intl.Collator for strings and numeric data-value for numbers
+    // - Preserves DOM nodes using moveBefore() with append() fallback
+    // - Uses scoped startViewTransition with document fallback
+    // - Announces sort once in the single #sort-status role="status" element
+    const collator = new Intl.Collator("no", { numeric: true, sensitivity: "base" });
+    const statusEl = document.getElementById("sort-status");
+
+    function reorderRows(tbody, orderedRows) {
+      const move = Object.hasOwn(Element.prototype, "moveBefore")
+        ? (node) => tbody.moveBefore(node, null)
+        : (node) => tbody.append(node);
+      for (const row of orderedRows) move(row);
+    }
+
+    function reorderWithTransition(table, tbody, orderedRows) {
+      const update = () => reorderRows(tbody, orderedRows);
+      if (table.startViewTransition) {
+        table.startViewTransition(update);
+      } else if (document.startViewTransition) {
+        document.startViewTransition(update);
+      } else {
+        update();
+      }
+    }
+
+    function handleSortActivation(table, button) {
+      const th = button.closest("th");
+      const tbody = table.tBodies[0];
+      const direction = th.getAttribute("aria-sort") === "ascending" ? "descending" : "ascending";
+
+      for (const header of table.tHead.rows[0].cells) {
+        header.removeAttribute("aria-sort");
+      }
+      th.setAttribute("aria-sort", direction);
+
+      const colIndex = th.cellIndex;
+      const colType = th.dataset.type || "string";
+      const factor = direction === "ascending" ? 1 : -1;
+
+      const decorated = [...tbody.rows].map((row) => {
+        const cell = row.cells[colIndex];
+        const raw = cell.dataset.value ?? cell.textContent.trim();
+        return { row, val: colType === "number" ? Number(raw) : raw };
+      });
+
+      decorated.sort((a, b) =>
+        factor * (colType === "number" ? a.val - b.val : collator.compare(String(a.val), String(b.val)))
+      );
+
+      const orderedRows = decorated.map((d) => d.row);
+      reorderWithTransition(table, tbody, orderedRows);
+      statusEl.textContent = `Sortert etter ${button.textContent.trim()}, ${direction === "ascending" ? "stigende" : "synkende"}, ${orderedRows.length} rader`;
+    }
+
+    for (const tableId of ["matrix-table", "univ-table"]) {
+      const tbl = document.getElementById(tableId);
+      tbl.addEventListener("command", (event) => {
+        if (event.command !== "--sort") return;
+        handleSortActivation(tbl, event.source);
+      });
+      // Fallback for browsers where Invoker Commands (`commandfor` / `command`) are not yet supported
+      if (!("commandForElement" in HTMLButtonElement.prototype)) {
+        tbl.tHead.addEventListener("click", (event) => {
+          const btn = event.target.closest("button[command='--sort']");
+          if (btn) handleSortActivation(tbl, btn);
+        });
+      }
+    }
+
+    // Native <dialog> modal inspection & light-dismiss fallback per `dialog` guide
+    const orderModal = document.getElementById("order-modal");
+    let currentModalOrderId = null;
+
+    document.getElementById("hitl-tbody").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-inspect-order]");
+      if (!btn) return;
+      const orderId = btn.dataset.inspectOrder;
+      const ord = activeOrdersById.get(orderId);
+      if (!ord) return;
+
+      currentModalOrderId = orderId;
+      document.getElementById("modal-title").textContent = `${ord.ticker} — ${ord.action} (${ord.strategy_name})`;
+      document.getElementById("modal-subtitle").textContent = `Order ID: ${ord.order_id} | Saxo Idempotency: ${ord.x_request_id}`;
+      document.getElementById("modal-details").innerHTML = `
+        <dt>Antall &amp; Limit:</dt><dd>${ord.shares} aksjer @ ${Number(ord.limit_price).toFixed(2)} NOK</dd>
+        <dt>ATR Stop-Loss:</dt><dd>${ord.stop_loss_price ? Number(ord.stop_loss_price).toFixed(2) + " NOK" : "—"}</dd>
+        <dt>Agent 3 Vurdering:</dt><dd>${ord.llm_recommendation} (Risiko: ${ord.risk_score})</dd>
+        <dt>Bull Case:</dt><dd style="font-family:var(--font-sans)">${ord.bull_case || "—"}</dd>
+        <dt>Djevelens Advokat:</dt><dd style="font-family:var(--font-sans)">${ord.devils_advocate || "—"}</dd>
+        <dt>14t Utløpsfrist:</dt><dd>${ord.expires_at || "—"}</dd>
+      `;
+      orderModal.showModal();
+    });
+
+    orderModal.addEventListener("close", () => {
+      const choice = orderModal.returnValue;
+      orderModal.returnValue = ""; // Mandatory reset per `dialog` guide so Esc doesn't leak stale returnValue
+      if (!currentModalOrderId || !choice || choice === "cancel") return;
+
+      const statusCell = document.getElementById(`status-${currentModalOrderId}`);
+      if (statusCell) {
+        if (choice === "approve") {
+          statusCell.innerHTML = `<strong class="flag-ok">APPROVED (Klar for Saxo)</strong>`;
+        } else if (choice === "reject") {
+          statusCell.innerHTML = `<strong class="flag-risk">REJECTED (Avvist i HITL)</strong>`;
+        }
+      }
+    });
+
+    // Fallback for <dialog closedby="any"> light-dismiss where closedBy is not natively supported
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      const outside = (e, dialog) => {
+        const r = dialog.getBoundingClientRect();
+        return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+      };
+      for (const dialog of document.querySelectorAll('dialog[closedby="any"]')) {
+        let pressedOutside = false;
+        dialog.addEventListener("pointerdown", (e) => { pressedOutside = outside(e, dialog); });
+        dialog.addEventListener("pointerup", (e) => { if (pressedOutside && outside(e, dialog)) dialog.close(); });
+      }
+    }
+
+    // Boot: load live dashboard_data.json if served, otherwise use embedded FALLBACK_DATA
+    async function initDashboard() {
+      let data = FALLBACK_DATA;
+      try {
+        const resp = await fetch("./dashboard_data.json", { cache: "no-store" });
+        if (resp.ok) {
+          const live = await resp.json();
+          if (live && live.matrix_results && live.matrix_results.length) {
+            data = live;
+          }
+        }
+      } catch (_) {
+        // Running via file:// protocol; embedded snapshot is used seamlessly
+      }
+      renderMatrixTable(data.matrix_results);
+      renderHitlTable(data.pending_orders);
+      renderUniverseTable(data.obx15_snapshot);
+    }
+
+    initDashboard();
+  </script>
+</body>
+</html>

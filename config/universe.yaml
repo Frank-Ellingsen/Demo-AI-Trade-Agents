@@ -1,0 +1,128 @@
+# OBX 15 Investment Universe (Euronext Oslo Børs - XOSL)
+# Minimum average daily turnover constraint: > 50 MNOK
+# Liquidity bands (1-6) map to Euronext MiFID II tick-size tables.
+
+benchmark_index: "OBX.OL"
+currency: "NOK"
+min_daily_turnover_mnok: 50.0
+
+stocks:
+  - ticker: "EQNR.OL"
+    name: "Equinor"
+    isin: "NO0010096985"
+    sector: "Energy"
+    sector_index: "OBEP.OL"
+    liquidity_band: 6
+    commodity_linked: true
+
+  - ticker: "AKRBP.OL"
+    name: "Aker BP"
+    isin: "NO0010345853"
+    sector: "Energy"
+    sector_index: "OBEP.OL"
+    liquidity_band: 5
+    commodity_linked: true
+
+  - ticker: "SUBC.OL"
+    name: "Subsea 7"
+    isin: "LU0075646355"
+    sector: "Energy"
+    sector_index: "OBEP.OL"
+    liquidity_band: 5
+    commodity_linked: true
+
+  - ticker: "FRO.OL"
+    name: "Frontline"
+    isin: "CY0200352116"
+    sector: "Shipping"
+    sector_index: "OBSH.OL"
+    liquidity_band: 5
+    commodity_linked: true
+
+  - ticker: "DNB.OL"
+    name: "DNB Bank"
+    isin: "NO0010031479"
+    sector: "Financials"
+    sector_index: "OBFI.OL"
+    liquidity_band: 6
+    commodity_linked: false
+
+  - ticker: "STB.OL"
+    name: "Storebrand"
+    isin: "NO0003053605"
+    sector: "Financials"
+    sector_index: "OBFI.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "GJF.OL"
+    name: "Gjensidige Forsikring"
+    isin: "NO0010582521"
+    sector: "Financials"
+    sector_index: "OBFI.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "NHY.OL"
+    name: "Norsk Hydro"
+    isin: "NO0005052605"
+    sector: "Materials_Industrials"
+    sector_index: "OBMA.OL"
+    liquidity_band: 6
+    commodity_linked: false
+
+  - ticker: "YAR.OL"
+    name: "Yara International"
+    isin: "NO0010208051"
+    sector: "Materials_Industrials"
+    sector_index: "OBMA.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "KOG.OL"
+    name: "Kongsberg Gruppen"
+    isin: "NO0003043309"
+    sector: "Materials_Industrials"
+    sector_index: "OBIN.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "MOWI.OL"
+    name: "Mowi"
+    isin: "NO0003054108"
+    sector: "Seafood"
+    sector_index: "OBSE.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "SALM.OL"
+    name: "SalMar"
+    isin: "NO0010310956"
+    sector: "Seafood"
+    sector_index: "OBSE.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "TEL.OL"
+    name: "Telenor"
+    isin: "NO0010063308"
+    sector: "Telecom_Consumer_Tech"
+    sector_index: "OBTE.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "ORK.OL"
+    name: "Orkla"
+    isin: "NO0003733800"
+    sector: "Telecom_Consumer_Tech"
+    sector_index: "OBCS.OL"
+    liquidity_band: 5
+    commodity_linked: false
+
+  - ticker: "NOD.OL"
+    name: "Nordic Semiconductor"
+    isin: "NO0003055501"
+    sector: "Telecom_Consumer_Tech"
+    sector_index: "OBIT.OL"
+    liquidity_band: 5
+    commodity_linked: false

@@ -1,0 +1,3140 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="aurora">
+  <title>OBX 15 AI-Trading Kontrolltårn & Porteføljedashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+
+      /* Page and surfaces: deep oceanic slate steps (Aurora) */
+      --background: #0c1214;
+      --surface-container-low: #111a1e;
+      --surface-container: #152024;
+      --surface-container-high: #1c2a30;
+
+      /* Text */
+      --on-surface: #edf3f5;
+      --on-surface-variant: #94a8b0;
+
+      /* Borders */
+      --outline: #38515c;
+      --outline-variant: #213138;
+
+      /* Accents */
+      --primary: #63c7d6;
+      --on-primary: #081214;
+      --primary-container: #163840;
+      --on-primary-container: #c7f0f7;
+      --secondary: #5d7882;
+      --tertiary: #87d69b;
+      --error: #f27474;
+      --on-error: #1a0606;
+
+      /* Data series */
+      --data-1: #63c7d6;
+      --data-2: #87d69b;
+      --data-3: #e8b954;
+      --data-4: #f08c70;
+      --data-context: #415861;
+
+      /* Semantic */
+      --positive: #87d69b;
+      --warning: #e8b954;
+      --focus: #63c7d6;
+
+      /* Fonts */
+      --font-headline: 'Instrument Sans', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'Geist Mono', monospace;
+
+      /* Type scale (Dashboard) */
+      --display-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing scale (4pt base) */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 6rem;
+
+      /* Shape */
+      --rounded: 0.5rem;
+      --rounded-lg: 0.75rem;
+      --rounded-full: 9999px;
+
+      /* Style effects */
+      --hairline: 1px solid var(--outline-variant);
+      --hairline-strong: 1px solid var(--outline);
+      --panel-gradient: linear-gradient(180deg, #162226 0%, #111a1e 100%);
+      --heading-tracking: -0.025em;
+      --label-tracking: 0.06em;
+      --sage-tint: color-mix(in srgb, var(--tertiary) 13%, transparent);
+      --cyan-tint: color-mix(in srgb, var(--primary) 13%, transparent);
+      --amber-tint: color-mix(in srgb, var(--warning) 14%, transparent);
+      --error-tint: color-mix(in srgb, var(--error) 14%, transparent);
+      --sage-border: color-mix(in srgb, var(--tertiary) 35%, transparent);
+      --cyan-border: color-mix(in srgb, var(--primary) 35%, transparent);
+      --amber-border: color-mix(in srgb, var(--warning) 35%, transparent);
+      --error-border: color-mix(in srgb, var(--error) 35%, transparent);
+      --chart-fill-cyan: rgba(99, 199, 214, 0.12);
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1320px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Focus rings */
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      letter-spacing: var(--heading-tracking);
+      color: var(--on-surface);
+      margin: 0;
+    }
+    h1 {
+      font-size: var(--display-size);
+      line-height: 1.1;
+    }
+    h2 {
+      font-size: var(--headline-size);
+      line-height: 1.15;
+    }
+    h3 {
+      font-size: var(--subhead-size);
+      line-height: 1.25;
+      font-weight: 700;
+    }
+    p {
+      margin: 0;
+      max-width: 68ch;
+      color: var(--on-surface-variant);
+    }
+
+    .data-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .mono {
+      font-family: var(--font-label);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Aurora Panels & Wells */
+    .panel {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+    }
+    .panel-compact {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+    }
+    .well {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+    }
+
+    /* Header */
+    .tower-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      padding-bottom: var(--space-md);
+      border-bottom: var(--hairline);
+    }
+    .tower-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .tower-subtitle {
+      font-size: var(--body-size);
+      color: var(--on-surface-variant);
+      max-width: 72ch;
+    }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: var(--space-sm);
+    }
+
+    /* Inputs, selects, buttons */
+    label.field-label {
+      display: block;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      margin-bottom: var(--space-xs);
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+      color: var(--on-surface);
+      background-color: var(--background);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      transition: border-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+      width: 100%;
+    }
+    select {
+      padding-right: var(--space-xl);
+      cursor: pointer;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+      min-height: 28px;
+    }
+    button {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: 0.875rem;
+      border-radius: var(--rounded);
+      min-height: 44px;
+      padding: var(--space-sm) var(--space-md);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      border: var(--hairline-strong);
+      background: transparent;
+      color: var(--on-surface);
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+    button:hover:not(:disabled) {
+      background-color: var(--surface-container-high);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--on-primary-container);
+      border-color: var(--on-primary-container);
+    }
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--on-surface-variant);
+      border: var(--hairline);
+    }
+    .btn-ghost.active,
+    .btn-toggle.active {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--primary);
+    }
+
+    /* Top KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .metric-card {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .metric-value {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: var(--heading-tracking);
+      color: var(--on-surface);
+      line-height: 1.15;
+    }
+    .metric-delta {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--tertiary);
+    }
+    .metric-delta.neutral { color: var(--on-surface-variant); }
+    .metric-delta.warn { color: var(--warning); }
+    .metric-delta.neg { color: var(--error); }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      padding: var(--space-xs);
+      background-color: var(--surface-container-low);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+    }
+    .tab-btn {
+      flex: 1 1 auto;
+      min-width: 175px;
+      border: 1px solid transparent;
+      color: var(--on-surface-variant);
+      font-size: 0.875rem;
+      padding: var(--space-sm) var(--space-md);
+      justify-content: flex-start;
+      text-align: left;
+    }
+    .tab-btn:hover {
+      color: var(--on-surface);
+      background-color: var(--surface-container);
+    }
+    .tab-btn[aria-selected="true"] {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--primary);
+    }
+    .tab-num {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--primary);
+      opacity: 0.9;
+    }
+
+    .tab-panel {
+      display: none;
+      flex-direction: column;
+      gap: var(--space-lg);
+      animation: fadeSlideIn var(--dur-short) var(--ease-out);
+    }
+    .tab-panel.active {
+      display: flex;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Status chips */
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      border-radius: var(--rounded);
+      padding: 2px var(--space-sm);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .chip-sage {
+      background: var(--sage-tint);
+      color: var(--tertiary);
+      border: 1px solid var(--sage-border);
+    }
+    .chip-cyan {
+      background: var(--cyan-tint);
+      color: var(--primary);
+      border: 1px solid var(--cyan-border);
+    }
+    .chip-amber {
+      background: var(--amber-tint);
+      color: var(--warning);
+      border: 1px solid var(--amber-border);
+    }
+    .chip-error {
+      background: var(--error-tint);
+      color: var(--error);
+      border: 1px solid var(--error-border);
+    }
+    .chip-muted {
+      background: var(--surface-container-high);
+      color: var(--on-surface-variant);
+      border: var(--hairline);
+    }
+
+    /* Two-column / asymmetric grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+      gap: var(--space-lg);
+    }
+    .grid-asymmetric-wide {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+    }
+    .grid-asymmetric-side {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr);
+      gap: var(--space-lg);
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+
+    /* Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      background: var(--surface-container-low);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background-color: var(--surface-container);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      padding: var(--space-sm) var(--space-md);
+      text-align: left;
+      border-bottom: var(--hairline-strong);
+      white-space: nowrap;
+    }
+    thead th.num, tbody td.num {
+      text-align: right;
+      font-family: var(--font-label);
+      font-variant-numeric: tabular-nums;
+    }
+    thead th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    thead th.sortable:hover {
+      color: var(--primary);
+    }
+    tbody tr {
+      border-bottom: var(--hairline);
+      transition: background-color var(--dur-micro) var(--ease-out);
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover {
+      background-color: var(--surface-container-high);
+    }
+    tbody tr.clickable { cursor: pointer; }
+    tbody tr.selected-row {
+      background-color: var(--primary-container);
+    }
+    tbody td {
+      padding: var(--space-sm) var(--space-md);
+      color: var(--on-surface);
+      vertical-align: middle;
+    }
+
+    /* Rule lists & Architecture steps */
+    .rule-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+    .rule-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+    }
+    .rule-item strong {
+      color: var(--on-surface);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .rule-item span.rule-desc {
+      display: block;
+      font-size: 0.8125rem;
+      color: var(--on-surface-variant);
+      margin-top: 2px;
+    }
+
+    /* Chart containers */
+    .chart-box {
+      position: relative;
+      width: 100%;
+      min-height: 300px;
+      height: 310px;
+    }
+    .chart-box-tall {
+      position: relative;
+      width: 100%;
+      min-height: 340px;
+      height: 350px;
+    }
+
+    /* Controls row */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      align-items: flex-end;
+    }
+    .control-field {
+      flex: 1 1 180px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Rule evaluator grid */
+    .eval-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .slider-card {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .slider-val {
+      font-family: var(--font-label);
+      font-size: 0.875rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Section header inside panels */
+    .panel-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    .panel-head-text {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    /* Inline message / toast */
+    .inline-notice {
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--rounded);
+      border: var(--hairline);
+      background: var(--surface-container-low);
+      font-size: 0.875rem;
+      color: var(--on-surface-variant);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+    }
+
+    /* Sparkline SVG */
+    .sparkline-svg {
+      display: block;
+      width: 112px;
+      height: 30px;
+    }
+
+    /* Progress bar for liquidity/allocation */
+    .mini-bar-track {
+      width: 72px;
+      height: 6px;
+      background: var(--surface-container-high);
+      border-radius: var(--rounded-full);
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: var(--space-xs);
+    }
+    .mini-bar-fill {
+      height: 100%;
+      border-radius: var(--rounded-full);
+    }
+
+    /* Container queries for detail panels */
+    .card-wrapper { container-type: inline-size; }
+    @container (max-width: 520px) {
+      .container-split {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    /* Footer */
+    .tower-footer {
+      border-top: var(--hairline);
+      padding-top: var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-md);
+      font-size: 0.8125rem;
+      color: var(--on-surface-variant);
+    }
+
+    @media (max-width: 960px) {
+      .grid-asymmetric-wide,
+      .grid-asymmetric-side {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-grid {
+        padding: var(--space-sm);
+        gap: var(--space-md);
+      }
+      .panel { padding: var(--space-md); }
+      .tab-btn { min-width: 100%; }
+      .chart-box, .chart-box-tall { min-height: 250px; height: 260px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-grid">
+    <!-- TOP HEADER -->
+    <header class="tower-header">
+      <div class="tower-title-wrap">
+        <span class="data-label">Oslo Børs · OBX 15 Kvantitativ Svingtrading · 18. november 2026</span>
+        <h1>OBX 15 AI-Trading Kontrolltårn</h1>
+        <p class="tower-subtitle">
+          Operasjonelt og analytisk kontrollpanel for endogen/eksogen signalgenerering, Gemini Shadow Tracking, faktordekomponert attribuering og Saxo OpenAPI-utførelse på Aksjesparekonto (ASK).
+        </p>
+      </div>
+      <div class="header-actions">
+        <div class="control-field" style="min-width: 220px;">
+          <label class="field-label" for="global-case-select">Aktivt referansecase</label>
+          <select id="global-case-select" onchange="changeGlobalCase(this.value)">
+            <option value="06_HYBRID_SAXO">06 · Hybrid + Gemini (Saxo Classic)</option>
+            <option value="02_EXO_MR">02 · Mean Reversion 10d + Eksogen</option>
+            <option value="04_EXO_TB">04 · Trend Breakout 20d + Eksogen</option>
+            <option value="01_ENDO_MR">01 · Mean Reversion 10d (Ren endogen)</option>
+            <option value="03_ENDO_TB">03 · Trend Breakout 20d (Ren endogen)</option>
+          </select>
+        </div>
+        <button type="button" class="btn-ghost" onclick="resetDashboardState(this)">
+          <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;" aria-hidden="true"></i>
+          Nullstill visning
+        </button>
+      </div>
+    </header>
+
+    <!-- HERO KPI STRIP -->
+    <section aria-label="Hovednøkkeltall" class="kpi-grid">
+      <div class="metric-card">
+        <span class="data-label">Porteføljeverdi (ASK)</span>
+        <span class="metric-value" id="kpi-equity">138 420 NOK</span>
+        <span class="metric-delta" id="kpi-equity-delta">+38,4 % netto · OBX +24,8 %</span>
+      </div>
+      <div class="metric-card">
+        <span class="data-label">Sortino / Sharpe Ratio</span>
+        <span class="metric-value" id="kpi-ratios">1.68 / 1.24</span>
+        <span class="metric-delta" id="kpi-ratios-delta">Over terskel (Sortino &gt; 1.2)</span>
+      </div>
+      <div class="metric-card">
+        <span class="data-label">Max Drawdown</span>
+        <span class="metric-value" id="kpi-mdd">-11,4 %</span>
+        <span class="metric-delta" id="kpi-mdd-delta">Innenfor tak (&lt; 15–18 %)</span>
+      </div>
+      <div class="metric-card">
+        <span class="data-label">Cost Drag (Friksjon)</span>
+        <span class="metric-value" id="kpi-costdrag">11,2 %</span>
+        <span class="metric-delta" id="kpi-costdrag-delta">2 820 NOK gebyr · Saxo Classic</span>
+      </div>
+      <div class="metric-card">
+        <span class="data-label">Kapitalutnyttelse &amp; HITL</span>
+        <span class="metric-value" id="kpi-positions">3 / 4 plasser</span>
+        <span class="metric-delta neutral" id="kpi-positions-delta">75 % allokert · 1 ventende i Telegram</span>
+      </div>
+    </section>
+
+    <!-- TAB NAVIGATION -->
+    <nav class="tab-bar" role="tablist" aria-label="Kontrolltårn-faner">
+      <button type="button" class="tab-btn" role="tab" id="tab-btn-1" aria-selected="true" aria-controls="tab-panel-1" onclick="switchTab(1)">
+        <span class="tab-num">01</span>
+        <span>Strategidetaljer &amp; Regler</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" id="tab-btn-2" aria-selected="false" aria-controls="tab-panel-2" onclick="switchTab(2)">
+        <span class="tab-num">02</span>
+        <span>Performance Attribution</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" id="tab-btn-3" aria-selected="false" aria-controls="tab-panel-3" onclick="switchTab(3)">
+        <span class="tab-num">03</span>
+        <span>Modell- &amp; Agentdrift</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" id="tab-btn-4" aria-selected="false" aria-controls="tab-panel-4" onclick="switchTab(4)">
+        <span class="tab-num">04</span>
+        <span>Porteføljevalg &amp; Risikoprofil</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" id="tab-btn-5" aria-selected="false" aria-controls="tab-panel-5" onclick="switchTab(5)">
+        <span class="tab-num">05</span>
+        <span>Porteføljeoversikt &amp; Aksjestatistikk</span>
+      </button>
+      <button type="button" class="tab-btn" role="tab" id="tab-btn-6" aria-selected="false" aria-controls="tab-panel-6" onclick="switchTab(6)">
+        <span class="tab-num">06</span>
+        <span>Strategiguide &amp; Brukermanual</span>
+      </button>
+    </nav>
+
+    <!-- ============================================================ -->
+    <!-- TAB 1: STRATEGIDETALJER & REGLER                             -->
+    <!-- ============================================================ -->
+    <section id="tab-panel-1" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-1">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Regelmotor · Endogen vs. Eksogen (Ablasjon)</span>
+            <h2>Strategiarkitektur: Mean Reversion 10d vs. Trend Breakout 20d</h2>
+            <p>
+              Begge strategier beregner tekniske signaler på sluttkurs dag T og simulerer eller utfører limit-ordrer på åpning dag T+1 for å eliminere look-ahead bias. Skru eksogene filtre av eller på nedenfor for å inspisere ablasjonseffekten.
+            </p>
+          </div>
+          <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+            <button type="button" id="btn-exo-on" class="btn-toggle active" onclick="setExogenousMode(true)">Eksogene filtre: PÅ (EXO)</button>
+            <button type="button" id="btn-exo-off" class="btn-toggle" onclick="setExogenousMode(false)">Kun endogene regler (ENDO)</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- STRATEGY 1: MEAN REVERSION 10D -->
+          <article class="well" style="display: flex; flex-direction: column; gap: var(--space-md);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-sm);">
+              <div>
+                <span class="data-label" style="color: var(--primary);">Strategi 1 · Kontrær tilbakevending</span>
+                <h3>Mean Reversion 10d (<span class="mono" id="mr-code-badge">EXO_MR</span>)</h3>
+              </div>
+              <span class="status-chip chip-cyan">Holdeperiode: maks 10d</span>
+            </div>
+            <p style="font-size: 0.875rem;">
+              Fanger kortsiktige overreaksjoner i likvide OBX-aksjer som befinner seg i en etablert langsiktig opptrend, uten å kjøpe «fallende kniver» under oljesjokk eller børspanikk.
+            </p>
+
+            <div>
+              <span class="data-label">Inngangsregler (Endogene · Close dag T)</span>
+              <ul class="rule-list" style="margin-top: var(--space-xs);">
+                <li class="rule-item">
+                  <div>
+                    <strong>Langsiktig trendgulv</strong>
+                    <span class="rule-desc"><code>Close &gt; SMA200</code> — sikrer at aksjen ikke er i strukturell nedtrend.</span>
+                  </div>
+                  <span class="status-chip chip-sage">Endogen</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>Ekstrem kortsiktig oversolgt</strong>
+                    <span class="rule-desc"><code>RSI(2) &lt; 10</code> (eventuelt under nedre Bollinger Band).</span>
+                  </div>
+                  <span class="status-chip chip-sage">Endogen</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>Likviditetsfilter</strong>
+                    <span class="rule-desc"><code>ADV_NOK &ge; 50 MNOK</code> (20-dagers snittomsetning).</span>
+                  </div>
+                  <span class="status-chip chip-muted">Univers</span>
+                </li>
+              </ul>
+            </div>
+
+            <div id="mr-exo-block">
+              <span class="data-label">Eksogene filtre (Marked, VIX &amp; Råvare)</span>
+              <ul class="rule-list" style="margin-top: var(--space-xs);">
+                <li class="rule-item">
+                  <div>
+                    <strong>Markedsregime &amp; Fryktindeks</strong>
+                    <span class="rule-desc"><code>OBX &gt; SMA200</code> (bull-regime) og <code>VIX &lt; 25</code>.</span>
+                  </div>
+                  <span class="status-chip chip-cyan">Makro</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>Oljeprissperre (Energi &amp; Shipping)</strong>
+                    <span class="rule-desc"><code>Brent_ret_2d &gt; -2,5 %</code> for EQNR, AKRBP, SUBC og FRO.</span>
+                  </div>
+                  <span class="status-chip chip-amber">Råvare</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <span class="data-label">Utgang &amp; Risikoregler</span>
+              <ul class="rule-list" style="margin-top: var(--space-xs);">
+                <li class="rule-item">
+                  <div>
+                    <strong>Normal gevinstsikring / tidsstopp</strong>
+                    <span class="rule-desc">Selg når <code>Close &gt; SMA5</code>, eller tvungen exit etter <strong>10 handelsdager</strong>.</span>
+                  </div>
+                  <span class="status-chip chip-muted">Exit</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>ATR Stop-Loss &amp; AI-sperre</strong>
+                    <span class="rule-desc">Hard stop-loss på <code>2,0 &times; ATR(14)</code> + Gemini NewsWeb / Kvartalsrapport (&lt; 3d).</span>
+                  </div>
+                  <span class="status-chip chip-error">Risiko</span>
+                </li>
+              </ul>
+            </div>
+          </article>
+
+          <!-- STRATEGY 2: TREND BREAKOUT 20D -->
+          <article class="well" style="display: flex; flex-direction: column; gap: var(--space-md);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-sm);">
+              <div>
+                <span class="data-label" style="color: var(--tertiary);">Strategi 2 · Momentum &amp; Utbrudd</span>
+                <h3>Trend Breakout 20d (<span class="mono" id="tb-code-badge">EXO_TB</span>)</h3>
+              </div>
+              <span class="status-chip chip-sage">Holdeperiode: 15–20d</span>
+            </div>
+            <p style="font-size: 0.875rem;">
+              Utnytter vedvarende institusjonell kjøpsstrøm når en OBX-aksje bryter over siste måneds toppnivå med tydelig volumekspansjon og bekreftet sektormomentum.
+            </p>
+
+            <div>
+              <span class="data-label">Inngangsregler (Endogene · Close dag T)</span>
+              <ul class="rule-list" style="margin-top: var(--space-xs);">
+                <li class="rule-item">
+                  <div>
+                    <strong>20-dagers prisutbrudd</strong>
+                    <span class="rule-desc"><code>Close &gt; High20</code> (høyeste kurs siste 20 handelsdager, forskjøvet 1 dag).</span>
+                  </div>
+                  <span class="status-chip chip-sage">Endogen</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>Volumbekreftelse</strong>
+                    <span class="rule-desc"><code>Volume &gt; 1,3 &times; VolSMA20</code> (minimum 1,2&times; i bred baseline).</span>
+                  </div>
+                  <span class="status-chip chip-sage">Endogen</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>Likviditetsfilter</strong>
+                    <span class="rule-desc"><code>ADV_NOK &ge; 50 MNOK</code> — eliminerer spread- og likviditetsrisiko.</span>
+                  </div>
+                  <span class="status-chip chip-muted">Univers</span>
+                </li>
+              </ul>
+            </div>
+
+            <div id="tb-exo-block">
+              <span class="data-label">Eksogene filtre (Sektormomentum &amp; Regime)</span>
+              <ul class="rule-list" style="margin-top: var(--space-xs);">
+                <li class="rule-item">
+                  <div>
+                    <strong>Sektorbekreftelse</strong>
+                    <span class="rule-desc"><code>Sector_Mom_10d &gt; 0 %</code> — aksjens egen OBX-sektor må også stige.</span>
+                  </div>
+                  <span class="status-chip chip-cyan">Sektor</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>Makroregime</strong>
+                    <span class="rule-desc"><code>OBX &gt; SMA200</code> og <code>VIX &lt; 25</code> — kutter falske utbrudd i urolige markeder.</span>
+                  </div>
+                  <span class="status-chip chip-cyan">Makro</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <span class="data-label">Utgang &amp; Risikoregler</span>
+              <ul class="rule-list" style="margin-top: var(--space-xs);">
+                <li class="rule-item">
+                  <div>
+                    <strong>Trailing / Donchian Exit</strong>
+                    <span class="rule-desc">Selg når <code>Close &lt; Low10</code> (10-dagers laveste) eller maks <strong>20 handelsdager</strong>.</span>
+                  </div>
+                  <span class="status-chip chip-muted">Exit</span>
+                </li>
+                <li class="rule-item">
+                  <div>
+                    <strong>ATR Stop-Loss &amp; AI-sperre</strong>
+                    <span class="rule-desc">Bredere stop-loss på <code>2,5 &times; ATR(14)</code> for å la trendvinnere puste.</span>
+                  </div>
+                  <span class="status-chip chip-error">Risiko</span>
+                </li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <!-- Secondary Strategy Note: Volatilitets-Squeeze -->
+        <div class="inline-notice" style="margin-top: var(--space-md);">
+          <div>
+            <strong style="color: var(--on-surface);">Tredje referansestrategi i testmatrisen — Volatilitets-Squeeze (<span class="mono">05_ENDO_SQZ</span>):</strong>
+            Ren endogen strategi uten eksterne makrodata: kjøp når Bollinger Band-bredde er på sitt smaleste 15-persentil siste 60 dager, kursen bryter over øvre bånd og volum &gt; 1,3&times; snitt.
+          </div>
+          <span class="status-chip chip-sage">Sortino 1.38</span>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE SIGNAL EVALUATOR -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Interaktiv Signal-Simulator</span>
+            <h2>Test regelmotoren på markedsdata i sanntid</h2>
+            <p>
+              Juster tekniske og eksogene parametere for å se hvordan Python-motoren (<span class="mono">check_entry_signal</span>) evaluerer kjøpssignal, regimefiltre og ATR-stopp.
+            </p>
+          </div>
+          <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: end;">
+            <div class="control-field" style="min-width: 200px;">
+              <label class="field-label" for="eval-strategy">Strategi å teste</label>
+              <select id="eval-strategy" onchange="evaluateRuleSandbox()">
+                <option value="MEAN_REVERSION">Mean Reversion 10d (EXO_MR)</option>
+                <option value="TREND_BREAKOUT">Trend Breakout 20d (EXO_TB)</option>
+              </select>
+            </div>
+            <div class="control-field" style="min-width: 170px;">
+              <label class="field-label" for="eval-sector">Sektor (OBX)</label>
+              <select id="eval-sector" onchange="evaluateRuleSandbox()">
+                <option value="Energi">Energi (EQNR/AKRBP)</option>
+                <option value="Finans">Finans (DNB/STB)</option>
+                <option value="Industri">Industri (KOG)</option>
+                <option value="Sjømat">Sjømat (MOWI/SALM)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-asymmetric-wide">
+          <div class="eval-grid">
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-rsi2" style="margin:0;">RSI(2) verdi</label>
+                <span class="slider-val" id="val-rsi2">7.4</span>
+              </div>
+              <input type="range" id="sim-rsi2" min="1" max="95" step="0.5" value="7.4" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-sma200" style="margin:0;">Close vs SMA200 (%)</label>
+                <span class="slider-val" id="val-sma200">+4.2 %</span>
+              </div>
+              <input type="range" id="sim-sma200" min="-15" max="25" step="0.5" value="4.2" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-high20" style="margin:0;">Close vs High20 (%)</label>
+                <span class="slider-val" id="val-high20">+1.1 %</span>
+              </div>
+              <input type="range" id="sim-high20" min="-10" max="10" step="0.2" value="1.1" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-vol" style="margin:0;">Volum vs VolSMA20</label>
+                <span class="slider-val" id="val-vol">1.55x</span>
+              </div>
+              <input type="range" id="sim-vol" min="0.5" max="3.0" step="0.05" value="1.55" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-vix" style="margin:0;">VIX (Fryktindeks)</label>
+                <span class="slider-val" id="val-vix">16.8</span>
+              </div>
+              <input type="range" id="sim-vix" min="10" max="40" step="0.5" value="16.8" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-brent" style="margin:0;">Brent 2d-endring (%)</label>
+                <span class="slider-val" id="val-brent">+0.8 %</span>
+              </div>
+              <input type="range" id="sim-brent" min="-8" max="8" step="0.2" value="0.8" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-secmom" style="margin:0;">Sektormomentum 10d</label>
+                <span class="slider-val" id="val-secmom">+2.1 %</span>
+              </div>
+              <input type="range" id="sim-secmom" min="-8" max="10" step="0.2" value="2.1" oninput="evaluateRuleSandbox()">
+            </div>
+            <div class="slider-card">
+              <div class="slider-head">
+                <label class="field-label" for="sim-adv" style="margin:0;">Likviditet ADV (MNOK)</label>
+                <span class="slider-val" id="val-adv">285 MNOK</span>
+              </div>
+              <input type="range" id="sim-adv" min="20" max="600" step="5" value="285" oninput="evaluateRuleSandbox()">
+            </div>
+          </div>
+
+          <div class="well" style="display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-md);">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-sm);">
+                <span class="data-label">Evalueringsresultat</span>
+                <span id="eval-verdict-chip" class="status-chip chip-sage">SIGNAL GODKJENT</span>
+              </div>
+              <h3 id="eval-verdict-title">Klar til Gemini-risikovurdering &amp; HITL</h3>
+              <p id="eval-verdict-desc" style="font-size: 0.875rem; margin-top: var(--space-xs);">
+                Alle endogene og eksogene terskler er oppfylt. Ordren beregnes for åpning dag T+1 med tick-size-avrunding.
+              </p>
+            </div>
+            <ul class="rule-list" id="eval-checklist"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARCHITECTURE PIPELINE SVG -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Closed-Loop Controlling · Systemarkitektur</span>
+            <h2>End-to-End Pipeline: Data, AI-Risikofilter &amp; Saxo OpenAPI</h2>
+          </div>
+        </div>
+        <div style="overflow-x: auto;">
+          <svg viewBox="0 0 1100 180" width="100%" style="min-width: 780px; height: auto; display: block;" role="img" aria-label="Systemarkitektur fra markedsdata til Saxo OpenAPI-utførelse">
+            <defs>
+              <marker id="arrow-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--primary)"/>
+              </marker>
+            </defs>
+            <!-- Node 1 -->
+            <rect x="10" y="25" width="190" height="110" rx="10" fill="var(--surface-container-low)" stroke="var(--outline-variant)" stroke-width="1.5"/>
+            <text x="24" y="50" fill="var(--primary)" font-family="Geist Mono, monospace" font-size="11" font-weight="600">1. DATA &amp; FEATURE ENGINE</text>
+            <text x="24" y="72" fill="var(--on-surface)" font-family="Instrument Sans, sans-serif" font-size="14" font-weight="600">Saxo /chart/v3 + DuckDB</text>
+            <text x="24" y="94" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">OHLCV (Close dag T),</text>
+            <text x="24" y="110" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">RSI(2), SMA200, ATR(14),</text>
+            <text x="24" y="126" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">DataVersion-sjekk</text>
+
+            <line x1="200" y1="80" x2="232" y2="80" stroke="var(--primary)" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+            <!-- Node 2 -->
+            <rect x="235" y="25" width="190" height="110" rx="10" fill="var(--surface-container-low)" stroke="var(--outline-variant)" stroke-width="1.5"/>
+            <text x="249" y="50" fill="var(--tertiary)" font-family="Geist Mono, monospace" font-size="11" font-weight="600">2. REGELMOTOR (PYTHON)</text>
+            <text x="249" y="72" fill="var(--on-surface)" font-family="Instrument Sans, sans-serif" font-size="14" font-weight="600">Endogen + Eksogen</text>
+            <text x="249" y="94" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">OBX &gt; SMA200, VIX &lt; 25,</text>
+            <text x="249" y="110" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">Brent &amp; Sektor-filter,</text>
+            <text x="249" y="126" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">Maks 2 per sektor</text>
+
+            <line x1="425" y1="80" x2="457" y2="80" stroke="var(--primary)" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+            <!-- Node 3 -->
+            <rect x="460" y="25" width="195" height="110" rx="10" fill="var(--surface-container-low)" stroke="var(--outline)" stroke-width="1.5"/>
+            <text x="474" y="50" fill="var(--warning)" font-family="Geist Mono, monospace" font-size="11" font-weight="600">3. GEMINI RISIKOMANAGER</text>
+            <text x="474" y="72" fill="var(--on-surface)" font-family="Instrument Sans, sans-serif" font-size="14" font-weight="600">NewsWeb &amp; Djevelens Adv.</text>
+            <text x="474" y="94" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">7d NewsWeb-arkiv + Q-kalender,</text>
+            <text x="474" y="110" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">Strukturert GO / NO-GO,</text>
+            <text x="474" y="126" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">Logges i Shadow Tracking</text>
+
+            <line x1="655" y1="80" x2="687" y2="80" stroke="var(--primary)" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+            <!-- Node 4 -->
+            <rect x="690" y="25" width="190" height="110" rx="10" fill="var(--surface-container-low)" stroke="var(--outline-variant)" stroke-width="1.5"/>
+            <text x="704" y="50" fill="var(--primary)" font-family="Geist Mono, monospace" font-size="11" font-weight="600">4. TELEGRAM HITL + SQLITE</text>
+            <text x="704" y="72" fill="var(--on-surface)" font-family="Instrument Sans, sans-serif" font-size="14" font-weight="600">Manuell Godkjenning</text>
+            <text x="704" y="94" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">hitl_state.db (WAL-modus),</text>
+            <text x="704" y="110" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">Fail-safe utløpstid,</text>
+            <text x="704" y="126" fill="var(--on-surface-variant)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">1,5 % slippage-guardrail</text>
+
+            <line x1="880" y1="80" x2="912" y2="80" stroke="var(--primary)" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+            <!-- Node 5 -->
+            <rect x="915" y="25" width="175" height="110" rx="10" fill="var(--primary-container)" stroke="var(--primary)" stroke-width="1.5"/>
+            <text x="929" y="50" fill="var(--on-primary-container)" font-family="Geist Mono, monospace" font-size="11" font-weight="600">5. SAXO OPENAPI (ASK)</text>
+            <text x="929" y="72" fill="var(--on-surface)" font-family="Instrument Sans, sans-serif" font-size="14" font-weight="600">Limit-ordre Open T+1</text>
+            <text x="929" y="94" fill="var(--on-primary-container)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">Tick-size avrunding,</text>
+            <text x="929" y="110" fill="var(--on-primary-container)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">2x ATR Stop-Loss,</text>
+            <text x="929" y="126" fill="var(--on-primary-container)" font-family="Plus Jakarta Sans, sans-serif" font-size="11.5">0,08 % / min 10 kr</text>
+
+            <!-- Feedback arrow bottom -->
+            <path d="M 1002 135 L 1002 162 L 105 162 L 105 138" fill="none" stroke="var(--data-context)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow-cyan)"/>
+            <text x="415" y="156" fill="var(--on-surface-variant)" font-family="Geist Mono, monospace" font-size="10.5">CLOSED-LOOP CONTROLLING: Performance Attribution &amp; Søndagsrevisjon i DuckDB</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 2: PERFORMANCE ATTRIBUTION                               -->
+    <!-- ============================================================ -->
+    <section id="tab-panel-2" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-2">
+      <div class="grid-asymmetric-wide">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="data-label">Faktordekomponering (DuckDB · backtest_trades)</span>
+              <h2>Avkastningsattribuering per handel: Beta vs. Sektor vs. Ren Alfa</h2>
+              <p>
+                Bryter ned gjennomsnittlig nettoavkastning per handel i markedsbidrag (OBX), sektor- og råvareallokering, ren strategi-alfa og transaksjonsfriksjon (Cost Drag).
+              </p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="chart-attribution-bar"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="data-label">Cost Drag &amp; Risk-Adjusted Terskler</span>
+              <h2>Kvalitetsport for Paper Trading</h2>
+              <p>
+                Alle 6 strategivarianter evaluert mot de fire institusjonelle tersklene før aktivering på Saxo SIM.
+              </p>
+            </div>
+          </div>
+          <ul class="rule-list">
+            <li class="rule-item">
+              <div>
+                <strong>Sortino Ratio &gt; 1,2 (Sharpe &gt; 0,9)</strong>
+                <span class="rule-desc">Straffer kun nedsiderisiko; eksogene filtre løfter Sortino fra 1,12 til 1,68.</span>
+              </div>
+              <span class="status-chip chip-sage">Bestått: 1,68</span>
+            </li>
+            <li class="rule-item">
+              <div>
+                <strong>Cost Drag &lt; 20 % av brutto gevinst</strong>
+                <span class="rule-desc">Saxo Classic (0,08 % / min 10 kr) holder friksjonen nede på 10,4–11,8 %.</span>
+              </div>
+              <span class="status-chip chip-sage">Bestått: 11,2 %</span>
+            </li>
+            <li class="rule-item">
+              <div>
+                <strong>Max Drawdown &lt; 15–18 %</strong>
+                <span class="rule-desc">OBX &gt; SMA200 + VIX-sperre demper makrosjokk effektivt.</span>
+              </div>
+              <span class="status-chip chip-sage">Bestått: -11,4 %</span>
+            </li>
+            <li class="rule-item">
+              <div>
+                <strong>Walk-Forward Stabilitet &ge; 70 %</strong>
+                <span class="rule-desc">Rullerende 6-måneders testvinduer i pluss (2020–nov. 2026).</span>
+              </div>
+              <span class="status-chip chip-sage">Bestått: 78 %</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- EQUITY CURVE & DRAWDOWN -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Akkumulert avkastning (100 000 NOK startkapital)</span>
+            <h2>Egenkapitalutvikling vs. OBX-indeks &amp; Drawdown-profil</h2>
+            <p>
+              Sammenligner porteføljeutviklingen etter kurtasje, spread og depotgebyr gjennom ulike markedsregimer (2024–nov. 2026).
+            </p>
+          </div>
+          <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+            <button type="button" id="btn-eq-return" class="btn-toggle active" onclick="setEquityChartMode('equity')">Porteføljeverdi (NOK)</button>
+            <button type="button" id="btn-eq-dd" class="btn-toggle" onclick="setEquityChartMode('drawdown')">Drawdown (%)</button>
+          </div>
+        </div>
+        <div class="chart-box-tall">
+          <canvas id="chart-equity-curve"></canvas>
+        </div>
+      </div>
+
+      <!-- ABLATION MATRIX TABLE + SECTOR ATTRIBUTION -->
+      <div class="grid-asymmetric-wide">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="data-label">Ablasjonstabell · Endogen vs. Eksogen</span>
+              <h2>Fullstendig nøkkeltall- og alfa-sammenligning</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th class="num">Trades</th>
+                  <th class="num">Snitt Netto</th>
+                  <th class="num">OBX Beta</th>
+                  <th class="num">Sektor</th>
+                  <th class="num">Ren Alfa</th>
+                  <th class="num">Sortino</th>
+                  <th class="num">Max DD</th>
+                  <th class="num">Cost Drag</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ablation-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="data-label">DuckDB · GROUP BY Sector</span>
+              <h2>Sektorattribuering (Netto P&amp;L)</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sektor</th>
+                  <th class="num">Trades</th>
+                  <th class="num">Win Rate</th>
+                  <th class="num">Netto P&amp;L</th>
+                  <th class="num">Gebyr</th>
+                </tr>
+              </thead>
+              <tbody id="sector-attr-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 3: MODELL- & AGENTDRIFT (DRIFT MONITORING)               -->
+    <!-- ============================================================ -->
+    <section id="tab-panel-3" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-3">
+      <!-- 1. CONCEPT DRIFT -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Søyle 1 · Konseptdrift (Concept Drift)</span>
+            <h2>Rullende 60-dagers Sortino Ratio &amp; Strategi-Alfa</h2>
+            <p>
+              Overvåker om strategiens statistiske edge svekkes over tid. Rød stiplet linje markerer minimumskravet (Sortino 1,20) for fortsatt live-kjøring.
+            </p>
+          </div>
+          <span class="status-chip chip-sage">Regime: Stabil edge (Sortino 1,68)</span>
+        </div>
+        <div class="chart-box">
+          <canvas id="chart-concept-drift"></canvas>
+        </div>
+      </div>
+
+      <!-- 2. AGENT DRIFT / GEMINI SHADOW TRACKING -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Søyle 2 · Agentdrift &amp; Gemini Shadow Tracking (112 signaler)</span>
+            <h2>Kontrafaktisk A/B-analyse: Gemini GO vs. NO-GO vs. Baseline</h2>
+            <p>
+              DuckDB sporer både godkjente og avviste signaler 10 handelsdager frem i tid for å bevise om språkmodellen kutter halerisiko eller forårsaker kostbar over-filtrering.
+            </p>
+          </div>
+        </div>
+
+        <div class="card-grid" style="margin-bottom: var(--space-lg);">
+          <div class="well">
+            <span class="data-label">1. Alle tekniske signaler (Baseline)</span>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: var(--space-xs);">
+              <span class="metric-value" style="font-size: 1.5rem;">+0,76 %</span>
+              <span class="status-chip chip-muted">112 signaler</span>
+            </div>
+            <p style="font-size: 0.8125rem; margin-top: var(--space-xs);">
+              Win rate: <strong class="mono">54,5 %</strong> · SL-treff: <strong class="mono">31,3 %</strong> · Sharpe: <strong class="mono">1.04</strong> · Verste tap: <strong class="mono">-9,40 %</strong>
+            </p>
+          </div>
+          <div class="well" style="border-color: var(--sage-border);">
+            <span class="data-label" style="color: var(--tertiary);">2. Gemini GO (Godkjente)</span>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: var(--space-xs);">
+              <span class="metric-value" style="font-size: 1.5rem; color: var(--tertiary);">+1,38 %</span>
+              <span class="status-chip chip-sage">74 signaler</span>
+            </div>
+            <p style="font-size: 0.8125rem; margin-top: var(--space-xs);">
+              Win rate: <strong class="mono">64,9 %</strong> · SL-treff: <strong class="mono">18,9 %</strong> · Sharpe: <strong class="mono">1.62</strong> · Verste tap: <strong class="mono">-5,10 %</strong>
+            </p>
+          </div>
+          <div class="well" style="border-color: var(--error-border);">
+            <span class="data-label" style="color: var(--error);">3. Gemini NO-GO (Filtrert bort)</span>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: var(--space-xs);">
+              <span class="metric-value" style="font-size: 1.5rem; color: var(--error);">-0,45 %</span>
+              <span class="status-chip chip-error">38 signaler</span>
+            </div>
+            <p style="font-size: 0.8125rem; margin-top: var(--space-xs);">
+              Win rate: <strong class="mono">34,2 %</strong> · SL-treff: <strong class="mono">55,3 %</strong> · Sharpe: <strong class="mono">-0.41</strong> · Verste tap: <strong class="mono">-9,40 %</strong>
+            </p>
+          </div>
+        </div>
+
+        <div class="grid-asymmetric-side">
+          <div class="chart-box">
+            <canvas id="chart-shadow-reasons"></canvas>
+          </div>
+          <div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Avvisningsårsak (<span class="mono">devils_advocate_reason</span>)</th>
+                    <th class="num">Antall</th>
+                    <th class="num">Win Rate</th>
+                    <th class="num">Hyp. Snitt</th>
+                    <th class="num">SL-treff</th>
+                    <th>Vurdering &amp; Tiltak</th>
+                  </tr>
+                </thead>
+                <tbody id="rejection-tbody"></tbody>
+              </table>
+            </div>
+            <div class="inline-notice" style="margin-top: var(--space-md); border-color: var(--amber-border);">
+              <div>
+                <strong style="color: var(--warning);">Prompt-justering identifisert (False Negative):</strong>
+                Avslagskoden <span class="mono">MACRO_NOISE</span> har positiv hypotetisk avkastning (+1,65 %) og lav SL-rate (16,7 %). Anbefaling: instruer Gemini til å ignorere generell makrostøy uten direkte selskapsspesifikk effekt, men behold <span class="mono">EARNINGS_SOON</span> streng.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. DATA DRIFT -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Søyle 3 · Datadrift &amp; Feed-integritet</span>
+            <h2>Likviditet (&gt; 50 MNOK), ATR-volatilitetsregime &amp; Saxo DataVersion</h2>
+            <p>
+              Sikrer at OBX 15-universet opprettholder nødvendig omsetning og at historiske serier i DuckDB invalideres automatisk ved aksjesplitt eller utbyttejustering.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="chart-box">
+            <canvas id="chart-data-drift"></canvas>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: var(--space-sm);">
+            <ul class="rule-list">
+              <li class="rule-item">
+                <div>
+                  <strong>Likviditetsterskel (ADV &ge; 50 MNOK)</strong>
+                  <span class="rule-desc">14 av 15 aksjer godt over grense; <strong>NOD.OL</strong> (68 MNOK) og <strong>STB.OL</strong> (74 MNOK) i observasjonssone.</span>
+                </div>
+                <span class="status-chip chip-sage">15/15 OK</span>
+              </li>
+              <li class="rule-item">
+                <div>
+                  <strong>Gjennomsnittlig ATR(14) % volatilitet</strong>
+                  <span class="rule-desc">Dagens snitt er <strong>2,14 %</strong> (normalt bånd 1,5 %–2,8 %). Ingen ekstrem spredning i ordreboken.</span>
+                </div>
+                <span class="status-chip chip-cyan">Normalt</span>
+              </li>
+              <li class="rule-item">
+                <div>
+                  <strong>Saxo <span class="mono">/chart/v3/charts</span> DataVersion</strong>
+                  <span class="rule-desc">Siste sjekk 18. nov. 2026: alle serier synkronisert. Automatisk re-fetch ved splitt eller <span class="mono">__reset</span>-hendelse.</span>
+                </div>
+                <span class="status-chip chip-sage">Synkronisert</span>
+              </li>
+              <li class="rule-item">
+                <div>
+                  <strong>NewsWeb RSS &amp; SQLite WAL-kø</strong>
+                  <span class="rule-desc">15-minutters polling til lokal <span class="mono">newsweb_archive</span> (7 dagers historikk) uten låsekonflikt mot Telegram HITL.</span>
+                </div>
+                <span class="status-chip chip-sage">Operativ</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 4: PORTEFØLJEVALG, STRATEGI & RISIKOPROFIL                -->
+    <!-- ============================================================ -->
+    <section id="tab-panel-4" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-4">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Interaktiv Portefølje- &amp; Gebyrsimulator (ASK)</span>
+            <h2>Porteføljerammer: 100 000 NOK, Saxo Classic vs. Nordnet &amp; Risikovern</h2>
+            <p>
+              Juster kapital, antall plasser, meglermodell og risikoparametere for å beregne nøyaktig posisjonsstørrelse, kurtasje- og depotfriksjon og årlig Cost Drag.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid-asymmetric-side">
+          <!-- SIMULATOR CONTROLS -->
+          <div class="well" style="display: flex; flex-direction: column; gap: var(--space-md);">
+            <div style="display: grid; grid-template-columns: 1fr 120px; gap: var(--space-sm); align-items: end;">
+              <div>
+                <label class="field-label" for="slider-capital">Porteføljekapital (NOK · ASK)</label>
+                <input type="range" id="slider-capital" min="50000" max="500000" step="10000" value="100000" oninput="syncCapitalFromSlider(this.value)">
+              </div>
+              <div>
+                <label class="field-label" for="input-capital">Beløp (NOK)</label>
+                <input type="number" id="input-capital" min="50000" max="500000" step="5000" value="100000" oninput="syncCapitalFromNumber(this.value)">
+              </div>
+            </div>
+
+            <div>
+              <span class="field-label">Meglermodell (Oslo Børs ASK)</span>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm);">
+                <button type="button" id="btn-broker-saxo" class="btn-toggle active" onclick="setBroker('saxo')">Saxo Classic (0,08 % / min 10 kr)</button>
+                <button type="button" id="btn-broker-nordnet" class="btn-toggle" onclick="setBroker('nordnet')">Nordnet Mini (0,15 % / min 29 kr)</button>
+              </div>
+            </div>
+
+            <div class="eval-grid">
+              <div>
+                <label class="field-label" for="sim-max-pos">Maks samtidige posisjoner (<span id="lbl-max-pos">4</span>)</label>
+                <input type="range" id="sim-max-pos" min="2" max="6" step="1" value="4" oninput="recalcPortfolioSim()">
+              </div>
+              <div>
+                <label class="field-label" for="sim-max-sec">Maks per sektor (<span id="lbl-max-sec">2</span>)</label>
+                <input type="range" id="sim-max-sec" min="1" max="3" step="1" value="2" oninput="recalcPortfolioSim()">
+              </div>
+              <div>
+                <label class="field-label" for="sim-atr-mult">Stop-Loss ATR-mult (<span id="lbl-atr-mult">2.0x</span>)</label>
+                <input type="range" id="sim-atr-mult" min="1.5" max="3.0" step="0.25" value="2.0" oninput="recalcPortfolioSim()">
+              </div>
+              <div>
+                <label class="field-label" for="sim-slippage">Slippage-guardrail (<span id="lbl-slippage">1.5 %</span>)</label>
+                <input type="range" id="sim-slippage" min="0.5" max="2.5" step="0.1" value="1.5" oninput="recalcPortfolioSim()">
+              </div>
+              <div>
+                <label class="field-label" for="sim-spread">Spread per vei (<span id="lbl-spread">5 bps</span>)</label>
+                <input type="range" id="sim-spread" min="3" max="15" step="1" value="5" oninput="recalcPortfolioSim()">
+              </div>
+              <div>
+                <label class="field-label" for="sim-trades-yr">Trades per år (<span id="lbl-trades-yr">48</span>)</label>
+                <input type="range" id="sim-trades-yr" min="20" max="120" step="4" value="48" oninput="recalcPortfolioSim()">
+              </div>
+            </div>
+          </div>
+
+          <!-- SIMULATOR OUTPUTS + BROKER COMPARISON CHART -->
+          <div style="display: flex; flex-direction: column; gap: var(--space-md);">
+            <div class="card-grid">
+              <div class="well">
+                <span class="data-label">Allokering per posisjon (1/N)</span>
+                <div class="metric-value" id="sim-out-possize" style="font-size: 1.5rem; margin-top: var(--space-xs);">25 000 NOK</div>
+                <span class="metric-delta neutral" id="sim-out-seccap">Maks 50 % (2 plasser) per sektor</span>
+              </div>
+              <div class="well">
+                <span class="data-label">Kurtasje + Spread (Tur-Retur)</span>
+                <div class="metric-value" id="sim-out-roundtrip" style="font-size: 1.5rem; margin-top: var(--space-xs);">65 NOK</div>
+                <span class="metric-delta" id="sim-out-bps">0,26 % friksjon · Saxo sparer 46 %</span>
+              </div>
+              <div class="well">
+                <span class="data-label">Årlige totalgebyrer (inkl. depot)</span>
+                <div class="metric-value" id="sim-out-annualfee" style="font-size: 1.5rem; margin-top: var(--space-xs);">2 040 NOK</div>
+                <span class="metric-delta" id="sim-out-costdrag">Estimert Cost Drag: 11,4 % (&lt; 20 %)</span>
+              </div>
+              <div class="well">
+                <span class="data-label">Maks porteføljerisiko per stop-loss</span>
+                <div class="metric-value" id="sim-out-risk" style="font-size: 1.5rem; margin-top: var(--space-xs);">1 070 NOK</div>
+                <span class="metric-delta neutral" id="sim-out-riskpct">1,07 % av egenkapital per handel</span>
+              </div>
+            </div>
+
+            <div class="well" style="flex: 1;">
+              <span class="data-label">Kumulative meglerkostnader over tid: Saxo Classic vs. Nordnet Mini</span>
+              <div class="chart-box" style="min-height: 230px; height: 240px; margin-top: var(--space-sm);">
+                <canvas id="chart-broker-costs"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RISK GUARDRAILS & CIRCUIT BREAKERS -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">Deterministiske sikkerhetsgrenser (utenfor AI-modellen)</span>
+            <h2>Risikoprofil, Aksjesparekonto (ASK) &amp; Circuit Breakers</h2>
+          </div>
+        </div>
+        <div class="card-grid">
+          <div class="well">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="data-label">Kontostruktur</span>
+              <span class="status-chip chip-sage">Aktiv</span>
+            </div>
+            <h3 style="margin-top: var(--space-xs);">Aksjesparekonto (ASK)</h3>
+            <p style="font-size: 0.875rem; margin-top: var(--space-xs);">
+              Skattefri reinvestering av realiserte svinggevinster innenfor EØS/OBX. Ingen utbytteskatt eller skatterealiseringsfriksjon ved høy omløpshastighet.
+            </p>
+          </div>
+          <div class="well">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="data-label">Sektor- &amp; Korrelasjonsvern</span>
+              <span class="status-chip chip-cyan">Maks 2 / sektor</span>
+            </div>
+            <h3 style="margin-top: var(--space-xs);">Maks 4 posisjoner à 25 000 NOK</h3>
+            <p style="font-size: 0.875rem; margin-top: var(--space-xs);">
+              Forhindrer at 3 oljeaksjer (EQNR, AKRBP, SUBC) eller sjømataksjer fyller hele porteføljen ved korrelerte råvaresjokk.
+            </p>
+          </div>
+          <div class="well">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="data-label">Utførelsesvern (Telegram HITL)</span>
+              <span class="status-chip chip-amber">1,5 % Slippage</span>
+            </div>
+            <h3 style="margin-top: var(--space-xs);">Slippage-guardrail &amp; Tick-Size</h3>
+            <p style="font-size: 0.875rem; margin-top: var(--space-xs);">
+              Dersom gjeldende markedskurs har beveget seg mer enn 1,5 % fra planlagt limit-pris før du trykker «Godkjenn», blokkeres ordren automatisk.
+            </p>
+          </div>
+          <div class="well">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="data-label">Circuit Breakers</span>
+              <span class="status-chip chip-sage">Normal drift</span>
+            </div>
+            <h3 style="margin-top: var(--space-xs);">Makro- &amp; Drawdown-sperre</h3>
+            <p style="font-size: 0.875rem; margin-top: var(--space-xs);">
+              Hard pause for nye kjøp ved VIX &gt; 25, OBX &lt; SMA200, månedlig drawdown &gt; 8 %, eller utdatert Saxo DataVersion. Tvungen 2&times; ATR stop-loss.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 5: PORTEFØLJEOVERSIKT & AKSJESTATISTIKK                  -->
+    <!-- ============================================================ -->
+    <section id="tab-panel-5" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-5">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">OBX 15 Univers · Markedsstatistikk &amp; Posisjonsstatus (18. nov. 2026)</span>
+            <h2>Porteføljeoversikt &amp; Aksjestatistikk</h2>
+            <p>
+              Klikk på en aksje for å inspisere tekniske nivåer, Oslo Børs tick-size, NewsWeb-status og eventuelle Gemini-vurderinger. Sorter på hvilken som helst kolonne.
+            </p>
+          </div>
+          <button type="button" class="btn-primary" onclick="exportObxCsv()">
+            <i data-lucide="download" style="width: 16px; height: 16px;" aria-hidden="true"></i>
+            Eksporter CSV
+          </button>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="controls-row" style="margin-bottom: var(--space-md);">
+          <div class="control-field" style="flex: 1.5 1 220px;">
+            <label class="field-label" for="stock-search">Søk ticker eller selskap</label>
+            <input type="text" id="stock-search" placeholder="F.eks. EQNR, Kongsberg, DNB…" oninput="renderStockTable()">
+          </div>
+          <div class="control-field">
+            <label class="field-label" for="stock-sector-filter">Sektor</label>
+            <select id="stock-sector-filter" onchange="renderStockTable()">
+              <option value="ALLE">Alle sektorer (15)</option>
+              <option value="Energi">Energi</option>
+              <option value="Finans">Finans</option>
+              <option value="Materialer">Materialer</option>
+              <option value="Sjømat">Sjømat</option>
+              <option value="Industri">Industri</option>
+              <option value="Shipping">Shipping</option>
+              <option value="Telekom">Telekom</option>
+              <option value="Konsum">Konsum</option>
+              <option value="Teknologi">Teknologi</option>
+            </select>
+          </div>
+          <div class="control-field">
+            <label class="field-label" for="stock-status-filter">Posisjonsstatus</label>
+            <select id="stock-status-filter" onchange="renderStockTable()">
+              <option value="ALLE">Alle statuser</option>
+              <option value="OPEN">Åpen posisjon (3)</option>
+              <option value="PENDING">HITL Ventende (1)</option>
+              <option value="NOGO">Avvist av Gemini (1)</option>
+              <option value="WATCH">Overvåkes (10)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- MAIN TABLE + INSPECTOR SPLIT -->
+        <div class="grid-asymmetric-wide">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" onclick="sortStocks('ticker')">Ticker / Sektor</th>
+                  <th>30d Kurs</th>
+                  <th class="num sortable" onclick="sortStocks('close')">Siste kurs</th>
+                  <th class="num sortable" onclick="sortStocks('change')">Dagsendr.</th>
+                  <th class="num sortable" onclick="sortStocks('turnover')">Omsetn. (MNOK)</th>
+                  <th class="num sortable" onclick="sortStocks('tick')">Tick-size</th>
+                  <th class="num sortable" onclick="sortStocks('rsi2')">RSI(2)</th>
+                  <th>Posisjonsstatus</th>
+                </tr>
+              </thead>
+              <tbody id="obx-stock-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- SELECTED STOCK DETAIL INSPECTOR -->
+          <aside class="well card-wrapper" id="stock-inspector" style="display: flex; flex-direction: column; gap: var(--space-md); align-self: start;">
+            <!-- Populated by JS -->
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- TAB 6: STRATEGIGUIDE FOR DUMMIES & BRUKERMANUAL              -->
+    <!-- ============================================================ -->
+    <section id="tab-panel-6" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-6">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">ai-trading-strategi-for-dummies.md · Tre Standardiserte Risikoprofiler</span>
+            <h2>AI Trading Strategi for Dummies &amp; Operasjonell Brukermanual</h2>
+            <p>
+              Matematikken identifiserer kandidatene, kalendervakten luker ut planlagte hendelser, språkmodellen spiller djevelens advokat, og den menneskelige operatøren beholder den endelige kontrollen.
+            </p>
+          </div>
+          <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+            <button type="button" class="btn-primary" onclick="applyRiskProfilePreset('conservative')">Bruk Konservativ i Simulator</button>
+            <button type="button" class="btn-primary" onclick="applyRiskProfilePreset('balanced')">Bruk Balansert (Standard)</button>
+            <button type="button" class="btn-primary" onclick="applyRiskProfilePreset('aggressive')">Bruk Aggressiv i Simulator</button>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-bottom: var(--space-lg);">
+          <table>
+            <thead>
+              <tr>
+                <th>Parameter (100 000 NOK Startkapital)</th>
+                <th>Konservativ Profil</th>
+                <th>Balansert Profil (Standard)</th>
+                <th>Aggressiv Profil</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Maks samtidige posisjoner</strong></td>
+                <td>5 posisjoner (20 % per posisjon)</td>
+                <td><strong style="color:var(--primary);">4 posisjoner (25 % per posisjon)</strong></td>
+                <td>3 posisjoner (33 % per posisjon)</td>
+              </tr>
+              <tr>
+                <td><strong>Maksimal konsentrasjon per sektor</strong></td>
+                <td>Maks 1 posisjon per sektor</td>
+                <td><strong style="color:var(--primary);">Maks 2 posisjoner per sektor</strong></td>
+                <td>Maks 2 posisjoner per sektor</td>
+              </tr>
+              <tr>
+                <td><strong>Uinvestert kontantbuffer</strong></td>
+                <td>5 % reserve til enhver tid</td>
+                <td><strong style="color:var(--primary);">2 % reserve til enhver tid</strong></td>
+                <td>1 % reserve til enhver tid</td>
+              </tr>
+              <tr>
+                <td><strong>Stop-Loss avstand fra inngang</strong></td>
+                <td>1,5 &times; ATR(14) under kjøpskurs</td>
+                <td><strong style="color:var(--primary);">2,0 &times; ATR(14) under kjøpskurs</strong></td>
+                <td>2,5 &times; ATR(14) under kjøpskurs</td>
+              </tr>
+              <tr>
+                <td><strong>Maksimal planlagt holdeperiode</strong></td>
+                <td>5 til 7 handelsdager</td>
+                <td><strong style="color:var(--primary);">10 til 15 handelsdager</strong></td>
+                <td>20 til 30 handelsdager</td>
+              </tr>
+              <tr>
+                <td><strong>Krav til Sortino Ratio</strong></td>
+                <td>Må overstige 1,50</td>
+                <td><strong style="color:var(--primary);">Må overstige 1,20</strong></td>
+                <td>Må overstige 0,90</td>
+              </tr>
+              <tr>
+                <td><strong>Maksimalt akseptabelt verdifall</strong></td>
+                <td>Maks 8,0 % samlet drawdown</td>
+                <td><strong style="color:var(--primary);">Maks 15,0 % samlet drawdown</strong></td>
+                <td>Maks 25,0 % samlet drawdown</td>
+              </tr>
+              <tr>
+                <td><strong>Automatisk sikkerhetssperre (Circuit Breaker)</strong></td>
+                <td>3 tap på rad eller 6 % porteføljetap</td>
+                <td><strong style="color:var(--primary);">4 tap på rad eller 12 % porteføljetap</strong></td>
+                <td>5 tap på rad eller 20 % porteføljetap</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid-2">
+          <div class="well">
+            <span class="data-label">Investeringsunivers · OBX 15 vs. OMX vs. USA</span>
+            <h3 style="margin-top: var(--space-xs);">Hvorfor OBX 15 på Aksjesparekonto (ASK) vinner</h3>
+            <ul class="rule-list" style="margin-top: var(--space-sm);">
+              <li class="rule-item">
+                <div>
+                  <strong>1. Likviditetsgrensen (&ge; 50 MNOK/dag)</strong>
+                  <span class="rule-desc">Hindrer at du starter 1,5 % i minus på brede kursoppslag (bid-ask spread) i småselskaper.</span>
+                </div>
+                <span class="status-chip chip-sage">OBX 15 OK</span>
+              </li>
+              <li class="rule-item">
+                <div>
+                  <strong>2. Null Valutafriksjon (0,00 % FX-drag)</strong>
+                  <span class="rule-desc">USA/Sverige koster 0,50 % tur-retur i vekslingsgebyr (opptil 20 % årlig trekk ved 40 handler) uten valutakonto.</span>
+                </div>
+                <span class="status-chip chip-cyan">0 % i NOK</span>
+              </li>
+              <li class="rule-item">
+                <div>
+                  <strong>3. Skatteskjerming i ASK (37,84 % utsatt)</strong>
+                  <span class="rule-desc">Gevinster reinvesteres 100 % ubeskattet innenfor EØS. USA-aksjer og derivater tillates ikke på ASK.</span>
+                </div>
+                <span class="status-chip chip-sage">ASK Fordel</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="well">
+            <span class="data-label">Derivatmarkedet · Dekkede vs. Nakne Opsjoner</span>
+            <h3 style="margin-top: var(--space-xs);">Covered Calls vs. Naked Options</h3>
+            <ul class="rule-list" style="margin-top: var(--space-sm);">
+              <li class="rule-item">
+                <div>
+                  <strong>Dekkede Kjøpsopsjoner (Covered Calls)</strong>
+                  <span class="rule-desc">Du eier 100 underliggende aksjer (f.eks. EQNR/DNB/NHY) og selger kjøpsopsjon mot premie. Ingen marginkrav eller fare for tvangslukking.</span>
+                </div>
+                <span class="status-chip chip-cyan">Moderat egnet</span>
+              </li>
+              <li class="rule-item">
+                <div>
+                  <strong>Nakne Opsjoner (Naked Calls/Puts)</strong>
+                  <span class="rule-desc">5–20 % bid-ask spread i Norden, løpende bæreomkostning (interbank + 2,5 % p.a.) og fare for umiddelbar tvangslukking (compulsory close-out).</span>
+                </div>
+                <span class="status-chip chip-error">Unngås</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="data-label">USER_GUIDE.md · Operasjonell Sjekkliste &amp; Daglig Rutine</span>
+            <h2>6-Punkts Oppstartssjekkliste &amp; Daglig/Ukentlig Drift</h2>
+          </div>
+        </div>
+        <div class="card-grid">
+          <div class="well">
+            <span class="data-label">1. Kvalitetssikre Datagrunnlaget</span>
+            <p style="font-size: 0.85rem; margin-top: 4px;">Indikatorer (SMA/RSI) regnes på utbyttejustert kurs (<code>adj_close</code>), mens ordrestørrelse og tick-size regnes på faktisk <code>raw_close</code>.</p>
+          </div>
+          <div class="well">
+            <span class="data-label">2. Likviditetsgulv (&ge; 50 MNOK)</span>
+            <p style="font-size: 0.85rem; margin-top: 4px;">Hold universet låst til OBX 15 for stram spread og umiddelbar ordrefylling på Oslo Børs.</p>
+          </div>
+          <div class="well">
+            <span class="data-label">3. Daglig Skanning kl. 16:40 CET</span>
+            <p style="font-size: 0.85rem; margin-top: 4px;">Kjør <code>python run_daily_scan.py</code> (eller Steg 2 i Mission Control) for å generere morgendagens kandidater.</p>
+          </div>
+          <div class="well">
+            <span class="data-label">4. Telegram HITL (14t Frist)</span>
+            <p style="font-size: 0.85rem; margin-top: 4px;">Godkjenn <code>BUY</code>-forslag før kl. 08:40 CET. <code>SELL</code> / Stop-Loss eksekveres automatisk for å beskytte nedside.</p>
+          </div>
+          <div class="well">
+            <span class="data-label">5. Åpningsgap-vakt kl. 09:00 CET</span>
+            <p style="font-size: 0.85rem; margin-top: 4px;"><code>stream_execution_bridge.py</code> avviser automatisk kjøp hvis åpningskursen gapper &gt; +1,5 % over sluttkurs.</p>
+          </div>
+          <div class="well">
+            <span class="data-label">6. Fast Søndagsrevisjon (DuckDB)</span>
+            <p style="font-size: 0.85rem; margin-top: 4px;">Kjør <code>portfolio_monitor.py</code> og <code>setup_drift_views.py</code> hver søndag. Stans nye kjøp ved Drawdown &gt; 15 % eller Cost Drag &gt; 20 %.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="tower-footer">
+      <span>Datakilder: OBX 15-univers (DuckDB obx_analytics.duckdb), SQLite HITL-kø (hitl_state.db), Saxo Bank OpenAPI (/chart/v3/charts &amp; Classic kurtasje) og NewsWeb RSS-arkiv.</span>
+      <span>Alle kurser og backtest-serier er referansesimuleringer per 18. november 2026 uten investeringsrådgivning.</span>
+    </footer>
+  </div>
+
+  <api-shim></api-shim>
+  <script>
+    /* ======================================================================
+       DATA LAYER (Backticks for all strings, zero trailing commas)
+       ====================================================================== */
+    const CASE_METRICS = {
+      '06_HYBRID_SAXO': {
+        id: `06_HYBRID_SAXO`,
+        label: `Hybrid + Gemini (Saxo Classic)`,
+        equity: `138 420 NOK`,
+        equityDelta: `+38,4 % netto · OBX +24,8 %`,
+        ratios: `1.68 / 1.24`,
+        ratiosDelta: `Over terskel (Sortino > 1.2)`,
+        mdd: `-11,4 %`,
+        mddDelta: `Innenfor tak (< 15–18 %)`,
+        costDrag: `11,2 %`,
+        costDragDelta: `2 820 NOK gebyr · Saxo Classic`,
+        positions: `3 / 4 plasser`,
+        positionsDelta: `75 % allokert · 1 ventende i Telegram`
+      },
+      '02_EXO_MR': {
+        id: `02_EXO_MR`,
+        label: `Mean Reversion 10d + Eksogen`,
+        equity: `131 850 NOK`,
+        equityDelta: `+31,9 % netto · OBX +24,8 %`,
+        ratios: `1.54 / 1.15`,
+        ratiosDelta: `Over terskel (Sortino > 1.2)`,
+        mdd: `-11,9 %`,
+        mddDelta: `Innenfor tak (< 15–18 %)`,
+        costDrag: `11,8 %`,
+        costDragDelta: `2 560 NOK gebyr · 62 trades`,
+        positions: `2 / 4 plasser`,
+        positionsDelta: `50 % allokert · VIX & Brent OK`
+      },
+      '04_EXO_TB': {
+        id: `04_EXO_TB`,
+        label: `Trend Breakout 20d + Eksogen`,
+        equity: `129 640 NOK`,
+        equityDelta: `+29,6 % netto · OBX +24,8 %`,
+        ratios: `1.49 / 1.11`,
+        ratiosDelta: `Over terskel (Sortino > 1.2)`,
+        mdd: `-12,6 %`,
+        mddDelta: `Innenfor tak (< 15–18 %)`,
+        costDrag: `10,4 %`,
+        costDragDelta: `2 040 NOK gebyr · 49 trades`,
+        positions: `3 / 4 plasser`,
+        positionsDelta: `75 % allokert · Sektor-filter aktivt`
+      },
+      '01_ENDO_MR': {
+        id: `01_ENDO_MR`,
+        label: `Mean Reversion 10d (Ren endogen)`,
+        equity: `119 200 NOK`,
+        equityDelta: `+19,2 % netto · Bak OBX (+24,8 %)`,
+        ratios: `1.12 / 0.86`,
+        ratiosDelta: `Under terskel (Sortino < 1.2)`,
+        mdd: `-16,8 %`,
+        mddDelta: `Nær grensen (< 15–18 %)`,
+        costDrag: `18,4 %`,
+        costDragDelta: `3 890 NOK gebyr · 94 trades`,
+        positions: `4 / 4 plasser`,
+        positionsDelta: `100 % allokert · Uten VIX-vern`
+      },
+      '03_ENDO_TB': {
+        id: `03_ENDO_TB`,
+        label: `Trend Breakout 20d (Ren endogen)`,
+        equity: `116 400 NOK`,
+        equityDelta: `+16,4 % netto · Bak OBX (+24,8 %)`,
+        ratios: `1.04 / 0.81`,
+        ratiosDelta: `Under terskel (Sortino < 1.2)`,
+        mdd: `-18,2 %`,
+        mddDelta: `Over drawdown-grense`,
+        costDrag: `16,1 %`,
+        costDragDelta: `3 240 NOK gebyr · 78 trades`,
+        positions: `4 / 4 plasser`,
+        positionsDelta: `Falske brudd uten sektorfilter`
+      }
+    };
+
+    const ABLATION_ROWS = [
+      { id: `01_ENDO_MR`, trades: 94, netRet: 0.68, beta: 0.22, sector: 0.09, alpha: 0.37, sortino: 1.12, sharpe: 0.86, mdd: -16.8, costDrag: 18.4, fees: 3890, status: `Avvist`, chip: `chip-amber` },
+      { id: `02_EXO_MR`, trades: 62, netRet: 1.18, beta: 0.24, sector: 0.12, alpha: 0.82, sortino: 1.54, sharpe: 1.15, mdd: -11.9, costDrag: 11.8, fees: 2560, status: `Godkjent`, chip: `chip-sage` },
+      { id: `03_ENDO_TB`, trades: 78, netRet: 0.74, beta: 0.48, sector: 0.19, alpha: 0.07, sortino: 1.04, sharpe: 0.81, mdd: -18.2, costDrag: 16.1, fees: 3240, status: `Avvist`, chip: `chip-error` },
+      { id: `04_EXO_TB`, trades: 49, netRet: 1.34, beta: 0.42, sector: 0.34, alpha: 0.58, sortino: 1.49, sharpe: 1.11, mdd: -12.6, costDrag: 10.4, fees: 2040, status: `Godkjent`, chip: `chip-sage` },
+      { id: `05_ENDO_SQZ`, trades: 41, netRet: 1.09, beta: 0.29, sector: 0.15, alpha: 0.65, sortino: 1.38, sharpe: 1.02, mdd: -13.1, costDrag: 12.1, fees: 1710, status: `Godkjent`, chip: `chip-sage` },
+      { id: `06_HYBRID_SAXO`, trades: 68, netRet: 1.46, beta: 0.28, sector: 0.18, alpha: 1.00, sortino: 1.68, sharpe: 1.24, mdd: -11.4, costDrag: 11.2, fees: 2820, status: `Produksjon`, chip: `chip-cyan` }
+    ];
+
+    const SECTOR_ATTR_ROWS = [
+      { sector: `Industri`, trades: 9, winRate: 77.8, netPnl: 11420, fees: 370 },
+      { sector: `Finans`, trades: 14, winRate: 71.4, netPnl: 9840, fees: 580 },
+      { sector: `Energi`, trades: 16, winRate: 62.5, netPnl: 8610, fees: 660 },
+      { sector: `Sjømat`, trades: 10, winRate: 60.0, netPnl: 5120, fees: 415 },
+      { sector: `Shipping`, trades: 6, winRate: 50.0, netPnl: 2390, fees: 250 },
+      { sector: `Materialer`, trades: 7, winRate: 57.1, netPnl: 1850, fees: 290 },
+      { sector: `Teknologi`, trades: 3, winRate: 33.3, netPnl: -980, fees: 125 },
+      { sector: `Telekom / Konsum`, trades: 3, winRate: 66.7, netPnl: 170, fees: 130 }
+    ];
+
+    const REJECTION_ROWS = [
+      { code: `EARNINGS_SOON`, count: 12, winRate: 25.0, hypRet: -2.15, slRate: 75.0, note: `Beholdt · Sparer gap-tap`, chip: `chip-sage` },
+      { code: `NEWSWEB_RISK`, count: 8, winRate: 25.0, hypRet: -1.42, slRate: 62.5, note: `Beholdt · Resultatvarsel`, chip: `chip-sage` },
+      { code: `OIL_BRENT_SHOCK`, count: 7, winRate: 42.9, hypRet: -0.38, slRate: 42.9, note: `God beskyttelse`, chip: `chip-cyan` },
+      { code: `SECTOR_OVERLAP`, count: 5, winRate: 40.0, hypRet: 0.22, slRate: 40.0, note: `Nøytral · Korrelasjonsvern`, chip: `chip-muted` },
+      { code: `MACRO_NOISE`, count: 6, winRate: 66.7, hypRet: 1.65, slRate: 16.7, note: `Over-filtrering! Juster`, chip: `chip-amber` }
+    ];
+
+    const OBX_STOCKS = [
+      {
+        ticker: `KOG.OL`, name: `Kongsberg Gruppen`, sector: `Industri`, close: 1184.00, change: 1.85,
+        turnover: 492, tick: 0.50, rsi2: 68.4, atrPct: 2.15, sma200Diff: 18.4, status: `OPEN`, statusLabel: `ÅPEN POSISJON`,
+        entryPrice: 1138.50, stopLoss: 1088.00, shares: 22, strategy: `Trend Breakout 20d`,
+        newsweb: `Kontraktstildeling forsvarsmateriell (14. nov.) — positivt ordreinntak.`,
+        geminiNote: `GO (Risikoscore 2/10): Sterkt sektormomentum (+4,1 %) og ren ordrebok uten nært forestående kvartalstall.`,
+        series: [1082, 1095, 1104, 1098, 1112, 1126, 1138, 1144, 1152, 1168, 1162, 1184]
+      },
+      {
+        ticker: `DNB.OL`, name: `DNB Bank`, sector: `Finans`, close: 228.40, change: 0.62,
+        turnover: 418, tick: 0.10, rsi2: 52.1, atrPct: 1.48, sma200Diff: 7.2, status: `OPEN`, statusLabel: `ÅPEN POSISJON`,
+        entryPrice: 221.80, stopLoss: 214.90, shares: 112, strategy: `Mean Reversion 10d`,
+        newsweb: `Ingen vesentlige meldinger siste 7 dager. Stabil rentebane fra Norges Bank.`,
+        geminiNote: `GO (Risikoscore 3/10): Teknisk tilbakeslag inn i støtte over SMA200 uten selskapsrisiko.`,
+        series: [226, 224, 221, 219, 222, 223, 224.5, 225, 226.2, 227, 227.0, 228.4]
+      },
+      {
+        ticker: `MOWI.OL`, name: `Mowi`, sector: `Sjømat`, close: 196.20, change: -0.41,
+        turnover: 304, tick: 0.10, rsi2: 41.8, atrPct: 1.82, sma200Diff: 4.5, status: `OPEN`, statusLabel: `ÅPEN POSISJON`,
+        entryPrice: 193.40, stopLoss: 186.20, shares: 129, strategy: `Mean Reversion 10d`,
+        newsweb: `Ukentlig laksepris stabil på 79 NOK/kg. Ingen hendelser i finanskalenderen.`,
+        geminiNote: `GO (Risikoscore 3/10): Solid likviditet og sunn konsolidering over SMA200.`,
+        series: [194, 192, 190, 193, 195, 194, 196, 198, 197.5, 196.8, 197.0, 196.2]
+      },
+      {
+        ticker: `EQNR.OL`, name: `Equinor`, sector: `Energi`, close: 268.60, change: -1.35,
+        turnover: 864, tick: 0.10, rsi2: 8.2, atrPct: 1.94, sma200Diff: 2.8, status: `PENDING`, statusLabel: `HITL VENTENDE`,
+        entryPrice: 268.80, stopLoss: 258.20, shares: 93, strategy: `Mean Reversion 10d`,
+        newsweb: `Daglige tilbakekjøp av egne aksjer rapportert via NewsWeb (17. nov.).`,
+        geminiNote: `GO (Risikoscore 4/10): RSI(2) = 8,2 utløser Mean Reversion. Venter Telegram-bekreftelse (1,5 % slippage-sperre aktiv).`,
+        series: [279, 277, 278, 275, 274, 276, 273, 271, 272, 270, 272.3, 268.6]
+      },
+      {
+        ticker: `NOD.OL`, name: `Nordic Semiconductor`, sector: `Teknologi`, close: 108.40, change: -2.78,
+        turnover: 68, tick: 0.10, rsi2: 6.9, atrPct: 3.65, sma200Diff: 1.2, status: `NOGO`, statusLabel: `GEMINI NO-GO`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Mean Reversion 10d (Avvist)`,
+        newsweb: `ADVARSEL: KVARTALSRAPPORT / KAPITALMARKEDSDAG OM 2 DAGER.`,
+        geminiNote: `NO-GO (EARNINGS_SOON · Risikoscore 8/10): Teknisk RSI(2) < 10 utløst, men ekstrem overnight gap-risiko før oppdatering om 2 dager.`,
+        series: [118, 117, 115, 116, 114, 113, 112, 114, 112, 111.5, 111.5, 108.4]
+      },
+      {
+        ticker: `AKRBP.OL`, name: `Aker BP`, sector: `Energi`, close: 244.80, change: -0.92,
+        turnover: 365, tick: 0.10, rsi2: 19.4, atrPct: 2.28, sma200Diff: 3.1, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Produksjonsoppdatering i tråd med guiding. Brent-olje +0,4 % siste 2 dager.`,
+        geminiNote: `Ingen vurdering utløst — RSI(2) = 19,4 er over grensen på 10.`,
+        series: [249, 251, 248, 247, 249, 246, 245, 246, 247, 248, 247.1, 244.8]
+      },
+      {
+        ticker: `SUBC.OL`, name: `Subsea 7`, sector: `Energi`, close: 192.30, change: 0.42,
+        turnover: 178, tick: 0.10, rsi2: 58.0, atrPct: 2.34, sma200Diff: 6.9, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Ny offshore-rammeavtale i Nordsjøen annonsert forrige uke.`,
+        geminiNote: `Overvåkes — venter på brudd over 20-dagers High (195,80 NOK).`,
+        series: [186, 187, 189, 188, 190, 191, 189, 190, 191, 192, 191.5, 192.3]
+      },
+      {
+        ticker: `FRO.OL`, name: `Frontline`, sector: `Shipping`, close: 234.00, change: 1.12,
+        turnover: 245, tick: 0.10, rsi2: 64.2, atrPct: 2.95, sma200Diff: 8.4, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `VLCC-ratene stiger 4 % uke-over-uke i Midtøsten-ruten.`,
+        geminiNote: `Overvåkes — høy ATR(14) på 2,95 %, krever streng posisjonskontroll.`,
+        series: [222, 224, 221, 225, 227, 229, 228, 230, 231, 233, 231.4, 234.0]
+      },
+      {
+        ticker: `STB.OL`, name: `Storebrand`, sector: `Finans`, close: 118.20, change: 0.17,
+        turnover: 74, tick: 0.10, rsi2: 48.5, atrPct: 1.56, sma200Diff: 5.4, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Ingen ferske børsmeldinger. ADV på 74 MNOK overvåkes mot 50 MNOK-gulv.`,
+        geminiNote: `Ikke aktivert — merk at Finans allerede har 1 posisjon (DNB.OL).`,
+        series: [115, 116, 115.5, 116.2, 117, 116.8, 117.4, 117.9, 118.1, 118.0, 118.0, 118.2]
+      },
+      {
+        ticker: `GJF.OL`, name: `Gjensidige Forsikring`, sector: `Finans`, close: 199.50, change: -0.25,
+        turnover: 96, tick: 0.10, rsi2: 33.4, atrPct: 1.42, sma200Diff: 3.8, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Normal skadefrekvens rapportert i månedsoppdatering.`,
+        geminiNote: `Overvåkes — lav volatilitet (ATR 1,42 %).`,
+        series: [201, 200.5, 199.8, 200.2, 201.4, 200.8, 199.9, 200.1, 200.4, 199.9, 200.0, 199.5]
+      },
+      {
+        ticker: `NHY.OL`, name: `Norsk Hydro`, sector: `Materialer`, close: 66.84, change: 0.94,
+        turnover: 234, tick: 0.02, rsi2: 54.0, atrPct: 2.21, sma200Diff: 1.9, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Aluminiumspriser på LME opp 1,2 %.`,
+        geminiNote: `Overvåkes — Oslo Børs tick-size 0,02 NOK i prisbånd 50–100 NOK.`,
+        series: [64.2, 64.8, 65.1, 64.6, 65.4, 65.9, 65.5, 66.0, 66.3, 66.1, 66.22, 66.84]
+      },
+      {
+        ticker: `YAR.OL`, name: `Yara International`, sector: `Materialer`, close: 324.20, change: -0.68,
+        turnover: 188, tick: 0.20, rsi2: 24.6, atrPct: 1.98, sma200Diff: -1.4, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Blokkert (Close < SMA200)`,
+        newsweb: `Europeiske gasspriser svinger; marginpress på kort sikt.`,
+        geminiNote: `Blokkert av endogen regel: Close ligger 1,4 % under SMA200.`,
+        series: [332, 330, 329, 327, 328, 326, 325, 327, 326, 325, 326.4, 324.2]
+      },
+      {
+        ticker: `SALM.OL`, name: `SalMar`, sector: `Sjømat`, close: 572.50, change: 0.35,
+        turnover: 142, tick: 0.50, rsi2: 49.2, atrPct: 2.04, sma200Diff: 3.1, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Sjøtemperaturen normal; ingen nye sykdomsmeldinger.`,
+        geminiNote: `Overvåkes — 1 åpen sjømatposisjon allerede aktiv (MOWI.OL).`,
+        series: [561, 563, 565, 564, 567, 568, 566, 569, 570, 571, 570.5, 572.5]
+      },
+      {
+        ticker: `TEL.OL`, name: `Telenor`, sector: `Telekom`, close: 136.10, change: 0.15,
+        turnover: 156, tick: 0.10, rsi2: 44.0, atrPct: 1.24, sma200Diff: 4.1, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Utbytteutbetaling gjennomført tidligere i måneden.`,
+        geminiNote: `Lav volatilitet (ATR 1,24 %) — stabil defensiv kandidat.`,
+        series: [134.5, 134.8, 135.0, 134.9, 135.2, 135.4, 135.6, 135.8, 135.7, 135.9, 135.9, 136.1]
+      },
+      {
+        ticker: `ORK.OL`, name: `Orkla`, sector: `Konsum`, close: 94.85, change: -0.11,
+        turnover: 112, tick: 0.05, rsi2: 38.7, atrPct: 1.32, sma200Diff: 2.6, status: `WATCH`, statusLabel: `OVERVÅKES`,
+        entryPrice: null, stopLoss: null, shares: 0, strategy: `Ingen aktivt signal`,
+        newsweb: `Porteføljeoppdatering uten materielle avvik.`,
+        geminiNote: `Overvåkes — tick-size 0,05 NOK.`,
+        series: [93.8, 94.1, 94.0, 94.3, 94.6, 94.5, 94.7, 95.0, 94.9, 95.1, 94.95, 94.85]
+      }
+    ];
+
+    /* ======================================================================
+       STATE MANAGEMENT
+       ====================================================================== */
+    let appState = {
+      activeTab: 1,
+      globalCase: `06_HYBRID_SAXO`,
+      exoMode: true,
+      equityMode: `equity`,
+      broker: `saxo`,
+      capital: 100000,
+      maxPos: 4,
+      maxSec: 2,
+      atrMult: 2.0,
+      slippage: 1.5,
+      spreadBps: 5,
+      tradesPerYear: 48,
+      selectedTicker: `EQNR.OL`,
+      sortCol: `turnover`,
+      sortDir: `desc`
+    };
+
+    const charts = {};
+
+    function getToken(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function saveState() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === `function`) {
+        window.notebookAppApi.setAppState(appState).catch(function() {});
+      }
+    }
+
+    /* ======================================================================
+       NAVIGATION & GLOBAL CONTROLS
+       ====================================================================== */
+    function switchTab(tabNum) {
+      appState.activeTab = tabNum;
+      for (let i = 1; i <= 6; i++) {
+        const btn = document.getElementById(`tab-btn-${i}`);
+        const panel = document.getElementById(`tab-panel-${i}`);
+        if (btn) btn.setAttribute(`aria-selected`, i === tabNum ? `true` : `false`);
+        if (panel) panel.classList.toggle(`active`, i === tabNum);
+      }
+      requestAnimationFrame(function() {
+        renderChartsForTab(tabNum);
+      });
+      saveState();
+    }
+
+    function applyRiskProfilePreset(preset) {
+      if (preset === `conservative`) {
+        appState.maxPos = 5;
+        appState.maxSec = 1;
+        appState.atrMult = 1.5;
+      } else if (preset === `aggressive`) {
+        appState.maxPos = 3;
+        appState.maxSec = 2;
+        appState.atrMult = 2.5;
+      } else {
+        appState.maxPos = 4;
+        appState.maxSec = 2;
+        appState.atrMult = 2.0;
+      }
+      applyStateToUI();
+      switchTab(4);
+    }
+
+    function changeGlobalCase(caseId) {
+      appState.globalCase = caseId;
+      const m = CASE_METRICS[caseId] || CASE_METRICS[`06_HYBRID_SAXO`];
+      const eqEl = document.getElementById(`kpi-equity`);
+      const eqDEl = document.getElementById(`kpi-equity-delta`);
+      const ratEl = document.getElementById(`kpi-ratios`);
+      const ratDEl = document.getElementById(`kpi-ratios-delta`);
+      const mddEl = document.getElementById(`kpi-mdd`);
+      const mddDEl = document.getElementById(`kpi-mdd-delta`);
+      const cdEl = document.getElementById(`kpi-costdrag`);
+      const cdDEl = document.getElementById(`kpi-costdrag-delta`);
+      const posEl = document.getElementById(`kpi-positions`);
+      const posDEl = document.getElementById(`kpi-positions-delta`);
+
+      if (eqEl) eqEl.textContent = m.equity;
+      if (eqDEl) eqDEl.textContent = m.equityDelta;
+      if (ratEl) ratEl.textContent = m.ratios;
+      if (ratDEl) {
+        ratDEl.textContent = m.ratiosDelta;
+        ratDEl.className = `metric-delta ` + (m.ratiosDelta.indexOf(`Under`) !== -1 ? `warn` : ``);
+      }
+      if (mddEl) mddEl.textContent = m.mdd;
+      if (mddDEl) {
+        mddDEl.textContent = m.mddDelta;
+        mddDEl.className = `metric-delta ` + (m.mddDelta.indexOf(`Over`) !== -1 ? `neg` : (m.mddDelta.indexOf(`Nær`) !== -1 ? `warn` : ``));
+      }
+      if (cdEl) cdEl.textContent = m.costDrag;
+      if (cdDEl) cdDEl.textContent = m.costDragDelta;
+      if (posEl) posEl.textContent = m.positions;
+      if (posDEl) posDEl.textContent = m.positionsDelta;
+
+      saveState();
+    }
+
+    function resetDashboardState(btn) {
+      if (btn && btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.textContent = `Trykk igjen for å nullstille`;
+        setTimeout(function() {
+          if (btn.dataset.armed === `true`) {
+            btn.dataset.armed = `false`;
+            btn.textContent = `Nullstill visning`;
+          }
+        }, 3000);
+        return;
+      }
+      if (btn) {
+        btn.dataset.armed = `false`;
+        btn.textContent = `Nullstill visning`;
+      }
+      appState = {
+        activeTab: 1,
+        globalCase: `06_HYBRID_SAXO`,
+        exoMode: true,
+        equityMode: `equity`,
+        broker: `saxo`,
+        capital: 100000,
+        maxPos: 4,
+        maxSec: 2,
+        atrMult: 2.0,
+        slippage: 1.5,
+        spreadBps: 5,
+        tradesPerYear: 48,
+        selectedTicker: `EQNR.OL`,
+        sortCol: `turnover`,
+        sortDir: `desc`
+      };
+      applyStateToUI();
+      saveState();
+    }
+
+    /* ======================================================================
+       TAB 1: STRATEGY DETAILS & LIVE RULE SANDBOX
+       ====================================================================== */
+    function setExogenousMode(isOn) {
+      appState.exoMode = isOn;
+      const btnOn = document.getElementById(`btn-exo-on`);
+      const btnOff = document.getElementById(`btn-exo-off`);
+      const mrBadge = document.getElementById(`mr-code-badge`);
+      const tbBadge = document.getElementById(`tb-code-badge`);
+      const mrBlock = document.getElementById(`mr-exo-block`);
+      const tbBlock = document.getElementById(`tb-exo-block`);
+
+      if (btnOn) btnOn.classList.toggle(`active`, isOn);
+      if (btnOff) btnOff.classList.toggle(`active`, !isOn);
+      if (mrBadge) mrBadge.textContent = isOn ? `EXO_MR` : `ENDO_MR`;
+      if (tbBadge) tbBadge.textContent = isOn ? `EXO_TB` : `ENDO_TB`;
+      if (mrBlock) mrBlock.style.opacity = isOn ? `1` : `0.38`;
+      if (tbBlock) tbBlock.style.opacity = isOn ? `1` : `0.38`;
+
+      evaluateRuleSandbox();
+      saveState();
+    }
+
+    function evaluateRuleSandbox() {
+      const stratEl = document.getElementById(`eval-strategy`);
+      const secEl = document.getElementById(`eval-sector`);
+      const rsiEl = document.getElementById(`sim-rsi2`);
+      const smaEl = document.getElementById(`sim-sma200`);
+      const highEl = document.getElementById(`sim-high20`);
+      const volEl = document.getElementById(`sim-vol`);
+      const vixEl = document.getElementById(`sim-vix`);
+      const brentEl = document.getElementById(`sim-brent`);
+      const secMomEl = document.getElementById(`sim-secmom`);
+      const advEl = document.getElementById(`sim-adv`);
+
+      if (!stratEl || !rsiEl) return;
+
+      const strat = stratEl.value;
+      const sector = secEl ? secEl.value : `Energi`;
+      const rsi2 = parseFloat(rsiEl.value);
+      const smaDiff = parseFloat(smaEl.value);
+      const highDiff = parseFloat(highEl.value);
+      const volRatio = parseFloat(volEl.value);
+      const vix = parseFloat(vixEl.value);
+      const brent = parseFloat(brentEl.value);
+      const secMom = parseFloat(secMomEl.value);
+      const adv = parseFloat(advEl.value);
+
+      const vRsi = document.getElementById(`val-rsi2`);
+      const vSma = document.getElementById(`val-sma200`);
+      const vHigh = document.getElementById(`val-high20`);
+      const vVol = document.getElementById(`val-vol`);
+      const vVix = document.getElementById(`val-vix`);
+      const vBrent = document.getElementById(`val-brent`);
+      const vSecMom = document.getElementById(`val-secmom`);
+      const vAdv = document.getElementById(`val-adv`);
+
+      if (vRsi) vRsi.textContent = rsi2.toFixed(1);
+      if (vSma) vSma.textContent = (smaDiff >= 0 ? `+` : ``) + smaDiff.toFixed(1) + ` %`;
+      if (vHigh) vHigh.textContent = (highDiff >= 0 ? `+` : ``) + highDiff.toFixed(1) + ` %`;
+      if (vVol) vVol.textContent = volRatio.toFixed(2) + `x`;
+      if (vVix) vVix.textContent = vix.toFixed(1);
+      if (vBrent) vBrent.textContent = (brent >= 0 ? `+` : ``) + brent.toFixed(1) + ` %`;
+      if (vSecMom) vSecMom.textContent = (secMom >= 0 ? `+` : ``) + secMom.toFixed(1) + ` %`;
+      if (vAdv) vAdv.textContent = adv.toFixed(0) + ` MNOK`;
+
+      const checks = [];
+      checks.push({
+        name: `Likviditet ADV ≥ 50 MNOK`,
+        pass: adv >= 50,
+        detail: `${adv.toFixed(0)} MNOK`
+      });
+
+      if (strat === `MEAN_REVERSION`) {
+        checks.push({ name: `Close > SMA200 (Opptrend)`, pass: smaDiff > 0, detail: `${smaDiff.toFixed(1)} %` });
+        checks.push({ name: `RSI(2) < 10 (Oversolgt)`, pass: rsi2 < 10, detail: `RSI(2) = ${rsi2.toFixed(1)}` });
+      } else {
+        checks.push({ name: `Close > High20 (20d Utbrudd)`, pass: highDiff > 0, detail: `${highDiff.toFixed(1)} %` });
+        checks.push({ name: `Volum > 1,3x VolSMA20`, pass: volRatio > 1.3, detail: `${volRatio.toFixed(2)}x` });
+      }
+
+      if (appState.exoMode) {
+        checks.push({ name: `VIX < 25 (Regimefilter)`, pass: vix < 25, detail: `VIX = ${vix.toFixed(1)}` });
+        if (strat === `MEAN_REVERSION` && (sector === `Energi` || sector === `Shipping`)) {
+          checks.push({ name: `Brent 2d > -2,5 % (${sector})`, pass: brent > -2.5, detail: `${brent.toFixed(1)} %` });
+        }
+        if (strat === `TREND_BREAKOUT`) {
+          checks.push({ name: `Sektormomentum 10d > 0 %`, pass: secMom > 0, detail: `${secMom.toFixed(1)} %` });
+        }
+      }
+
+      const allPassed = checks.every(function(c) { return c.pass; });
+      const chip = document.getElementById(`eval-verdict-chip`);
+      const title = document.getElementById(`eval-verdict-title`);
+      const desc = document.getElementById(`eval-verdict-desc`);
+      const list = document.getElementById(`eval-checklist`);
+
+      if (chip) {
+        chip.className = `status-chip ` + (allPassed ? `chip-sage` : `chip-error`);
+        chip.textContent = allPassed ? `KJØPSSIGNAL GODKJENT` : `SIGNAL BLOKKERT`;
+      }
+      if (title) {
+        title.textContent = allPassed
+          ? `Sendes til Gemini Risikomanager & Telegram HITL`
+          : `Ingen ordre — regelkrav ikke oppfylt`;
+      }
+      if (desc) {
+        const stopMult = strat === `MEAN_REVERSION` ? `2,0 × ATR(14)` : `2,5 × ATR(14)`;
+        desc.textContent = allPassed
+          ? `Strategi (${appState.exoMode ? `Eksogen aktiv` : `Kun endogen`}) passerer alle kontroller. Planlagt stop-loss: ${stopMult}, utførelse på Open T+1.`
+          : `Minst én regel feilet i evalueringen. Systemet logger avslaget i DuckDB uten å sende ordre til Saxo OpenAPI.`;
+      }
+      if (list) {
+        list.innerHTML = checks.map(function(c) {
+          return `<li class="rule-item">
+            <div>
+              <strong>${c.name}</strong>
+              <span class="rule-desc">Målt verdi: <span class="mono">${c.detail}</span></span>
+            </div>
+            <span class="status-chip ${c.pass ? `chip-sage` : `chip-error`}">${c.pass ? `OK` : `FEIL`}</span>
+          </li>`;
+        }).join(``);
+      }
+    }
+
+    /* ======================================================================
+       TAB 2: PERFORMANCE ATTRIBUTION & TABLES
+       ====================================================================== */
+    function renderTab2Tables() {
+      const abBody = document.getElementById(`ablation-tbody`);
+      if (abBody) {
+        abBody.innerHTML = ABLATION_ROWS.map(function(r) {
+          return `<tr>
+            <td class="mono" style="font-weight: 600;">${r.id}</td>
+            <td class="num">${r.trades}</td>
+            <td class="num" style="color: var(--tertiary);">+${r.netRet.toFixed(2)} %</td>
+            <td class="num">+${r.beta.toFixed(2)} %</td>
+            <td class="num">+${r.sector.toFixed(2)} %</td>
+            <td class="num" style="color: var(--primary); font-weight: 600;">+${r.alpha.toFixed(2)} %</td>
+            <td class="num">${r.sortino.toFixed(2)}</td>
+            <td class="num" style="color: var(--error);">${r.mdd.toFixed(1)} %</td>
+            <td class="num">${r.costDrag.toFixed(1)} %</td>
+            <td><span class="status-chip ${r.chip}">${r.status}</span></td>
+          </tr>`;
+        }).join(``);
+      }
+
+      const secBody = document.getElementById(`sector-attr-tbody`);
+      if (secBody) {
+        secBody.innerHTML = SECTOR_ATTR_ROWS.map(function(s) {
+          const pnlColor = s.netPnl >= 0 ? `var(--tertiary)` : `var(--error)`;
+          const pnlPrefix = s.netPnl >= 0 ? `+` : ``;
+          return `<tr>
+            <td style="font-weight: 600;">${s.sector}</td>
+            <td class="num">${s.trades}</td>
+            <td class="num">${s.winRate.toFixed(1)} %</td>
+            <td class="num" style="color: ${pnlColor}; font-weight: 600;">${pnlPrefix}${s.netPnl.toLocaleString(`nb-NO`)} kr</td>
+            <td class="num">${s.fees} kr</td>
+          </tr>`;
+        }).join(``);
+      }
+    }
+
+    function setEquityChartMode(mode) {
+      appState.equityMode = mode;
+      const b1 = document.getElementById(`btn-eq-return`);
+      const b2 = document.getElementById(`btn-eq-dd`);
+      if (b1) b1.classList.toggle(`active`, mode === `equity`);
+      if (b2) b2.classList.toggle(`active`, mode === `drawdown`);
+      renderEquityChart();
+      saveState();
+    }
+
+    function renderAttributionChart() {
+      const ctx = document.getElementById(`chart-attribution-bar`);
+      if (!ctx || typeof Chart === `undefined`) return;
+      if (charts.attrBar) charts.attrBar.destroy();
+
+      const c1 = getToken(`--data-context`);
+      const c2 = getToken(`--data-3`);
+      const c3 = getToken(`--data-1`);
+      const c4 = getToken(`--data-4`);
+      const textCol = getToken(`--on-surface-variant`);
+      const gridCol = getToken(`--outline-variant`);
+
+      charts.attrBar = new Chart(ctx, {
+        type: `bar`,
+        data: {
+          labels: ABLATION_ROWS.map(function(r) { return r.id; }),
+          datasets: [
+            { label: `Markedsbeta (OBX)`, data: ABLATION_ROWS.map(function(r) { return r.beta; }), backgroundColor: c1, borderRadius: 3 },
+            { label: `Sektor & Råvare`, data: ABLATION_ROWS.map(function(r) { return r.sector; }), backgroundColor: c2, borderRadius: 3 },
+            { label: `Ren Strategi-Alfa`, data: ABLATION_ROWS.map(function(r) { return r.alpha; }), backgroundColor: c3, borderRadius: 3 },
+            { label: `Friksjon / Cost Drag (estimert trekk)`, data: [-0.21, -0.16, -0.20, -0.15, -0.16, -0.17], backgroundColor: c4, borderRadius: 3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: textCol, font: { family: `Geist Mono`, size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: function(item) { return `${item.dataset.label}: ${item.parsed.y > 0 ? `+` : ``}${item.parsed.y.toFixed(2)} % per handel`; }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { display: false } },
+            y: {
+              stacked: true,
+              ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 }, callback: function(v) { return v.toFixed(1) + ` %`; } },
+              grid: { color: gridCol }
+            }
+          }
+        }
+      });
+    }
+
+    function renderEquityChart() {
+      const ctx = document.getElementById(`chart-equity-curve`);
+      if (!ctx || typeof Chart === `undefined`) return;
+      if (charts.equityCurve) charts.equityCurve.destroy();
+
+      const labels = [`Jan 24`, `Apr 24`, `Jul 24`, `Okt 24`, `Jan 25`, `Apr 25`, `Jul 25`, `Okt 25`, `Jan 26`, `Apr 26`, `Jul 26`, `Okt 26`, `Nov 26`];
+      const hybridEq = [100000, 103800, 107200, 105400, 112600, 116900, 119800, 125400, 129100, 127200, 132600, 136900, 138420];
+      const exoMrEq =  [100000, 102900, 105100, 104200, 109800, 113400, 116100, 120500, 124200, 123000, 127100, 130400, 131850];
+      const obxEq =    [100000, 102100, 104600, 101800, 106200, 108900, 111200, 114800, 117900, 115100, 119800, 123400, 124800];
+
+      const hybridDD = [0, -1.2, -2.4, -4.8, -2.1, -3.5, -5.2, -3.1, -4.9, -11.4, -4.2, -1.8, -0.9];
+      const exoMrDD =  [0, -1.8, -3.1, -5.6, -2.8, -4.1, -6.0, -4.2, -5.8, -11.9, -5.0, -2.4, -1.2];
+      const obxDD =    [0, -2.9, -4.5, -8.4, -4.1, -6.2, -7.8, -5.9, -7.4, -14.8, -6.9, -3.5, -2.2];
+
+      const c1 = getToken(`--data-1`);
+      const c2 = getToken(`--data-2`);
+      const cCtx = getToken(`--data-context`);
+      const cFillCyan = getToken(`--chart-fill-cyan`);
+      const textCol = getToken(`--on-surface-variant`);
+      const gridCol = getToken(`--outline-variant`);
+      const isDD = appState.equityMode === `drawdown`;
+
+      charts.equityCurve = new Chart(ctx, {
+        type: `line`,
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: `06_HYBRID_SAXO (Gemini + Eksogen)`,
+              data: isDD ? hybridDD : hybridEq,
+              borderColor: c1,
+              backgroundColor: cFillCyan,
+              fill: !isDD,
+              borderWidth: 2.2,
+              tension: 0.25,
+              pointRadius: 2.5
+            },
+            {
+              label: `02_EXO_MR (Mean Reversion 10d)`,
+              data: isDD ? exoMrDD : exoMrEq,
+              borderColor: c2,
+              borderWidth: 2,
+              tension: 0.25,
+              pointRadius: 2
+            },
+            {
+              label: `OBX Indeks (Referanse)`,
+              data: isDD ? obxDD : obxEq,
+              borderColor: cCtx,
+              borderDash: [5, 5],
+              borderWidth: 1.8,
+              tension: 0.25,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: textCol, font: { family: `Geist Mono`, size: 11 } } }
+          },
+          scales: {
+            x: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { display: false } },
+            y: {
+              ticks: {
+                color: textCol,
+                font: { family: `Geist Mono`, size: 11 },
+                callback: function(v) { return isDD ? `${v.toFixed(0)} %` : `${(v / 1000).toFixed(0)}k`; }
+              },
+              grid: { color: gridCol }
+            }
+          }
+        }
+      });
+    }
+
+    /* ======================================================================
+       TAB 3: DRIFT MONITORING
+       ====================================================================== */
+    function renderTab3Tables() {
+      const tbody = document.getElementById(`rejection-tbody`);
+      if (tbody) {
+        tbody.innerHTML = REJECTION_ROWS.map(function(r) {
+          const retCol = r.hypRet >= 0 ? `var(--tertiary)` : `var(--error)`;
+          const prefix = r.hypRet >= 0 ? `+` : ``;
+          return `<tr>
+            <td class="mono" style="font-weight: 600;">${r.code}</td>
+            <td class="num">${r.count}</td>
+            <td class="num">${r.winRate.toFixed(1)} %</td>
+            <td class="num" style="color: ${retCol}; font-weight: 600;">${prefix}${r.hypRet.toFixed(2)} %</td>
+            <td class="num">${r.slRate.toFixed(1)} %</td>
+            <td><span class="status-chip ${r.chip}">${r.note}</span></td>
+          </tr>`;
+        }).join(``);
+      }
+    }
+
+    function renderConceptDriftChart() {
+      const ctx = document.getElementById(`chart-concept-drift`);
+      if (!ctx || typeof Chart === `undefined`) return;
+      if (charts.conceptDrift) charts.conceptDrift.destroy();
+
+      const labels = [`Jan 25`, `Mar 25`, `Mai 25`, `Jul 25`, `Sep 25`, `Nov 25`, `Jan 26`, `Mar 26`, `Mai 26`, `Jul 26`, `Sep 26`, `Nov 26`];
+      const sortino60 = [1.42, 1.56, 1.64, 1.58, 1.71, 1.82, 1.76, 1.48, 1.14, 1.39, 1.58, 1.68];
+      const threshold = [1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20, 1.20];
+      const alfa60 =    [0.72, 0.85, 0.91, 0.88, 1.04, 1.12, 1.05, 0.78, 0.41, 0.69, 0.92, 1.00];
+
+      const c1 = getToken(`--data-1`);
+      const c2 = getToken(`--data-2`);
+      const cErr = getToken(`--error`);
+      const cFillCyan = getToken(`--chart-fill-cyan`);
+      const textCol = getToken(`--on-surface-variant`);
+      const gridCol = getToken(`--outline-variant`);
+
+      charts.conceptDrift = new Chart(ctx, {
+        type: `line`,
+        data: {
+          labels: labels,
+          datasets: [
+            { label: `Rullende 60d Sortino Ratio`, data: sortino60, borderColor: c1, backgroundColor: cFillCyan, fill: true, borderWidth: 2.2, tension: 0.25, yAxisID: `y` },
+            { label: `Minimumsgrense Sortino (1.20)`, data: threshold, borderColor: cErr, borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, yAxisID: `y` },
+            { label: `Rullende 60d Ren Alfa (% / trade)`, data: alfa60, borderColor: c2, borderWidth: 2, tension: 0.25, yAxisID: `y1` }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textCol, font: { family: `Geist Mono`, size: 11 } } } },
+          scales: {
+            x: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { display: false } },
+            y: {
+              position: `left`,
+              min: 0.8,
+              max: 2.1,
+              ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } },
+              grid: { color: gridCol }
+            },
+            y1: {
+              position: `right`,
+              min: 0.0,
+              max: 1.5,
+              ticks: { color: c2, font: { family: `Geist Mono`, size: 11 }, callback: function(v) { return `+${v.toFixed(1)}%`; } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function renderShadowReasonsChart() {
+      const ctx = document.getElementById(`chart-shadow-reasons`);
+      if (!ctx || typeof Chart === `undefined`) return;
+      if (charts.shadowReasons) charts.shadowReasons.destroy();
+
+      const cErr = getToken(`--error`);
+      const cSage = getToken(`--tertiary`);
+      const cAmber = getToken(`--warning`);
+      const textCol = getToken(`--on-surface-variant`);
+      const gridCol = getToken(`--outline-variant`);
+
+      charts.shadowReasons = new Chart(ctx, {
+        type: `bar`,
+        data: {
+          labels: REJECTION_ROWS.map(function(r) { return r.code; }),
+          datasets: [{
+            label: `Hypotetisk 10d netto avkastning (%)`,
+            data: REJECTION_ROWS.map(function(r) { return r.hypRet; }),
+            backgroundColor: REJECTION_ROWS.map(function(r) {
+              if (r.code === `MACRO_NOISE`) return cAmber;
+              return r.hypRet < 0 ? cErr : cSage;
+            }),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: `y`,
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textCol, font: { family: `Geist Mono`, size: 11 } } } },
+          scales: {
+            x: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 }, callback: function(v) { return `${v}%`; } }, grid: { color: gridCol } },
+            y: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderDataDriftChart() {
+      const ctx = document.getElementById(`chart-data-drift`);
+      if (!ctx || typeof Chart === `undefined`) return;
+      if (charts.dataDrift) charts.dataDrift.destroy();
+
+      const sortedByTurn = OBX_STOCKS.slice().sort(function(a, b) { return a.turnover - b.turnover; }).slice(0, 8);
+      const c1 = getToken(`--data-1`);
+      const cAmber = getToken(`--warning`);
+      const textCol = getToken(`--on-surface-variant`);
+      const gridCol = getToken(`--outline-variant`);
+
+      charts.dataDrift = new Chart(ctx, {
+        type: `bar`,
+        data: {
+          labels: sortedByTurn.map(function(s) { return s.ticker.replace(`.OL`, ``); }),
+          datasets: [{
+            label: `20d snittomsetning (MNOK · grense 50 MNOK)`,
+            data: sortedByTurn.map(function(s) { return s.turnover; }),
+            backgroundColor: sortedByTurn.map(function(s) { return s.turnover < 80 ? cAmber : c1; }),
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textCol, font: { family: `Geist Mono`, size: 11 } } } },
+          scales: {
+            x: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { display: false } },
+            y: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { color: gridCol } }
+          }
+        }
+      });
+    }
+
+    /* ======================================================================
+       TAB 4: PORTFOLIO & FEE SIMULATOR
+       ====================================================================== */
+    function syncCapitalFromSlider(val) {
+      const num = parseInt(val, 10) || 100000;
+      appState.capital = num;
+      const inp = document.getElementById(`input-capital`);
+      if (inp) inp.value = num;
+      recalcPortfolioSim();
+    }
+
+    function syncCapitalFromNumber(val) {
+      let num = parseInt(val, 10);
+      if (isNaN(num)) return;
+      num = Math.max(50000, Math.min(500000, num));
+      appState.capital = num;
+      const sld = document.getElementById(`slider-capital`);
+      if (sld) sld.value = num;
+      recalcPortfolioSim();
+    }
+
+    function setBroker(broker) {
+      appState.broker = broker;
+      const bS = document.getElementById(`btn-broker-saxo`);
+      const bN = document.getElementById(`btn-broker-nordnet`);
+      if (bS) bS.classList.toggle(`active`, broker === `saxo`);
+      if (bN) bN.classList.toggle(`active`, broker === `nordnet`);
+      recalcPortfolioSim();
+    }
+
+    function calcFeeOneWay(orderSize, broker) {
+      if (broker === `saxo`) {
+        return Math.max(10, orderSize * 0.0008);
+      }
+      return Math.max(29, orderSize * 0.0015);
+    }
+
+    function recalcPortfolioSim() {
+      const maxPosEl = document.getElementById(`sim-max-pos`);
+      const maxSecEl = document.getElementById(`sim-max-sec`);
+      const atrEl = document.getElementById(`sim-atr-mult`);
+      const slipEl = document.getElementById(`sim-slippage`);
+      const sprEl = document.getElementById(`sim-spread`);
+      const trEl = document.getElementById(`sim-trades-yr`);
+
+      if (!maxPosEl) return;
+
+      appState.maxPos = parseInt(maxPosEl.value, 10);
+      appState.maxSec = parseInt(maxSecEl.value, 10);
+      appState.atrMult = parseFloat(atrEl.value);
+      appState.slippage = parseFloat(slipEl.value);
+      appState.spreadBps = parseInt(sprEl.value, 10);
+      appState.tradesPerYear = parseInt(trEl.value, 10);
+
+      const lblPos = document.getElementById(`lbl-max-pos`);
+      const lblSec = document.getElementById(`lbl-max-sec`);
+      const lblAtr = document.getElementById(`lbl-atr-mult`);
+      const lblSlip = document.getElementById(`lbl-slippage`);
+      const lblSpr = document.getElementById(`lbl-spread`);
+      const lblTr = document.getElementById(`lbl-trades-yr`);
+
+      if (lblPos) lblPos.textContent = appState.maxPos;
+      if (lblSec) lblSec.textContent = appState.maxSec;
+      if (lblAtr) lblAtr.textContent = appState.atrMult.toFixed(2) + `x`;
+      if (lblSlip) lblSlip.textContent = appState.slippage.toFixed(1) + ` %`;
+      if (lblSpr) lblSpr.textContent = appState.spreadBps + ` bps`;
+      if (lblTr) lblTr.textContent = appState.tradesPerYear;
+
+      const posSize = Math.round(appState.capital / appState.maxPos);
+      const secCapPct = Math.round((appState.maxSec / appState.maxPos) * 100);
+
+      const saxoOneWay = calcFeeOneWay(posSize, `saxo`);
+      const nordnetOneWay = calcFeeOneWay(posSize, `nordnet`);
+      const spreadRoundTrip = posSize * (appState.spreadBps * 2 / 10000);
+
+      const activeCommRoundTrip = (appState.broker === `saxo` ? saxoOneWay : nordnetOneWay) * 2;
+      const activeTotalRoundTrip = activeCommRoundTrip + spreadRoundTrip;
+      const activeFrictionPct = (activeTotalRoundTrip / posSize) * 100;
+
+      const saxoCustodyYr = appState.capital * 0.0012;
+      const activeCustodyYr = appState.broker === `saxo` ? saxoCustodyYr : 0;
+      const annualTotalFees = (activeTotalRoundTrip * appState.tradesPerYear) + activeCustodyYr;
+
+      const saxoAnnual = ((saxoOneWay * 2 + spreadRoundTrip) * appState.tradesPerYear) + saxoCustodyYr;
+      const nordnetAnnual = ((nordnetOneWay * 2 + spreadRoundTrip) * appState.tradesPerYear);
+      const diffPct = Math.round(((nordnetAnnual - saxoAnnual) / nordnetAnnual) * 100);
+
+      // Assume gross expected gain ~17.5% per year on capital for Cost Drag estimate
+      const estGrossGain = appState.capital * 0.175;
+      const estCostDrag = (annualTotalFees / estGrossGain) * 100;
+
+      // Avg ATR% across OBX 15 is ~2.14%
+      const stopRiskNok = Math.round(posSize * 0.0214 * appState.atrMult);
+      const stopRiskPct = (stopRiskNok / appState.capital) * 100;
+
+      const outPos = document.getElementById(`sim-out-possize`);
+      const outSec = document.getElementById(`sim-out-seccap`);
+      const outRt = document.getElementById(`sim-out-roundtrip`);
+      const outBps = document.getElementById(`sim-out-bps`);
+      const outAnn = document.getElementById(`sim-out-annualfee`);
+      const outCd = document.getElementById(`sim-out-costdrag`);
+      const outRisk = document.getElementById(`sim-out-risk`);
+      const outRiskPct = document.getElementById(`sim-out-riskpct`);
+
+      if (outPos) outPos.textContent = posSize.toLocaleString(`nb-NO`) + ` NOK`;
+      if (outSec) outSec.textContent = `Maks ${secCapPct} % (${appState.maxSec} plasser) per sektor`;
+      if (outRt) outRt.textContent = Math.round(activeTotalRoundTrip).toLocaleString(`nb-NO`) + ` NOK`;
+      if (outBps) {
+        outBps.textContent = `${activeFrictionPct.toFixed(2)} % friksjon · Saxo ${diffPct >= 0 ? `sparer ${diffPct} %` : `dyrere`}`;
+        outBps.className = `metric-delta ` + (appState.broker === `saxo` ? `` : `warn`);
+      }
+      if (outAnn) outAnn.textContent = Math.round(annualTotalFees).toLocaleString(`nb-NO`) + ` NOK`;
+      if (outCd) {
+        outCd.textContent = `Estimert Cost Drag: ${estCostDrag.toFixed(1)} % (${estCostDrag < 20 ? `< 20 % OK` : `> 20 % HØY`})`;
+        outCd.className = `metric-delta ` + (estCostDrag < 20 ? `` : `neg`);
+      }
+      if (outRisk) outRisk.textContent = stopRiskNok.toLocaleString(`nb-NO`) + ` NOK`;
+      if (outRiskPct) outRiskPct.textContent = `${stopRiskPct.toFixed(2)} % av egenkapital per handel`;
+
+      if (appState.activeTab === 4) {
+        renderBrokerCostChart(saxoAnnual, nordnetAnnual);
+      }
+      saveState();
+    }
+
+    function renderBrokerCostChart(saxoYr, nordnetYr) {
+      const ctx = document.getElementById(`chart-broker-costs`);
+      if (!ctx || typeof Chart === `undefined`) return;
+      if (charts.brokerCosts) charts.brokerCosts.destroy();
+
+      if (typeof saxoYr !== `number`) {
+        const posSize = Math.round(appState.capital / appState.maxPos);
+        const spreadRoundTrip = posSize * (appState.spreadBps * 2 / 10000);
+        saxoYr = ((calcFeeOneWay(posSize, `saxo`) * 2 + spreadRoundTrip) * appState.tradesPerYear) + (appState.capital * 0.0012);
+        nordnetYr = ((calcFeeOneWay(posSize, `nordnet`) * 2 + spreadRoundTrip) * appState.tradesPerYear);
+      }
+
+      const years = [`År 1`, `År 2`, `År 3`, `År 4`, `År 5`];
+      const saxoSeries = [1, 2, 3, 4, 5].map(function(y) { return Math.round(saxoYr * y); });
+      const nordnetSeries = [1, 2, 3, 4, 5].map(function(y) { return Math.round(nordnetYr * y); });
+
+      const c1 = getToken(`--data-1`);
+      const c4 = getToken(`--data-4`);
+      const textCol = getToken(`--on-surface-variant`);
+      const gridCol = getToken(`--outline-variant`);
+
+      charts.brokerCosts = new Chart(ctx, {
+        type: `bar`,
+        data: {
+          labels: years,
+          datasets: [
+            { label: `Saxo Classic (inkl. 0,12 % depot)`, data: saxoSeries, backgroundColor: c1, borderRadius: 3 },
+            { label: `Nordnet Mini (0 kr depot)`, data: nordnetSeries, backgroundColor: c4, borderRadius: 3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textCol, font: { family: `Geist Mono`, size: 11 } } } },
+          scales: {
+            x: { ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 } }, grid: { display: false } },
+            y: {
+              ticks: { color: textCol, font: { family: `Geist Mono`, size: 11 }, callback: function(v) { return `${v.toLocaleString(`nb-NO`)} kr`; } },
+              grid: { color: gridCol }
+            }
+          }
+        }
+      });
+    }
+
+    /* ======================================================================
+       TAB 5: OBX 15 STOCK TABLE, SPARKLINES & INSPECTOR
+       ====================================================================== */
+    function buildSparklineSvg(series, isPositive) {
+      const min = Math.min.apply(null, series);
+      const max = Math.max.apply(null, series);
+      const range = max - min || 1;
+      const w = 112;
+      const h = 30;
+      const pad = 3;
+      const pts = series.map(function(v, idx) {
+        const x = pad + (idx / (series.length - 1)) * (w - pad * 2);
+        const y = h - pad - ((v - min) / range) * (h - pad * 2);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(` `);
+      const stroke = isPositive ? `var(--tertiary)` : `var(--error)`;
+      return `<svg class="sparkline-svg" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+        <polyline fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
+      </svg>`;
+    }
+
+    function getStatusBadgeClass(status) {
+      if (status === `OPEN`) return `chip-sage`;
+      if (status === `PENDING`) return `chip-cyan`;
+      if (status === `NOGO`) return `chip-error`;
+      return `chip-muted`;
+    }
+
+    function sortStocks(col) {
+      if (appState.sortCol === col) {
+        appState.sortDir = appState.sortDir === `asc` ? `desc` : `asc`;
+      } else {
+        appState.sortCol = col;
+        appState.sortDir = col === `ticker` ? `asc` : `desc`;
+      }
+      renderStockTable();
+      saveState();
+    }
+
+    function selectStock(ticker) {
+      appState.selectedTicker = ticker;
+      renderStockTable();
+      renderStockInspector();
+      saveState();
+    }
+
+    function renderStockTable() {
+      const tbody = document.getElementById(`obx-stock-tbody`);
+      if (!tbody) return;
+
+      const searchEl = document.getElementById(`stock-search`);
+      const secEl = document.getElementById(`stock-sector-filter`);
+      const stEl = document.getElementById(`stock-status-filter`);
+
+      const q = searchEl ? searchEl.value.trim().toLowerCase() : ``;
+      const sec = secEl ? secEl.value : `ALLE`;
+      const st = stEl ? stEl.value : `ALLE`;
+
+      const filtered = OBX_STOCKS.filter(function(s) {
+        const matchQ = !q || s.ticker.toLowerCase().indexOf(q) !== -1 || s.name.toLowerCase().indexOf(q) !== -1;
+        const matchSec = sec === `ALLE` || s.sector === sec;
+        const matchSt = st === `ALLE` || s.status === st;
+        return matchQ && matchSec && matchSt;
+      });
+
+      filtered.sort(function(a, b) {
+        let va = a[appState.sortCol];
+        let vb = b[appState.sortCol];
+        if (typeof va === `string`) {
+          return appState.sortDir === `asc` ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return appState.sortDir === `asc` ? va - vb : vb - va;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: var(--space-lg); color: var(--on-surface-variant);">Ingen OBX-aksjer matcher gjeldende filter. Nullstill søkefelt eller sektorvalg.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(function(s) {
+        const isPos = s.series[s.series.length - 1] >= s.series[0];
+        const chgColor = s.change >= 0 ? `var(--tertiary)` : `var(--error)`;
+        const chgPrefix = s.change >= 0 ? `+` : ``;
+        const liqPct = Math.min(100, Math.round((s.turnover / 500) * 100));
+        const liqColor = s.turnover < 80 ? `var(--warning)` : `var(--primary)`;
+        const isSel = s.ticker === appState.selectedTicker;
+
+        return `<tr class="clickable ${isSel ? `selected-row` : ``}" onclick="selectStock('${s.ticker}')">
+          <td>
+            <div style="font-weight: 600;">${s.ticker}</div>
+            <div style="font-size: 0.78rem; color: var(--on-surface-variant);">${s.name} · ${s.sector}</div>
+          </td>
+          <td>${buildSparklineSvg(s.series, isPos)}</td>
+          <td class="num">${s.close.toFixed(2)} kr</td>
+          <td class="num" style="color: ${chgColor}; font-weight: 600;">${chgPrefix}${s.change.toFixed(2)} %</td>
+          <td class="num">
+            <span>${s.turnover}</span>
+            <span class="mini-bar-track"><span class="mini-bar-fill" style="width: ${liqPct}%; background: ${liqColor};"></span></span>
+          </td>
+          <td class="num">${s.tick.toFixed(2)}</td>
+          <td class="num" style="color: ${s.rsi2 < 10 ? `var(--primary)` : `var(--on-surface)`};">${s.rsi2.toFixed(1)}</td>
+          <td><span class="status-chip ${getStatusBadgeClass(s.status)}">${s.statusLabel}</span></td>
+        </tr>`;
+      }).join(``);
+    }
+
+    function renderStockInspector() {
+      const box = document.getElementById(`stock-inspector`);
+      if (!box) return;
+
+      const s = OBX_STOCKS.find(function(x) { return x.ticker === appState.selectedTicker; }) || OBX_STOCKS[0];
+      const chgColor = s.change >= 0 ? `var(--tertiary)` : `var(--error)`;
+      const chgPrefix = s.change >= 0 ? `+` : ``;
+
+      let posHtml = ``;
+      if (s.status === `OPEN`) {
+        const pnlPct = ((s.close - s.entryPrice) / s.entryPrice) * 100;
+        const pnlNok = Math.round((s.close - s.entryPrice) * s.shares);
+        posHtml = `<div class="panel-compact" style="border-color: var(--sage-border);">
+          <span class="data-label" style="color: var(--tertiary);">Aktiv posisjon (${s.shares} aksjer)</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin-top: var(--space-xs); font-size: 0.875rem;">
+            <div>Inngang: <strong class="mono">${s.entryPrice.toFixed(2)} kr</strong></div>
+            <div>Stop-Loss: <strong class="mono" style="color: var(--error);">${s.stopLoss.toFixed(2)} kr</strong></div>
+            <div>Urealisert: <strong class="mono" style="color: var(--tertiary);">+${pnlNok.toLocaleString(`nb-NO`)} kr</strong></div>
+            <div>Avkastning: <strong class="mono" style="color: var(--tertiary);">+${pnlPct.toFixed(2)} %</strong></div>
+          </div>
+        </div>`;
+      } else if (s.status === `PENDING`) {
+        posHtml = `<div class="panel-compact" style="border-color: var(--cyan-border);">
+          <span class="data-label" style="color: var(--primary);">Telegram HITL · Venter på godkjenning</span>
+          <p style="font-size: 0.8125rem; margin-top: var(--space-xs);">
+            Foreslått limit: <strong class="mono">${s.entryPrice.toFixed(2)} kr</strong> (${s.shares} aksjer) · Stop-Loss: <strong class="mono">${s.stopLoss.toFixed(2)} kr</strong>. Slippage-guardrail: maks 1,5 % avvik.
+          </p>
+        </div>`;
+      }
+
+      box.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-sm);">
+          <div>
+            <span class="data-label">${s.sector} · Oslo Børs (XOSL)</span>
+            <h3>${s.ticker} — ${s.name}</h3>
+          </div>
+          <span class="status-chip ${getStatusBadgeClass(s.status)}">${s.statusLabel}</span>
+        </div>
+
+        <div style="display: flex; align-items: baseline; gap: var(--space-md);">
+          <span class="metric-value" style="font-size: 1.75rem;">${s.close.toFixed(2)} NOK</span>
+          <span class="mono" style="color: ${chgColor}; font-weight: 600;">${chgPrefix}${s.change.toFixed(2)} %</span>
+        </div>
+
+        ${posHtml}
+
+        <div class="container-split" style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); font-size: 0.875rem;">
+          <div class="panel-compact">
+            <span class="data-label">Close vs SMA200</span>
+            <div class="mono" style="font-weight: 600; margin-top: 2px;">${s.sma200Diff >= 0 ? `+` : ``}${s.sma200Diff.toFixed(1)} %</div>
+          </div>
+          <div class="panel-compact">
+            <span class="data-label">RSI(2) / ATR(14)%</span>
+            <div class="mono" style="font-weight: 600; margin-top: 2px;">${s.rsi2.toFixed(1)} / ${s.atrPct.toFixed(2)} %</div>
+          </div>
+          <div class="panel-compact">
+            <span class="data-label">Omsetning (ADV)</span>
+            <div class="mono" style="font-weight: 600; margin-top: 2px;">${s.turnover} MNOK</div>
+          </div>
+          <div class="panel-compact">
+            <span class="data-label">Oslo Børs Tick-Size</span>
+            <div class="mono" style="font-weight: 600; margin-top: 2px;">${s.tick.toFixed(2)} NOK</div>
+          </div>
+        </div>
+
+        <div>
+          <span class="data-label">NewsWeb &amp; Kalenderkontekst</span>
+          <p style="font-size: 0.8125rem; margin-top: 4px;">${s.newsweb}</p>
+        </div>
+
+        <div>
+          <span class="data-label">Gemini AI-Risikovurdering</span>
+          <p style="font-size: 0.8125rem; margin-top: 4px; color: var(--on-surface);">${s.geminiNote}</p>
+        </div>
+      `;
+    }
+
+    function exportObxCsv() {
+      const headers = [`Ticker`, `Selskap`, `Sektor`, `Close_NOK`, `Dagsendring_Pct`, `Omsetning_MNOK`, `Tick_Size`, `RSI2`, `ATR_Pct`, `SMA200_Diff_Pct`, `Status`];
+      const rows = OBX_STOCKS.map(function(s) {
+        return [s.ticker, s.name, s.sector, s.close.toFixed(2), s.change.toFixed(2), s.turnover, s.tick.toFixed(2), s.rsi2.toFixed(1), s.atrPct.toFixed(2), s.sma200Diff.toFixed(1), s.statusLabel].join(`,`);
+      });
+      const csv = [headers.join(`,`)].concat(rows).join(`\n`);
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: csv,
+          contentType: `text/csv`,
+          encoding: `UTF-8`,
+          filename: `obx15_portefolje_2026_11_18.csv`
+        });
+        return;
+      }
+      const blob = new Blob([`\uFEFF` + csv], { type: `text/csv;charset=utf-8;` });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement(`a`);
+      link.href = url;
+      link.download = `obx15_portefolje_2026_11_18.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    async function syncLiveDuckDbData() {
+      const endpoints = [`/api/dashboard`, `./ui/dashboard_data.json`, `./dashboard_data.json`];
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, { cache: `no-store` });
+          if (!res.ok) continue;
+          const live = await res.json();
+          if (live && Array.isArray(live.obx15_snapshot) && live.obx15_snapshot.length > 0) {
+            const snapMap = new Map(live.obx15_snapshot.map(function(x) { return [x.ticker, x]; }));
+            OBX_STOCKS.forEach(function(stock) {
+              const s = snapMap.get(stock.ticker);
+              if (s) {
+                stock.close = Number(s.raw_close || stock.close);
+                stock.rsi2 = Number(s.rsi2 || stock.rsi2);
+                if (typeof s.ret_3d_pct === `number`) stock.change = s.ret_3d_pct;
+                if (Array.isArray(s.series_12d) && s.series_12d.length >= 4) stock.series = s.series_12d;
+                if (typeof s.adv_mnok === `number` && s.adv_mnok > 0) stock.turnover = Math.round(s.adv_mnok);
+                if (typeof s.tick_size === `number` && s.tick_size > 0) stock.tick = s.tick_size;
+              }
+            });
+            renderStockTable();
+            renderStockInspector();
+            if (appState.activeTab === 3) renderDataDriftChart();
+            break;
+          }
+        } catch (_) {}
+      }
+    }
+
+    /* ======================================================================
+       CHART ORCHESTRATION & INITIALIZATION
+       ====================================================================== */
+    function renderChartsForTab(tabNum) {
+      if (tabNum === 2) {
+        renderAttributionChart();
+        renderEquityChart();
+      } else if (tabNum === 3) {
+        renderConceptDriftChart();
+        renderShadowReasonsChart();
+        renderDataDriftChart();
+      } else if (tabNum === 4) {
+        recalcPortfolioSim();
+      }
+    }
+
+    function applyStateToUI() {
+      const caseSelect = document.getElementById(`global-case-select`);
+      if (caseSelect) caseSelect.value = appState.globalCase;
+      changeGlobalCase(appState.globalCase);
+
+      setExogenousMode(appState.exoMode);
+
+      const capSlider = document.getElementById(`slider-capital`);
+      const capInput = document.getElementById(`input-capital`);
+      const maxPos = document.getElementById(`sim-max-pos`);
+      const maxSec = document.getElementById(`sim-max-sec`);
+      const atrM = document.getElementById(`sim-atr-mult`);
+      const slip = document.getElementById(`sim-slippage`);
+      const spr = document.getElementById(`sim-spread`);
+      const trYr = document.getElementById(`sim-trades-yr`);
+
+      if (capSlider) capSlider.value = appState.capital;
+      if (capInput) capInput.value = appState.capital;
+      if (maxPos) maxPos.value = appState.maxPos;
+      if (maxSec) maxSec.value = appState.maxSec;
+      if (atrM) atrM.value = appState.atrMult;
+      if (slip) slip.value = appState.slippage;
+      if (spr) spr.value = appState.spreadBps;
+      if (trYr) trYr.value = appState.tradesPerYear;
+
+      const bS = document.getElementById(`btn-broker-saxo`);
+      const bN = document.getElementById(`btn-broker-nordnet`);
+      if (bS) bS.classList.toggle(`active`, appState.broker === `saxo`);
+      if (bN) bN.classList.toggle(`active`, appState.broker === `nordnet`);
+
+      const bEq = document.getElementById(`btn-eq-return`);
+      const bDd = document.getElementById(`btn-eq-dd`);
+      if (bEq) bEq.classList.toggle(`active`, appState.equityMode === `equity`);
+      if (bDd) bDd.classList.toggle(`active`, appState.equityMode === `drawdown`);
+
+      renderTab2Tables();
+      renderTab3Tables();
+      recalcPortfolioSim();
+      renderStockTable();
+      renderStockInspector();
+      switchTab(appState.activeTab || 1);
+    }
+
+    document.addEventListener(`DOMContentLoaded`, async function() {
+      if (typeof lucide !== `undefined` && typeof lucide.createIcons === `function`) {
+        lucide.createIcons();
+      }
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+        try {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved && typeof saved === `object`) {
+            appState = Object.assign({}, appState, saved);
+          }
+        } catch (e) {}
+      }
+
+      applyStateToUI();
+      syncLiveDuckDbData();
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    });
+  </script>
+</body>
+</html>
