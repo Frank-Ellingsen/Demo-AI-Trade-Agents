@@ -113,12 +113,12 @@ DEFAULT_JOBS: dict[str, dict[str, Any]] = {
     "portfolio_change_notify": {
         "id": "portfolio_change_notify",
         "kind": "trigger",
-        "name": "Event: Telegram-varsel ved Porteføljeendring",
-        "cron_label": "Hvert 2. minutt",
+        "name": "Event: Telegram-varsel ved Åpnet/Lukket Posisjon",
+        "cron_label": "Kun ved ny/lukket posisjon",
         "interval_seconds": 120,
         "enabled": True,
         "cmd": [sys.executable, "telegram_portfolio_notifier.py", "--check-change"],
-        "description": "Overvåker Alpaca Paper posisjoner og ordrer og sender umiddelbart Telegram-varsel ved fylling eller endring.",
+        "description": "Sender Telegram-varsel kun når en ny posisjon åpnes, en eksisterende lukkes, eller antall aksjer endres (ingen støy ved ventende ordrer).",
     },
 }
 

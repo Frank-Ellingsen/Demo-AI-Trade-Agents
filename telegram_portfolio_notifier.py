@@ -132,19 +132,31 @@ def check_and_notify_changes() -> Dict[str, Any]:
     if prev is None:
         return {"changed": False, "reason": "Initialized baseline state"}
 
-    changes: List[str] = []
-    if curr["positions"] != prev.get("positions", {}):
-        changes.append("Endring i åpne posisjoner")
-    if curr["orders"] != prev.get("orders", {}):
-        changes.append("Endring i ordrestatus / fylling")
+    prev_pos = prev.get("positions", {})
+    curr_pos = curr.get("positions", {})
 
-    if not changes:
+    opened = [sym for sym in curr_pos if sym not in prev_pos]
+    closed = [sym for sym in prev_pos if sym not in curr_pos]
+    resized = [
+        sym for sym in curr_pos
+        if sym in prev_pos and str(curr_pos[sym].get("qty")) != str(prev_pos[sym].get("qty"))
+    ]
+
+    if not opened and not closed and not resized:
         return {"changed": False}
 
-    header = "🔔 PORTEFØLJEENDRING REGISTRERT (" + " + ".join(changes) + ")"
+    parts: List[str] = []
+    if opened:
+        parts.append("Åpnet: " + ", ".join(opened))
+    if closed:
+        parts.append("Lukket: " + ", ".join(closed))
+    if resized:
+        parts.append("Endret antall: " + ", ".join(resized))
+
+    header = "🔔 POSISJONSENDRING (" + " | ".join(parts) + ")"
     msg = format_portfolio_status_message(snap, header=header)
     res = _send_telegram(msg)
-    return {"changed": True, "changes": changes, "sent": bool(res.get("ok"))}
+    return {"changed": True, "opened": opened, "closed": closed, "resized": resized, "sent": bool(res.get("ok"))}
 
 
 def main() -> None:
