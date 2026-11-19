@@ -952,6 +952,26 @@
       color: #f87171;
       border: 1px solid rgba(248, 113, 113, 0.45);
     }
+    .live-idx-tag {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #94a3b8;
+      margin-right: 3px;
+    }
+    .live-idx-ytd {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding-left: 4px;
+      border-left: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .live-idx-ytd.up { color: #34d399; }
+    .live-idx-ytd.down { color: #f87171; }
 
     /* Floating Sidebar Hover Tooltip */
     #sidebarHoverTooltip {
@@ -4606,13 +4626,19 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             const pct = Number(it.change_pct || 0);
             const pctFmt = (pct > 0 ? "+" : "") + pct.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
             const cls = pct >= 0 ? "up" : "down";
+            const ytd = Number(it.ytd_pct || 0);
+            const ytdFmt = (ytd > 0 ? "+" : "") + ytd.toLocaleString("nb-NO", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+            const ytdCls = ytd >= 0 ? "up" : "down";
             const sparkSvg = renderTickerSparkline(it.ytd_spark, it.ytd_pct, it.label);
             return `
               <span class="live-idx-item">
                 <span class="live-idx-label">${it.label}</span>
-                ${sparkSvg}
                 <span class="live-idx-val">${it.prefix || ""}${valFmt}${it.suffix || ""}</span>
-                <span class="live-idx-pill ${cls}">${pctFmt}</span>
+                <span class="live-idx-pill ${cls}"><span class="live-idx-tag" style="color:inherit; opacity:0.8;">I dag</span>${pctFmt}</span>
+                <span class="live-idx-ytd ${ytdCls}" title="${it.label} YTD: ${ytdFmt}">
+                  ${sparkSvg}
+                  <span class="live-idx-tag">YTD</span>${ytdFmt}
+                </span>
               </span>
             `;
           }).join("");
