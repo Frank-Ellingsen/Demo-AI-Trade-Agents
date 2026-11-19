@@ -1134,7 +1134,7 @@
           <div class="card-header">
             <div class="card-title-group">
               <h3>Porteføljeutvikling (<span id="perfRangeLabel">YTD</span>) vs. Benchmark</h3>
-              <p>Sammenligner aktiv AI-styrt portefølje mot S&amp;P 500 &amp; OBX Total Return</p>
+              <p id="perfBenchSubtitle">Sammenligner aktiv AI-styrt portefølje mot S&amp;P 500 &amp; OBX (ankret fra første kjøp)</p>
             </div>
             <span class="pill pill-green" id="perfRangeReturnPill">+8.42 % YTD</span>
           </div>
@@ -3827,8 +3827,18 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const sign = pct >= 0 ? "+" : "";
 
       const liveBench = SUITE_STATE.live_benchmarks || {};
-      const spObj = (liveBench.sp500 || {})[rangeKey];
-      const obxObj = (liveBench.obx || {})[rangeKey];
+      const inceptionDate = liveBench.inception_date || alp.inception_date || "";
+      const useInception = (rangeKey === "YTD" || rangeKey === "1D") && liveBench.sp500 && liveBench.sp500.INCEPTION;
+      const benchKey = useInception ? "INCEPTION" : rangeKey;
+      const spObj = (liveBench.sp500 || {})[benchKey];
+      const obxObj = (liveBench.obx || {})[benchKey];
+
+      const subEl = document.getElementById("perfBenchSubtitle");
+      if (subEl) {
+        subEl.textContent = useInception && inceptionDate
+          ? `Sammenligner aktiv AI-styrt portefølje mot S&P 500 & OBX — ankret fra første kjøp (${inceptionDate})`
+          : `Sammenligner aktiv AI-styrt portefølje mot S&P 500 & OBX (${rangeKey} markedsperiode)`;
+      }
 
       const spNorm = (spObj && Array.isArray(spObj.norm) && spObj.norm.length >= 2) ? spObj.norm : [1.0, 1.0];
       const obxNorm = (obxObj && Array.isArray(obxObj.norm) && obxObj.norm.length >= 2) ? obxObj.norm : null;

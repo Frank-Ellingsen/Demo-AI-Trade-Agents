@@ -176,11 +176,34 @@ COMMANDS: dict[str, dict[str, Any]] = {
 
 def _fetch_alpaca_portfolio_safe() -> dict[str, Any]:
     """Fetch live Alpaca Paper account, open positions, and recent orders with safe fallback."""
+    import datetime as _dt
+
+    today_str = _dt.date.today().isoformat()
     try:
         _reload_env()
         from alpaca_execution import AlpacaClient
 
-        return AlpacaClient().get_portfolio_snapshot()
+        snap = AlpacaClient().get_portfolio_snapshot()
+        # Determine inception date/timestamp from earliest filled BUY order
+        orders = snap.get("recent_orders") or []
+        buy_times = []
+        for o in orders:
+            if str(o.get("status") or "").lower() == "filled" and str(o.get("side") or "").lower() == "buy":
+                ts_raw = o.get("filled_at") or o.get("submitted_at")
+                if ts_raw:
+                    try:
+                        dt_obj = _dt.datetime.fromisoformat(str(ts_raw).replace("Z", "+00:00"))
+                        buy_times.append(dt_obj)
+                    except Exception:
+                        pass
+        if buy_times:
+            first_dt = min(buy_times)
+            snap["inception_date"] = first_dt.date().isoformat()
+            snap["inception_ts"] = int(first_dt.timestamp())
+        else:
+            snap["inception_date"] = today_str
+            snap["inception_ts"] = int(_dt.datetime.now(_dt.timezone.utc).timestamp())
+        return snap
     except Exception as exc:
         return {
             "connected": False,
@@ -195,6 +218,8 @@ def _fetch_alpaca_portfolio_safe() -> dict[str, Any]:
             "today_pnl_pct": 0.0,
             "unrealized_pl": 0.0,
             "realized_pl": 0.0,
+            "inception_date": today_str,
+            "inception_ts": int(_dt.datetime.now(_dt.timezone.utc).timestamp()),
             "positions": [],
             "recent_orders": [],
         }
@@ -991,12 +1016,12 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
 
                 hdr = {"User-Agent": "Mozilla/5.0"}
 
-                def _fetch_yf(sym: str, rng: str) -> dict:
+                def _fetch_yf(sym: str, rng: str, interval: str = "1d") -> dict:
                     import requests
 
                     r = requests.get(
                         f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
-                        params={"range": rng, "interval": "1d"},
+                        params={"range": rng, "interval": interval},
                         headers=hdr,
                         timeout=6,
                     )
@@ -1009,12 +1034,25 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         for t, c in zip(ts_list, cl_list)
                         if c is not None
                     ]
+                    ts_pts = [
+                        (int(t), float(c))
+                        for t, c in zip(ts_list, cl_list)
+                        if c is not None
+                    ]
                     p = float(meta.get("regularMarketPrice") or (pts[-1][1] if pts else 0.0))
                     pc = float(pts[-2][1]) if len(pts) >= 2 else float(meta.get("chartPreviousClose") or p or 1.0)
                     chg_pct = ((p - pc) / pc) * 100.0 if pc > 0 else 0.0
-                    return {"price": p, "prev_close": pc, "change_pct": chg_pct, "pts": pts}
+                    return {"price": p, "prev_close": pc, "change_pct": chg_pct, "pts": pts, "ts_pts": ts_pts}
 
-                def _build_bench_ranges(raw: dict) -> dict:
+                alp_meta = _fetch_alpaca_portfolio_safe()
+                inception_date_str = str(alp_meta.get("inception_date") or _dt.date.today().isoformat())
+                inception_ts = int(alp_meta.get("inception_ts") or time.time())
+                try:
+                    inception_date_obj = _dt.date.fromisoformat(inception_date_str)
+                except Exception:
+                    inception_date_obj = _dt.date.today()
+
+                def _build_bench_ranges(raw: dict, intra_raw: dict | None = None) -> dict:
                     pts = raw.get("pts") or []
                     p_now = float(raw.get("price") or (pts[-1][1] if pts else 0.0))
                     if not pts or p_now <= 0:
@@ -1026,11 +1064,9 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         vals = [c for _, c in sub_pts]
                         if not vals:
                             vals = [p_now]
-                        # Ensure final point matches live price
                         vals = list(vals)
                         vals[-1] = p_now
                         base = vals[0] if vals[0] > 0 else p_now
-                        # Downsample evenly if long
                         if len(vals) > target_points:
                             idxs = [round(i * (len(vals) - 1) / (target_points - 1)) for i in range(target_points)]
                             sampled = [vals[idx] for idx in idxs]
@@ -1042,15 +1078,34 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         ret_pct = round(((p_now - base) / base) * 100.0, 2)
                         return {"return_pct": ret_pct, "norm": norm}
 
-                    # 1D: prev_close -> live price
+                    # Build INCEPTION series starting strictly on first buy date/time
+                    if inception_date_obj >= today:
+                        # Same-day inception: slice intraday 15m bars from inception_ts onward
+                        intra_pts = (intra_raw or {}).get("ts_pts") or []
+                        since_pts = [(t, c) for t, c in intra_pts if t >= inception_ts - 900]
+                        if len(since_pts) >= 2:
+                            inception_series = _slice_series(since_pts, 10)
+                        elif len(since_pts) == 1 and since_pts[0][1] > 0:
+                            b0 = since_pts[0][1]
+                            inception_series = {
+                                "return_pct": round(((p_now - b0) / b0) * 100.0, 2),
+                                "norm": [1.0, round(p_now / b0, 6)],
+                            }
+                        else:
+                            # Market already closed when first trade executed (e.g. OBX after 16:25 CET)
+                            inception_series = {"return_pct": 0.0, "norm": [1.0, 1.0]}
+                    else:
+                        inc_daily = [(d, c) for d, c in pts if d >= inception_date_obj]
+                        inception_series = _slice_series(inc_daily, 14)
+
                     pc = float(raw.get("prev_close") or p_now)
                     one_d = {
                         "return_pct": round(((p_now - pc) / pc) * 100.0, 2) if pc > 0 else 0.0,
                         "norm": [1.0, round(p_now / pc, 6) if pc > 0 else 1.0],
                     }
-                    # 1W (~6 trading closes), 1M (~22 trading closes), YTD, 1Y
                     ytd_pts = [(d, c) for d, c in pts if d >= yr_start] or pts[-22:]
                     return {
+                        "INCEPTION": inception_series,
                         "1D": one_d,
                         "1W": _slice_series(pts[-6:], 6),
                         "1M": _slice_series(pts[-22:], 12),
@@ -1059,20 +1114,25 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     }
 
                 fetch_plan = {
-                    "OSEBX.OL": "1y",
-                    "^GSPC": "1y",
-                    "BZ=F": "5d",
-                    "^IXIC": "5d",
-                    "NOK=X": "5d",
-                    "^VIX": "5d",
+                    "OSEBX.OL": ("1y", "1d"),
+                    "^GSPC": ("1y", "1d"),
+                    "OSEBX.OL_1d": ("1d", "15m"),
+                    "^GSPC_1d": ("1d", "15m"),
+                    "BZ=F": ("5d", "1d"),
+                    "^IXIC": ("5d", "1d"),
+                    "NOK=X": ("5d", "1d"),
+                    "^VIX": ("5d", "1d"),
                 }
                 fetched: dict[str, dict] = {}
                 try:
-                    with ThreadPoolExecutor(max_workers=6) as ex:
-                        futs = {ex.submit(_fetch_yf, sym, rng): sym for sym, rng in fetch_plan.items()}
-                        for fut, sym in futs.items():
+                    with ThreadPoolExecutor(max_workers=8) as ex:
+                        futs = {
+                            ex.submit(_fetch_yf, key.replace("_1d", ""), rng, iv): key
+                            for key, (rng, iv) in fetch_plan.items()
+                        }
+                        for fut, key in futs.items():
                             try:
-                                fetched[sym] = fut.result(timeout=7)
+                                fetched[key] = fut.result(timeout=7)
                             except Exception:
                                 pass
                 except Exception:
@@ -1136,8 +1196,9 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
 
                 benchmarks = {
                     "source": "live_yahoo" if ("^GSPC" in fetched or "OSEBX.OL" in fetched) else "fallback",
-                    "sp500": _build_bench_ranges(fetched.get("^GSPC") or {}),
-                    "obx": _build_bench_ranges(fetched.get("OSEBX.OL") or {}),
+                    "inception_date": inception_date_str,
+                    "sp500": _build_bench_ranges(fetched.get("^GSPC") or {}, fetched.get("^GSPC_1d")),
+                    "obx": _build_bench_ranges(fetched.get("OSEBX.OL") or {}, fetched.get("OSEBX.OL_1d")),
                 }
 
                 res_obj = {
