@@ -2723,10 +2723,44 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       renderAlpacaRecommender();
     }
 
+    const STRATEGY_META = {
+      liquid_sp_momentum: {
+        profile: "2",
+        title: "1. Liquid S&P Momentum (Multi-Sektor)",
+        desc: "Klassisk systematisk S&P 500 momentum med $0 kurtasje, 10 % kontantbuffer og 1.8x ATR(14) Stop-Loss."
+      },
+      conservative_core: {
+        profile: "1",
+        title: "2. Konservativ Index Core (ETF)",
+        desc: "Fokus på kapitalbevaring med brede indeks-/sektor-ETFer (SPY, QQQ, XLV, IWM), 20 % kontantbuffer og stram 1.2x ATR Stop-Loss."
+      },
+      aggressive_ai_tech: {
+        profile: "3",
+        title: "3. Aggressiv AI & Tech Outliers",
+        desc: "Høy-beta AI & Tech vekstaksjer (NVDA, AVGO, TSLA, META, PLTR, AMZN) med 5 % buffer og romslig 2.5x ATR Stop-Loss."
+      },
+      ai_regime_switcher: {
+        profile: "2",
+        title: "4. AI Regime Switcher (VIX-styrt S&P 500)",
+        desc: "Dynamisk VIX-rotasjon: Liquid Momentum ved VIX < 18 (aktivt regime nå: VIX 16.4), Covered Calls ved VIX 18–24, T-Bills ved VIX > 24."
+      }
+    };
+
     function renderAlpacaRecommender() {
       const profileKey = document.getElementById("alpProfileSelect").value || "2";
       const totalEquity = Math.max(1000, parseFloat(document.getElementById("alpCapitalInput").value) || 100000);
       const cfg = DEFAULT_PROFILES[profileKey] || DEFAULT_PROFILES["2"];
+      const stratKey = (document.getElementById("stratOrderSelect") || {}).value || "liquid_sp_momentum";
+      const stratMeta = STRATEGY_META[stratKey];
+
+      // Pull live Alpaca Market Data prices & scaled ATR from /api/suite if available
+      const liveProf = (SUITE_STATE.recommender_profiles || {})[profileKey];
+      const liveMap = {};
+      if (liveProf && Array.isArray(liveProf.proposals)) {
+        liveProf.proposals.forEach(p => {
+          liveMap[p.ticker || p.symbol] = { price: Number(p.price), atr: Number(p.atr) };
+        });
+      }
 
       const cashBufferUsd = totalEquity * cfg.cash_buffer_pct;
       const investable = totalEquity - cashBufferUsd;
@@ -2734,22 +2768,26 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
       let allocatedTotal = 0;
       const rows = cfg.assets.map(a => {
-        const qty = Math.max(1, Math.floor(perAsset / a.price));
-        const posVal = qty * a.price;
+        const live = liveMap[a.ticker];
+        const usePrice = live && live.price > 0 ? live.price : a.price;
+        const useAtr = live && live.atr > 0 ? live.atr : a.atr;
+        const qty = Math.max(1, Math.floor(perAsset / usePrice));
+        const posVal = qty * usePrice;
         allocatedTotal += posVal;
-        const slDist = +(a.atr * cfg.atr_multiplier_sl).toFixed(2);
-        const slPrice = +(a.price - slDist).toFixed(2);
+        const slDist = +(useAtr * cfg.atr_multiplier_sl).toFixed(2);
+        const slPrice = +(usePrice - slDist).toFixed(2);
         const tpDist = +(slDist * cfg.reward_risk_ratio).toFixed(2);
-        const tpPrice = +(a.price + tpDist).toFixed(2);
-        const riskPct = +((slDist / a.price) * 100).toFixed(2);
-        const rewardPct = +((tpDist / a.price) * 100).toFixed(2);
+        const tpPrice = +(usePrice + tpDist).toFixed(2);
+        const riskPct = +((slDist / usePrice) * 100).toFixed(2);
+        const rewardPct = +((tpDist / usePrice) * 100).toFixed(2);
         const weightPct = +((posVal / totalEquity) * 100).toFixed(1);
-        return { ...a, qty, posVal, slPrice, tpPrice, riskPct, rewardPct, weightPct };
+        return { ...a, price: usePrice, atr: useAtr, qty, posVal, slPrice, tpPrice, riskPct, rewardPct, weightPct };
       });
 
       const remCash = totalEquity - allocatedTotal;
-      document.getElementById("recProfileTitle").textContent = cfg.name;
-      document.getElementById("recProfileDesc").textContent = cfg.description;
+      const useStratLabel = stratMeta && stratMeta.profile === profileKey;
+      document.getElementById("recProfileTitle").textContent = useStratLabel ? stratMeta.title : cfg.name;
+      document.getElementById("recProfileDesc").textContent = useStratLabel ? stratMeta.desc : cfg.description;
       document.getElementById("recAllocatedUsd").textContent = `$${allocatedTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       document.getElementById("recAllocatedPct").textContent = `${((allocatedTotal / totalEquity) * 100).toFixed(1)} % eksponert i ${rows.length} aksjer`;
       document.getElementById("recCashUsd").textContent = `$${remCash.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
