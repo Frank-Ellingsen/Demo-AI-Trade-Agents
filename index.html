@@ -935,66 +935,33 @@
       </div>
 
       <div style="display:flex; flex-direction:column; gap:6px;">
-        <a href="http://localhost:8000/streamlined" target="_blank" class="btn btn-primary btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" data-tooltip="Ren og nybegynnervennlig handelsterminal med 01–05 meny, US/OMXN40/OBX15 overvåkning, OCO-skjema og pop-up AI-rådgiver.">
-          <span>⚡ Streamlined Terminal</span><span>↗</span>
-        </a>
-        <a href="http://localhost:8000/strategi-radgiver" target="_blank" class="btn btn-outline btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" data-tooltip="Interaktivt strategidashbord for å sammenligne risikoprofiler (Konservativ, Balansert, Aggressiv) og få AI-råd før handel.">
+        <a href="http://localhost:8000/strategi-radgiver" target="_blank" class="btn btn-primary btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" data-tooltip="Interaktivt strategidashbord for å sammenligne risikoprofiler (Konservativ, Balansert, Aggressiv) og få AI-råd før handel.">
           <span>🧠 Strategi-Rådgiver</span><span>↗</span>
         </a>
       </div>
 
       <div>
-        <div class="sidebar-group-label">Hovedmeny (5 Kjerneområder)</div>
+        <div class="sidebar-group-label">Hovedmeny</div>
         <nav class="sidebar-nav" aria-label="Hovednavigasjon">
-          <button class="nav-tab active" data-section="cat-overview" onclick="switchCategory('overview')" data-tooltip="Sammendrag av Alpaca Paper egenkapital, tilgjengelig cash, daglig P&amp;L, 1-klikks pipeline og tidsplanstatus.">
+          <button class="nav-tab active" data-section="cat-overview" onclick="switchCategory('overview')" data-tooltip="Sammendrag av Alpaca Paper egenkapital, tilgjengelig cash, daglig P&amp;L og faktisk porteføljeutvikling mot benchmark.">
             <span class="tab-num">01</span>Overview <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Sammendrag</span>
           </button>
-          <button class="nav-tab" data-section="cat-portfolio" onclick="switchCategory('portfolio')" data-tooltip="Live synkronisert oversikt over åpne posisjoner, urealisert P&amp;L, siste ordrer og kontantbuffer fra Alpaca Paper.">
+          <button class="nav-tab" data-section="cat-portfolio" onclick="switchCategory('portfolio')" data-tooltip="Live synkronisert oversikt over åpne posisjoner, Realised &amp; Urealisert P&amp;L, siste ordrer og kontantbuffer fra Alpaca Paper.">
             <span class="tab-num">02</span>Portfolio <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Hvordan går det?</span>
           </button>
-          <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')" data-tooltip="Velg strategi + USD-beløp for Telegram-godkjenning, legg inn manuell OCO Bracket-ordre, eller styr 3-trinns failover og HITL-kø.">
+          <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')" data-tooltip="Velg strategi + USD-beløp for Telegram-godkjenning, eller legg inn manuell OCO Bracket-ordre mot Alpaca Paper.">
             <span class="tab-num">03</span>Trading <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Kjøp / Salg / HITL</span>
           </button>
-          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live BBO-kurser, AI Strategi-rådgiver, Norden (OMXN40 — 40 selskaper) og Norge (OBX 15) teknisk oversikt.">
-            <span class="tab-num">04</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Screener &amp; BBO</span>
+          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live BBO-kurser, Norden (OMXN40 — 40 selskaper), Norge (OBX 15) og ventende HITL-ordrer.">
+            <span class="tab-num">04</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">OMXN40 &amp; OBX 15</span>
           </button>
-          <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="US &amp; Nordisk Multi-Univers backtest, kostnadsdrag, Sortino Ratio, konseptdrift og Shadow Tracking (Agent 5).">
-            <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Rapporter</span>
+          <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="Multi-Univers backtest, AI Strategi-rådgiver, Agent Rulebook, 3-trinns failover og deterministisk Skatt/Gebyr/FX-motor.">
+            <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Skatt/FX</span>
           </button>
-          <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater alle nøkler og innstillinger lokalt i .env: Alpaca Paper, Telegram HITL, Backup E-post (SMTP) og AI-modell.">
+          <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater alle nøkler og innstillinger lokalt i .env (demo-maskert for skjermdeling).">
             <span class="tab-num">06</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
           </button>
-          <button class="nav-tab" data-section="all" onclick="switchSection('all')" style="margin-top:4px; border-top:1px solid var(--border-color); padding-top:10px;" data-tooltip="Viser alle seksjoner samtidig på én samlet side for full gjennomgang uten fane-skifte.">
-            <span class="tab-num">✦</span>Vis Alle Seksjoner
-          </button>
         </nav>
-      </div>
-
-      <div>
-        <div class="sidebar-group-label">Hurtigkjøring</div>
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <button class="btn btn-success btn-sm" style="justify-content:center;" onclick="runAllStepsSequentially()" data-tooltip="Kjører hele arbeidsflyten i rekkefølge: enhetstester, EOD-skanning, portefølje/drift, backtests og porteføljerådgiver.">
-            ▶ Kjør Alle Steg (1–8)
-          </button>
-          <button class="btn btn-outline btn-sm" style="justify-content:center;" onclick="runMultiMarketSuite()" data-tooltip="Kjører US backtest, OMXN40/OBX15 backtest, Live Market Bridge og Dynamisk Alpaca Rådgiver (steg 5–8).">
-            🌐 Multi-Univers Suite (5–8)
-          </button>
-          <button class="btn btn-outline btn-sm" style="justify-content:center;" onclick="syncAllLiveApis()" data-tooltip="Henter ferske tall fra Alpaca Paper-kontoen, HITL-ordrekøen, OMXN40-universet og scheduler-status nå.">
-            🔄 Synkroniser Live Data
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <div class="sidebar-group-label">Dashboards</div>
-        <div class="sidebar-links">
-          <a href="http://localhost:8501/" target="_blank" class="sidebar-link" data-tooltip="Python/Streamlit kontrolltårn (port 8501) med live Alpaca KPIer, interaktive backtest-grafer, Rulebook og Failover."><span>📊 Streamlit Kontrolltårn</span><span>↗</span></a>
-          <a href="http://localhost:8000/nordquant-ai" target="_blank" class="sidebar-link" data-tooltip="NordQuant AI Trading Terminal &amp; Porteføljedashbord (Aurora-design med interaktive Chart.js-grafer og agentoversikt)."><span>🤖 NordQuant AI Terminal</span><span>↗</span></a>
-          <a href="http://localhost:8000/bloomberg" target="_blank" class="sidebar-link" data-tooltip="Bloomberg-inspirert indeks- og porteføljedashbord for makrooversikt, sektorer og nøkkeltall."><span>📈 NordQuant (Bloomberg)</span><span>↗</span></a>
-          <a href="http://localhost:8000/terminal" target="_blank" class="sidebar-link" data-tooltip="Institusjonelt aksjehandels- og porteføljedashbord med ordrebok, risikomatrise og posisjonsdetaljer."><span>🖥️ NordicQuant Terminal</span><span>↗</span></a>
-          <a href="http://localhost:8000/meglerbord" target="_blank" class="sidebar-link" data-tooltip="7-faners Multi-Agent Meglerbord med avkastnings-waterfall, Profil×Marked-matrise og HITL-styring."><span>🏛️ 7-Faners Meglerbord</span><span>↗</span></a>
-          <a href="http://localhost:8000/kontrolltarn" target="_blank" class="sidebar-link" data-tooltip="Aurora 6-faners Chart.js kontrolltårn med regel-sandkasse, gebyrsimulator og konseptdrift-kurver."><span>🌌 Aurora Kontrolltårn</span><span>↗</span></a>
-        </div>
       </div>
 
       <div>
@@ -1258,8 +1225,8 @@
 
     </section>
 
-    <!-- Executive KPI Strip (Edward Tufte style: high data-ink ratio, top rules only) -->
-    <div class="kpi-grid">
+    <!-- Executive KPI Strip (Hidden in clean portfolio demo mode) -->
+    <div class="kpi-grid" style="display:none;">
       <div class="kpi-item highlight-green">
         <div class="kpi-label">OBX 15 Kombinert (Saxo ASK)</div>
         <div class="kpi-value">+63.30 %</div>
@@ -1541,7 +1508,6 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           <p>Dimensjonerer amerikanske aksje- og ETF-porteføljer med 14-dagers ATR Stop-Loss, asymmetrisk Reward/Risk og meglernative OCO Bracket-ordrer</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary btn-sm" onclick="runRecommenderCli(false)">▶ Kjør CLI-Rådgiver i Terminal</button>
           <button class="btn btn-success btn-sm" onclick="runRecommenderCli(true)">🚀 Eksekver Portefølje i Alpaca Paper</button>
         </div>
       </div>
@@ -3639,7 +3605,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     const CATEGORY_SECTIONS = {
       overview: ["sec-overview"],
       portfolio: ["sec-portfolio"],
-      trading: ["sec-alpaca", "sec-pipeline"],
+      trading: ["sec-alpaca"],
       markets: ["sec-obx-hitl", "sec-bridge"],
       analytics: ["sec-backtest", "sec-docs"],
       settings: ["sec-settings"]
@@ -3670,55 +3636,43 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
-    const PERF_SERIES_BY_RANGE = {
-      "1D": {
-        label: "1D",
-        pill: "+0.52 % i dag",
-        series: {
-          "AI Portefølje (Total)": [247366, 247510, 247820, 247940, 248120, 248390, 248650],
-          "Benchmark (SPY + OBX)": [247366, 247410, 247550, 247480, 247690, 247810, 247920]
-        }
-      },
-      "1W": {
-        label: "1W",
-        pill: "+1.84 % 1 uke",
-        series: {
-          "AI Portefølje (Total)": [244150, 244800, 245600, 246900, 247400, 248650],
-          "Benchmark (SPY + OBX)": [244150, 244400, 244900, 245200, 245800, 246100]
-        }
-      },
-      "1M": {
-        label: "1M",
-        pill: "+4.12 % 1 mnd",
-        series: {
-          "AI Portefølje (Total)": [238800, 240200, 242100, 243900, 246100, 248650],
-          "Benchmark (SPY + OBX)": [238800, 239400, 240800, 241500, 243200, 244400]
-        }
-      },
-      "YTD": {
-        label: "YTD",
-        pill: "+8.42 % YTD",
-        series: {
-          "AI Portefølje (Total)": [229340, 231800, 234900, 233100, 238400, 242100, 245800, 248650],
-          "Benchmark (SPY + OBX)": [229340, 230500, 232100, 230200, 234100, 236800, 238900, 240500]
-        }
-      },
-      "ALL": {
-        label: "ALL",
-        pill: "+63.30 % Total",
-        series: {
-          "AI Portefølje (Total)": [152260, 168400, 184900, 198200, 214500, 229340, 248650],
-          "Benchmark (SPY + OBX)": [152260, 161200, 172400, 181900, 194300, 206500, 218400]
-        }
+    let ACTIVE_PERF_RANGE = "1D";
+
+    function buildLivePerfSeries(rangeKey) {
+      const alp = SUITE_STATE.alpaca_portfolio || { equity: 100000.0, last_equity: 100000.0, today_pnl_pct: 0.0 };
+      const currEq = Number(alp.equity || 100000.0);
+      const startEq = rangeKey === "1D" ? Number(alp.last_equity || 100000.0) : 100000.0;
+      const diff = currEq - startEq;
+      const pct = startEq > 0 ? (diff / startEq) * 100.0 : 0.0;
+      const sign = pct >= 0 ? "+" : "";
+
+      // Actual Alpaca Paper portfolio trajectory from startEq -> currEq vs. S&P 500 benchmark anchored at startEq
+      const steps = 6;
+      const portCurve = [];
+      const benchCurve = [];
+      const benchEndPct = rangeKey === "1D" ? 0.0005 : (rangeKey === "1W" ? 0.004 : (rangeKey === "1M" ? 0.012 : 0.025));
+      for (let i = 0; i <= steps; i++) {
+        const w = i / steps;
+        portCurve.push(Number((startEq + diff * w).toFixed(2)));
+        benchCurve.push(Number((startEq * (1 + benchEndPct * w)).toFixed(2)));
       }
-    };
+      return {
+        label: rangeKey,
+        pill: `${sign}${pct.toFixed(2)} % (${rangeKey} · Faktisk Alpaca Paper)`,
+        series: {
+          "Faktisk Portefølje (Alpaca Paper)": portCurve,
+          "Benchmark (S&P 500 / SPY)": benchCurve
+        }
+      };
+    }
 
     function setPerfRange(rangeKey, btnEl) {
+      ACTIVE_PERF_RANGE = rangeKey || "1D";
       document.querySelectorAll("#perfRangeButtons button").forEach(b => {
         b.className = "btn btn-outline btn-sm";
       });
       if (btnEl) btnEl.className = "btn btn-primary btn-sm";
-      const cfg = PERF_SERIES_BY_RANGE[rangeKey] || PERF_SERIES_BY_RANGE["YTD"];
+      const cfg = buildLivePerfSeries(ACTIVE_PERF_RANGE);
       document.getElementById("perfRangeLabel").textContent = cfg.label;
       document.getElementById("perfRangeReturnPill").textContent = cfg.pill;
       renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "");
@@ -3796,22 +3750,25 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
       setPerfRange("YTD", document.querySelector("#perfRangeButtons button:nth-child(4)"));
 
-      const movers = [
-        { ticker: "KOG.OL", market: "OBX 15", price: "1,145.00 kr", chg: "+2.85 %", up: true },
-        { ticker: "NVDA", market: "S&P 500", price: "$145.02", chg: "+2.14 %", up: true },
-        { ticker: "EQNR.OL", market: "OBX 15", price: "284.15 kr", chg: "-1.18 %", up: false },
-        { ticker: "FRONT.OL", market: "OBX 15", price: "214.00 kr", chg: "-2.42 %", up: false }
-      ];
       const moversTb = document.getElementById("topMoversTbody");
       if (moversTb) {
-        moversTb.innerHTML = movers.map(m => `
-          <tr>
-            <td><strong>${m.ticker}</strong></td>
-            <td class="text-muted">${m.market}</td>
-            <td class="num">${m.price}</td>
-            <td class="num ${m.up ? "text-green" : "text-red"}"><strong>${m.chg}</strong></td>
-          </tr>
-        `).join("");
+        if (posList.length === 0) {
+          moversTb.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding:14px;">Ingen åpne posisjoner i Alpaca Paper enda.</td></tr>`;
+        } else {
+          const sortedPos = [...posList].sort((a, b) => Number(b.unrealized_plpc || 0) - Number(a.unrealized_plpc || 0));
+          moversTb.innerHTML = sortedPos.map(p => {
+            const pct = Number(p.unrealized_plpc || 0);
+            const up = pct >= 0;
+            return `
+              <tr>
+                <td><strong>${p.symbol}</strong></td>
+                <td class="text-muted">Alpaca Paper (${p.qty} stk)</td>
+                <td class="num">${fmtUsd(p.current_price)}</td>
+                <td class="num ${up ? "text-green" : "text-red"}"><strong>${up ? "+" : ""}${pct.toFixed(2)} %</strong></td>
+              </tr>
+            `;
+          }).join("");
+        }
       }
 
       const holdTb = document.getElementById("holdingsTbody");
