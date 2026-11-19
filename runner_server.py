@@ -1238,6 +1238,112 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/markets/quote":
+            from urllib.parse import parse_qs
+
+            qs = parse_qs(parsed.query)
+            raw_q = (qs.get("q") or [""])[0].strip()
+            if not raw_q:
+                out_bytes = json.dumps({"ok": False, "error": "Tomt søkefelt"}).encode("utf-8")
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(out_bytes)))
+                self.end_headers()
+                self.wfile.write(out_bytes)
+                return
+
+            hdr = {"User-Agent": "Mozilla/5.0"}
+            result_obj: dict[str, Any] = {"ok": False, "query": raw_q}
+            try:
+                import requests
+
+                sym = raw_q.upper()
+                name_hint = ""
+                if " " in raw_q or len(raw_q) > 6 or not all(c.isalnum() or c in ".-^=" for c in raw_q):
+                    sr = requests.get(
+                        "https://query1.finance.yahoo.com/v1/finance/search",
+                        params={"q": raw_q, "quotesCount": 5, "newsCount": 0},
+                        headers=hdr,
+                        timeout=6,
+                    ).json()
+                    quotes = [q for q in (sr.get("quotes") or []) if q.get("symbol")]
+                    if quotes:
+                        sym = str(quotes[0]["symbol"]).upper()
+                        name_hint = str(quotes[0].get("shortname") or quotes[0].get("longname") or "")
+
+                def _fetch_chart(target_sym: str) -> dict | None:
+                    r = requests.get(
+                        f"https://query1.finance.yahoo.com/v8/finance/chart/{target_sym}",
+                        params={"range": "ytd", "interval": "1d"},
+                        headers=hdr,
+                        timeout=6,
+                    )
+                    if r.status_code != 200:
+                        return None
+                    body = r.json()
+                    res_list = (body.get("chart") or {}).get("result") or []
+                    return res_list[0] if res_list else None
+
+                res0 = _fetch_chart(sym)
+                if res0 is None:
+                    sr = requests.get(
+                        "https://query1.finance.yahoo.com/v1/finance/search",
+                        params={"q": raw_q, "quotesCount": 5, "newsCount": 0},
+                        headers=hdr,
+                        timeout=6,
+                    ).json()
+                    quotes = [q for q in (sr.get("quotes") or []) if q.get("symbol")]
+                    if quotes:
+                        sym = str(quotes[0]["symbol"]).upper()
+                        name_hint = str(quotes[0].get("shortname") or quotes[0].get("longname") or "")
+                        res0 = _fetch_chart(sym)
+
+                if res0:
+                    meta = res0.get("meta") or {}
+                    cl = [float(c) for c in (res0.get("indicators", {}).get("quote", [{}])[0].get("close") or []) if c is not None]
+                    p = float(meta.get("regularMarketPrice") or (cl[-1] if cl else 0.0))
+                    pc_day = float(cl[-2]) if len(cl) >= 2 else float(meta.get("previousClose") or meta.get("chartPreviousClose") or p or 1.0)
+                    chg_pct = ((p - pc_day) / pc_day) * 100.0 if pc_day > 0 else 0.0
+                    spark = []
+                    ytd_pct = 0.0
+                    if cl:
+                        vals = list(cl)
+                        vals[-1] = p
+                        if len(vals) > 20:
+                            idxs = [round(i * (len(vals) - 1) / 19) for i in range(20)]
+                            spark = [round(vals[idx], 2) for idx in idxs]
+                        else:
+                            spark = [round(v, 2) for v in vals]
+                        if spark and spark[0] > 0:
+                            ytd_pct = round(((spark[-1] - spark[0]) / spark[0]) * 100.0, 2)
+
+                    result_obj = {
+                        "ok": True,
+                        "symbol": str(meta.get("symbol") or sym),
+                        "name": str(meta.get("shortName") or meta.get("longName") or name_hint or sym),
+                        "exchange": str(meta.get("exchangeName") or ""),
+                        "currency": str(meta.get("currency") or "USD"),
+                        "price": round(p, 2),
+                        "change_pct": round(chg_pct, 2),
+                        "day_high": round(float(meta.get("regularMarketDayHigh") or p), 2),
+                        "day_low": round(float(meta.get("regularMarketDayLow") or p), 2),
+                        "volume": int(meta.get("regularMarketVolume") or 0),
+                        "ytd_pct": ytd_pct,
+                        "ytd_spark": spark,
+                    }
+                else:
+                    result_obj = {"ok": False, "error": f"Fant ingen ticker for «{raw_q}»"}
+            except Exception as exc:
+                result_obj = {"ok": False, "error": str(exc)}
+
+            out_bytes = json.dumps(result_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/markets/sp500-movers":
             _reload_env()
             sp500_leaders = [

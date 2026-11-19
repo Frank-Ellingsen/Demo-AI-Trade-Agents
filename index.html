@@ -1073,9 +1073,10 @@
 
       <!-- Global Top Bar: Stock Search, 1-Click Trade Access, Notifications -->
       <div class="global-topbar">
-        <div class="global-search-wrap">
+        <div class="global-search-wrap" style="position: relative;">
           <span class="global-search-icon">🔍</span>
-          <input type="text" id="globalStockSearch" placeholder="Søk aksje / ETF / sektor (f.eks. NVDA, AAPL, MSFT, SPY)..." oninput="handleGlobalSearch(this.value)">
+          <input type="text" id="globalStockSearch" placeholder="Søk på ticker eller selskap (f.eks. ANT, Anthropic, NVDA, EQNR.OL) — trykk Enter..." oninput="handleGlobalSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault(); searchLiveTicker(this.value);}">
+          <div id="globalTickerPopup" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; min-width:380px; z-index:120; background:#111927; border:1px solid var(--border-strong); border-radius:8px; padding:12px 14px; box-shadow:0 12px 28px rgba(0,0,0,0.45);"></div>
         </div>
         <div class="topbar-actions">
           <button class="notif-btn" onclick="openHitlAlerts()" title="Åpne ventende HITL-ordrer og varsler">
@@ -3825,17 +3826,89 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    let _tickerSearchTimer = null;
+
     function handleGlobalSearch(query) {
       const q = (query || "").trim();
-      const obxInput = document.getElementById("obxFilterInput");
-      if (obxInput) {
-        obxInput.value = q;
-        renderObxTable();
+      const popup = document.getElementById("globalTickerPopup");
+      if (!q) {
+        if (popup) popup.style.display = "none";
+        return;
       }
+      if (_tickerSearchTimer) clearTimeout(_tickerSearchTimer);
       if (q.length >= 2) {
-        switchCategory("markets");
+        _tickerSearchTimer = setTimeout(() => searchLiveTicker(q), 420);
       }
     }
+
+    async function searchLiveTicker(query) {
+      const q = (query || "").trim();
+      const popup = document.getElementById("globalTickerPopup");
+      if (!q || !popup) return;
+      popup.style.display = "block";
+      popup.innerHTML = `<div style="font-size:12px; color:#94a3b8;">🔎 Søker live-kurs for <strong>${q.toUpperCase()}</strong>...</div>`;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/markets/quote?q=${encodeURIComponent(q)}`);
+        const d = await res.json();
+        if (!d.ok) {
+          popup.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:12px; color:#f87171;">⚠️ ${d.error || "Ingen treff"}</span><button class="btn btn-outline btn-sm" onclick="document.getElementById('globalTickerPopup').style.display='none'">✕</button></div>`;
+          return;
+        }
+        const chg = Number(d.change_pct || 0);
+        const up = chg >= 0;
+        const ytd = Number(d.ytd_pct || 0);
+        const ytdUp = ytd >= 0;
+        const priceFmt = Number(d.price || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const hiFmt = Number(d.day_high || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const loFmt = Number(d.day_low || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const volFmt = Number(d.volume || 0).toLocaleString("nb-NO");
+        const sparkSvg = renderTickerSparkline(d.ytd_spark, d.ytd_pct, d.symbol);
+        popup.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">
+            <div>
+              <div style="font-size:14px; font-weight:700; color:#f1f5f9;">${d.symbol} <span style="font-weight:400; font-size:12px; color:#94a3b8;">· ${d.name} (${d.exchange})</span></div>
+              <div style="display:flex; align-items:center; gap:10px; margin-top:4px; font-family:var(--font-mono);">
+                <span style="font-size:17px; font-weight:700; color:#f8fafc;">${priceFmt} <span style="font-size:11px; color:#94a3b8;">${d.currency}</span></span>
+                <span class="live-idx-pill ${up ? "up" : "down"}">I dag ${up ? "+" : ""}${chg.toFixed(2)}%</span>
+                <span class="live-idx-ytd ${ytdUp ? "up" : "down"}">${sparkSvg} <span class="live-idx-tag">YTD</span>${ytdUp ? "+" : ""}${ytd.toFixed(1)}%</span>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('globalTickerPopup').style.display='none'">✕</button>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:8px; border-top:1px solid var(--border-color); font-size:11.5px; color:#94a3b8;">
+            <span>Høy: <strong style="color:#e2e8f0;">${hiFmt}</strong> · Lav: <strong style="color:#e2e8f0;">${loFmt}</strong> · Volum: <strong style="color:#e2e8f0;">${volFmt}</strong></span>
+            <button class="btn btn-primary btn-sm" onclick="prefillOrderFromSearch('${d.symbol}', ${Number(d.price || 0)})">⚡ Fyll inn i Ordre</button>
+          </div>
+        `;
+      } catch (e) {
+        popup.innerHTML = `<div style="font-size:12px; color:#f87171;">⚠️ Kunne ikke hente live-kurs.</div>`;
+      }
+    }
+
+    function prefillOrderFromSearch(sym, price) {
+      const popup = document.getElementById("globalTickerPopup");
+      if (popup) popup.style.display = "none";
+      switchCategory("trading");
+      const symEl = document.getElementById("manSymbol");
+      const limEl = document.getElementById("manLimit");
+      const slEl = document.getElementById("manSL");
+      const tpEl = document.getElementById("manTP");
+      if (symEl) symEl.value = sym;
+      if (price > 0) {
+        if (limEl) limEl.value = price.toFixed(2);
+        if (slEl) slEl.value = (price * 0.96).toFixed(2);
+        if (tpEl) tpEl.value = (price * 1.08).toFixed(2);
+      }
+      if (typeof updateManualOrderJson === "function") updateManualOrderJson();
+    }
+
+    document.addEventListener("click", (ev) => {
+      const popup = document.getElementById("globalTickerPopup");
+      const wrap = document.querySelector(".global-search-wrap");
+      if (popup && wrap && !wrap.contains(ev.target)) {
+        popup.style.display = "none";
+      }
+    });
 
     let ACTIVE_PERF_RANGE = "YTD";
 
