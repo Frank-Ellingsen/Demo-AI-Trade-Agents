@@ -955,8 +955,8 @@
           <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')" data-tooltip="Velg strategi + USD-beløp for Telegram-godkjenning, eller legg inn manuell OCO Bracket-ordre mot Alpaca Paper.">
             <span class="tab-num">03</span>Trading <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Kjøp / Salg / HITL</span>
           </button>
-          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live BBO-kurser, Norden (OMXN40 — 40 selskaper), Norge (OBX 15) og ventende HITL-ordrer.">
-            <span class="tab-num">04</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">OMXN40 &amp; OBX 15</span>
+          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live S&amp;P 500 Top 5 Up/Down, Norden (OMXN40 — 40 selskaper), Norge (OBX 15) og ventende HITL-ordrer.">
+            <span class="tab-num">04</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">S&amp;P / OMXN40 / OBX</span>
           </button>
           <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="Multi-Univers backtest, AI Strategi-rådgiver, Agent Rulebook, 3-trinns failover og deterministisk Skatt/Gebyr/FX-motor.">
             <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Skatt/FX</span>
@@ -1942,6 +1942,44 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
                   <td class="num">1.00 NOK</td>
                   <td class="num">$0.01</td>
                 </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- US S&P 500 Top 5 Up & Top 5 Down (Live Alpaca Snapshots) -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🇺🇸 US S&amp;P 500 — Top 5 Up &amp; Top 5 Down</h3>
+            <p>Live dagsbevegelser fra Alpaca Market Data (30 likvide S&amp;P 500-ledere)</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="pill pill-cyan" id="sp500MoversSource">Laster...</span>
+            <button class="btn btn-outline btn-sm" onclick="loadSp500Movers()">🔄 Oppdater</button>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top: 10px;">
+          <div>
+            <h4 style="margin: 0 0 8px 0; color: var(--positive); font-size: 13px;">🟢 Top 5 Up (Vinnere)</h4>
+            <table class="tufte-table">
+              <thead>
+                <tr><th>Ticker</th><th class="num">Siste ($)</th><th class="num">Forrige ($)</th><th class="num">Dag %</th></tr>
+              </thead>
+              <tbody id="sp500TopUpTbody">
+                <tr><td colspan="4" class="text-muted">Laster Top 5 Up...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h4 style="margin: 0 0 8px 0; color: var(--error); font-size: 13px;">🔴 Top 5 Down (Tapere)</h4>
+            <table class="tufte-table">
+              <thead>
+                <tr><th>Ticker</th><th class="num">Siste ($)</th><th class="num">Forrige ($)</th><th class="num">Dag %</th></tr>
+              </thead>
+              <tbody id="sp500TopDownTbody">
+                <tr><td colspan="4" class="text-muted">Laster Top 5 Down...</td></tr>
               </tbody>
             </table>
           </div>
@@ -4364,6 +4402,35 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    async function loadSp500Movers() {
+      const upTb = document.getElementById("sp500TopUpTbody");
+      const dnTb = document.getElementById("sp500TopDownTbody");
+      const srcEl = document.getElementById("sp500MoversSource");
+      if (!upTb || !dnTb) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/markets/sp500-movers`);
+        if (!res.ok) return;
+        const d = await res.json();
+        if (srcEl) srcEl.textContent = d.source === "live_alpaca" ? `Live Alpaca (${d.updated_at.slice(11)})` : "Referansedata";
+        const renderRows = (list) => (list || []).map(r => {
+          const pct = Number(r.change_pct || 0);
+          const cls = pct >= 0 ? "text-green" : "text-red";
+          return `
+            <tr>
+              <td><strong>${r.ticker}</strong></td>
+              <td class="num">$${Number(r.price).toFixed(2)}</td>
+              <td class="num text-muted">$${Number(r.prev_close).toFixed(2)}</td>
+              <td class="num ${cls}"><strong>${pct >= 0 ? "+" : ""}${pct.toFixed(2)} %</strong></td>
+            </tr>
+          `;
+        }).join("");
+        upTb.innerHTML = renderRows(d.top_up);
+        dnTb.innerHTML = renderRows(d.top_down);
+      } catch (err) {
+        upTb.innerHTML = `<tr><td colspan="4" class="text-muted">Kunne ikke laste S&amp;P 500 movers.</td></tr>`;
+      }
+    }
+
     // Initialiser ved oppstart (Vis kun 01 Overview som ren startside)
     switchCategory("overview");
     try { renderAllSections(); } catch (e) { console.error("renderAllSections:", e); }
@@ -4371,6 +4438,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     checkServerConnection();
     loadRulebookAndFailover();
     loadOmxn40Universe();
+    loadSp500Movers();
     loadSettingsForm();
     evaluateTaxFeeFx();
     setInterval(checkServerConnection, 6000);

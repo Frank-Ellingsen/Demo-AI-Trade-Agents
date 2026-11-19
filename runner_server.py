@@ -980,6 +980,74 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/markets/sp500-movers":
+            _reload_env()
+            sp500_leaders = [
+                "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "TSLA", "AVGO", "JPM", "V",
+                "MA", "UNH", "XOM", "CVX", "LLY", "JNJ", "PG", "HD", "CAT", "BAC",
+                "WMT", "KO", "PEP", "COST", "CRM", "ORCL", "AMD", "NFLX", "INTC", "PLTR",
+            ]
+            movers_rows = []
+            source = "fallback"
+            try:
+                import requests
+                from alpaca_execution import AlpacaClient
+
+                client = AlpacaClient()
+                r = requests.get(
+                    "https://data.alpaca.markets/v2/stocks/snapshots",
+                    params={"symbols": ",".join(sp500_leaders), "feed": "iex"},
+                    headers=client.headers,
+                    timeout=8,
+                )
+                if r.status_code == 200:
+                    snaps = r.json()
+                    for sym, s in snaps.items():
+                        lt = (s.get("latestTrade") or {}).get("p")
+                        pc = (s.get("prevDailyBar") or {}).get("c")
+                        if lt and pc and float(pc) > 0:
+                            lt_f, pc_f = float(lt), float(pc)
+                            chg_pct = ((lt_f - pc_f) / pc_f) * 100.0
+                            movers_rows.append({
+                                "ticker": sym,
+                                "price": round(lt_f, 2),
+                                "prev_close": round(pc_f, 2),
+                                "change_pct": round(chg_pct, 2),
+                            })
+                    if movers_rows:
+                        source = "live_alpaca"
+            except Exception:
+                pass
+
+            if not movers_rows:
+                movers_rows = [
+                    {"ticker": "NVDA", "price": 145.00, "prev_close": 142.00, "change_pct": 2.11},
+                    {"ticker": "AAPL", "price": 229.10, "prev_close": 227.20, "change_pct": 0.84},
+                    {"ticker": "MSFT", "price": 426.80, "prev_close": 422.05, "change_pct": 1.13},
+                    {"ticker": "META", "price": 565.00, "prev_close": 559.10, "change_pct": 1.06},
+                    {"ticker": "AMZN", "price": 205.00, "prev_close": 203.20, "change_pct": 0.89},
+                    {"ticker": "TSLA", "price": 340.00, "prev_close": 347.50, "change_pct": -2.16},
+                    {"ticker": "PLTR", "price": 61.20, "prev_close": 62.10, "change_pct": -1.45},
+                    {"ticker": "AMD", "price": 148.00, "prev_close": 150.20, "change_pct": -1.46},
+                    {"ticker": "XOM", "price": 120.00, "prev_close": 121.10, "change_pct": -0.91},
+                    {"ticker": "JPM", "price": 240.00, "prev_close": 241.50, "change_pct": -0.62},
+                ]
+
+            movers_rows.sort(key=lambda x: x["change_pct"], reverse=True)
+            res_obj = {
+                "source": source,
+                "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "top_up": movers_rows[:5],
+                "top_down": list(reversed(movers_rows[-5:])),
+            }
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/universes/omxn40":
             import yaml
 
