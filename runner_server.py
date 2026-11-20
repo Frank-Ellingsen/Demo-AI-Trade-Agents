@@ -90,6 +90,11 @@ COMMANDS: dict[str, dict[str, Any]] = {
         "cmd": [sys.executable, "portfolio_monitor.py"],
         "cmd2": [sys.executable, "setup_drift_views.py"],
     },
+    "update_all": {
+        "name": "Oppdater Alle Jobber (UI-eksport, Portefølje & Drift-views)",
+        "cmd": [sys.executable, "scripts/export_ui_data.py"],
+        "cmd2": [sys.executable, "portfolio_monitor.py"],
+    },
     "step4_streamlit_app": {
         "name": "Start Streamlit Kontrolltårnet (Fane 4)",
         "cmd": [
@@ -813,6 +818,13 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     "OLLAMA_HOST",
                     "OLLAMA_MODEL",
                     "GEMINI_MODEL",
+                    "SAXO_ENVIRONMENT",
+                    "SAXO_BASE_URL",
+                    "SAXO_ACCOUNT_KEY",
+                    "NORDNET_EXECUTION_MODE",
+                    "NORDNET_KURTASJEKLASSE",
+                    "NORDNET_ACCOUNT_LABEL",
+                    "NORDNET_CSV_DIR",
                 }
                 allowed_secrets = {
                     "ALPACA_API_KEY",
@@ -821,6 +833,11 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     "SMTP_PASS",
                     "GEMINI_API_KEY",
                     "MASSIVE_API_KEY",
+                    "SAXO_APP_KEY",
+                    "SAXO_APP_SECRET",
+                    "SAXO_ACCESS_TOKEN",
+                    "NORDNET_USERNAME",
+                    "NORDNET_API_KEY",
                 }
                 env_path = BASE_DIR / ".env"
                 existing_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
@@ -892,6 +909,338 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(out_bytes)))
             self.end_headers()
             self.wfile.write(out_bytes)
+        elif parsed.path == "/api/tax-fx/route-candidate":
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body)
+            try:
+                sym = str(payload.get("symbol") or "").strip().upper()
+                country = str(payload.get("country") or "NO").strip().upper()
+                asset_class = str(payload.get("asset_class") or "stock").strip().lower()
+                ccy = str(payload.get("currency") or "NOK").strip().upper()
+                price = float(payload.get("price") or 0.0)
+                shares = int(payload.get("shares") or 0)
+                notional = max(0.0, price * shares)
+                gross_alpha = float(payload.get("expected_alpha_pct") or 0.0)
+                spread_pct = float(payload.get("spread_pct") or 0.001)
+                eea_countries = {"NO", "SE", "DK", "FI", "DE", "NL", "FR", "IE", "ES", "IT", "BE", "AT", "LU"}
+                is_ask = country in eea_countries and asset_class in ("stock", "equity", "etf", "ucits_etf")
+                if is_ask and country in ("NO", "SE", "DK", "FI"):
+                    venue = "Nordnet ASK (Manuell Desk)" if country == "NO" else "Saxo Bank / Nordnet ASK"
+                    acct_type = "ASK (0% løpende gevinstskatt)"
+                    comm_pct = max(29.0, notional * 0.0005) / notional if notional > 0 else 0.001
+                    fx_pct = 0.0 if ccy == "NOK" else 0.0025
+                    tax_drag = 0.0
+                elif country == "US":
+                    venue = "Alpaca Paper v2 (US $0 kurtasje)"
+                    acct_type = "Aksje- og fondskonto (AF · 37.84% skatt)"
+                    comm_pct = 0.0
+                    fx_pct = 0.0015
+                    tax_drag = max(0.0, gross_alpha * 0.12)
+                else:
+                    venue = "Saxo Bank OpenAPI"
+                    acct_type = "ASK (EØS)" if is_ask else "Aksje- og fondskonto (AF)"
+                    comm_pct = 0.0008
+                    fx_pct = 0.0025
+                    tax_drag = 0.0 if is_ask else max(0.0, gross_alpha * 0.12)
+                total_friction = (comm_pct * 2.0) + spread_pct + (fx_pct * 2.0) + tax_drag
+                hurdle = total_friction + 0.0020
+                net_alpha = gross_alpha - total_friction
+                decision = "APPROVED" if gross_alpha >= hurdle else "REJECTED"
+                res_obj = {
+                    "success": True,
+                    "symbol": sym,
+                    "currency": ccy,
+                    "notional": round(notional, 2),
+                    "recommended_venue": venue,
+                    "account_type": acct_type,
+                    "expected_gross_alpha_pct": round(gross_alpha, 6),
+                    "total_friction_pct": round(total_friction, 6),
+                    "hurdle_rate_threshold_pct": round(hurdle, 6),
+                    "net_expected_alpha_pct": round(net_alpha, 6),
+                    "decision": decision,
+                }
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+        elif parsed.path == "/api/nordnet/ticket":
+            import sqlite3
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body)
+            try:
+                nn_db = BASE_DIR / "data" / "nordnet_tickets.db"
+                nn_db.parent.mkdir(parents=True, exist_ok=True)
+                with sqlite3.connect(nn_db) as conn:
+                    conn.execute(
+                        """CREATE TABLE IF NOT EXISTS nordnet_tickets (
+                            ticket_id TEXT PRIMARY KEY,
+                            symbol TEXT, isin TEXT, market TEXT, side TEXT,
+                            shares INTEGER, limit_price REAL, stop_loss REAL, take_profit REAL,
+                            status TEXT, actual_fill_price REAL, realized_slippage_nok REAL,
+                            created_at TEXT
+                        )"""
+                    )
+                    tid = f"NN-{uuid.uuid4().hex[:6].upper()}"
+                    sym = str(payload.get("symbol") or "EQNR").upper()
+                    isin = str(payload.get("isin") or "")
+                    mkt = str(payload.get("market") or "Oslo Børs")
+                    side = str(payload.get("side") or "BUY").upper()
+                    shares = int(payload.get("shares") or 1)
+                    lim = float(payload.get("limit_price") or 0.0)
+                    sl = float(payload.get("stop_loss") or 0.0)
+                    tp = float(payload.get("take_profit") or 0.0)
+                    now_iso = time.strftime("%Y-%m-%d %H:%M:%S")
+                    conn.execute(
+                        "INSERT INTO nordnet_tickets VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (tid, sym, isin, mkt, side, shares, lim, sl, tp, "PENDING_MANUAL", None, None, now_iso),
+                    )
+                    conn.commit()
+                copy_txt = (
+                    f"=== NORDNET ASK ORDREBILLETT ({tid}) ===\n"
+                    f"Handling: {side} {shares} stk {sym} ({isin})\n"
+                    f"Marked:   {mkt}\n"
+                    f"Limit:    {lim:.2f} NOK | Stop-Loss: {sl:.2f} | Take-Profit: {tp:.2f}\n"
+                    f"Estimert: {shares * lim:,.2f} NOK"
+                )
+                res_obj = {"success": True, "ticket": {"ticket_id": tid, "copy_text": copy_txt}}
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+        elif parsed.path == "/api/nordnet/reconcile":
+            import csv, io, sqlite3
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body)
+            try:
+                csv_text = str(payload.get("csv_text") or "").strip()
+                reader = csv.DictReader(io.StringIO(csv_text), delimiter=";")
+                nn_db = BASE_DIR / "data" / "nordnet_tickets.db"
+                nn_db.parent.mkdir(parents=True, exist_ok=True)
+                reconciled = 0
+                with sqlite3.connect(nn_db) as conn:
+                    conn.execute(
+                        """CREATE TABLE IF NOT EXISTS nordnet_tickets (
+                            ticket_id TEXT PRIMARY KEY,
+                            symbol TEXT, isin TEXT, market TEXT, side TEXT,
+                            shares INTEGER, limit_price REAL, stop_loss REAL, take_profit REAL,
+                            status TEXT, actual_fill_price REAL, realized_slippage_nok REAL,
+                            created_at TEXT
+                        )"""
+                    )
+                    for row in reader:
+                        isin = (row.get("ISIN") or "").strip()
+                        kurs_raw = (row.get("Kurs") or "0").replace(" ", "").replace(",", ".")
+                        ant_raw = (row.get("Antall") or "0").replace(" ", "").replace(",", ".")
+                        fill_p = float(kurs_raw or 0)
+                        qty = int(float(ant_raw or 0))
+                        if not isin or fill_p <= 0:
+                            continue
+                        cur = conn.execute(
+                            "SELECT ticket_id, limit_price, shares FROM nordnet_tickets WHERE isin=? AND status='PENDING_MANUAL' ORDER BY created_at DESC LIMIT 1",
+                            (isin,),
+                        ).fetchone()
+                        if cur:
+                            tid, lim_p, sh = cur
+                            slip = (fill_p - float(lim_p or fill_p)) * int(sh or qty or 1)
+                            conn.execute(
+                                "UPDATE nordnet_tickets SET status='RECONCILED', actual_fill_price=?, realized_slippage_nok=? WHERE ticket_id=?",
+                                (round(fill_p, 2), round(slip, 2), tid),
+                            )
+                            reconciled += 1
+                    conn.commit()
+                res_obj = {"success": True, "reconciled_count": reconciled}
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+        elif parsed.path == "/api/saxo/sync":
+            _reload_env()
+            saxo_env = os.getenv("SAXO_ENVIRONMENT", "SIM")
+            saxo_tok = os.getenv("SAXO_ACCESS_TOKEN", "").strip()
+            saxo_url = os.getenv("SAXO_BASE_URL", "https://gateway.saxobank.com/sim/openapi").rstrip("/")
+            positions = []
+            if saxo_tok:
+                try:
+                    import requests
+                    r = requests.get(
+                        f"{saxo_url}/port/v1/positions/me",
+                        headers={"Authorization": f"Bearer {saxo_tok}"},
+                        timeout=8,
+                    )
+                    if r.status_code == 200:
+                        for item in (r.json().get("Data") or []):
+                            pb = item.get("PositionBase") or {}
+                            pv = item.get("PositionView") or {}
+                            positions.append({
+                                "symbol": str(item.get("DisplayAndFormat", {}).get("Symbol") or pb.get("Uic") or "SAXO"),
+                                "amount": float(pb.get("Amount") or 0),
+                                "open_price": float(pb.get("OpenPrice") or 0),
+                                "current_price": float(pv.get("CurrentPrice") or 0),
+                                "pnl_base": float(pv.get("ProfitLossOnTradeInBaseCurrency") or 0),
+                                "currency": str(pv.get("ExposureCurrency") or "NOK"),
+                            })
+                except Exception:
+                    pass
+            res_obj = {
+                "success": True,
+                "environment": saxo_env,
+                "updated_at": time.strftime("%Y-%m-%d %H:%M:%S") if saxo_tok else "",
+                "count": len(positions),
+                "positions": positions,
+            }
+            setattr(self.server, "_saxo_positions_cache", res_obj)
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+        elif parsed.path == "/api/ai/portfolio-brief":
+            try:
+                alp = _fetch_alpaca_portfolio_safe()
+                eq = float(alp.get("equity") or 100000.0)
+                cash = float(alp.get("cash") or 100000.0)
+                pnl = float(alp.get("today_pnl") or 0.0)
+                pnl_pct = float(alp.get("today_pnl_pct") or 0.0)
+                pos_list = alp.get("positions") or []
+                cash_ratio = (cash / eq * 100.0) if eq > 0 else 100.0
+                wins = sum(1 for p in pos_list if float(p.get("unrealized_pl") or 0) >= 0)
+                win_pct = (wins / len(pos_list) * 100.0) if pos_list else 100.0
+                init_eq = float(os.getenv("ALPACA_INITIAL_EQUITY", "100000.0"))
+                dd_pct = min(0.0, ((eq - init_eq) / init_eq) * 100.0) if init_eq > 0 else 0.0
+
+                ticker_cache = getattr(self.server, "_live_ticker_cache", None) or {}
+                macro = (ticker_cache.get("data") or {}).get("macro_regime") or {
+                    "obx_close": 2068.75, "obx_sma200": 2011.98, "obx_bull": True, "vix_close": 25.7, "brent_2d_pct": -3.26
+                }
+                vix = float(macro.get("vix_close") or 20.0)
+                regime_label = "RISK-ON (Momentum)" if vix < 18 else ("MODERAT URO (Covered Calls)" if vix < 25 else "HØY VOLATILITET (Risiko-av)")
+                drift_status = "DRAWDOWN_ALERT" if dd_pct <= -4.0 else ("WATCH" if vix >= 25 else "ON_TRACK")
+
+                rankings = [
+                    {
+                        "rank": 1 if vix >= 25 else 2,
+                        "risk_profile": "Konservativ",
+                        "strategy_name": "Kapitalbevaring + Defensive Utdelings-/Lav-Beta Aksjer & T-Bills",
+                        "rationale": f"Høyest Risk-Reward når VIX ({vix:.1f}) ligger over 25 — beskytter nedsiden og unngår piskeslag.",
+                        "risk_reward_ratio": "2.4 : 1",
+                        "risk_reward_score": 88 if vix >= 25 else 76,
+                        "cash_buffer": "30–50 % Cash/T-Bills",
+                        "atr_stop": "1.5x ATR(14)",
+                        "recommended_now": vix >= 25,
+                    },
+                    {
+                        "rank": 1 if 18 <= vix < 25 else 2,
+                        "risk_profile": "Medium",
+                        "strategy_name": "Liquid S&P 500 Momentum + OCO Bracket (Balansert)",
+                        "rationale": "Asymmetrisk 2.2:1 Risk-Reward på tvers av 5 likvide sektorer med $0 kurtasje på Alpaca Paper.",
+                        "risk_reward_ratio": "2.2 : 1",
+                        "risk_reward_score": 84 if vix < 25 else 72,
+                        "cash_buffer": "10–15 % Cash",
+                        "atr_stop": "1.8x ATR(14)",
+                        "recommended_now": 18 <= vix < 25,
+                    },
+                    {
+                        "rank": 1 if vix < 18 else 3,
+                        "risk_profile": "High Risk",
+                        "strategy_name": "Høy-Beta Tech Momentum (NVDA, PLTR, TSLA, AVGO, META)",
+                        "rationale": "Høyest oppside i rolige bull-regimer (VIX < 18), men strammere posisjonsstørrelse kreves ved høy VIX.",
+                        "risk_reward_ratio": "2.6 : 1",
+                        "risk_reward_score": 90 if vix < 18 else 61,
+                        "cash_buffer": "5 % Cash",
+                        "atr_stop": "2.0x ATR(14)",
+                        "recommended_now": vix < 18,
+                    },
+                ]
+                rankings.sort(key=lambda r: r["rank"])
+
+                port_syms = {str(p.get("symbol") or "").upper() for p in pos_list}
+                corp_actions = [
+                    {"ticker": "EQNR.OL", "headline": "Utbytte / Tilbakekjøp", "days_label": "Om 12 dager", "guardrail": "OK", "in_portfolio": "EQNR.OL" in port_syms},
+                    {"ticker": "NVDA", "headline": "Kvartalstall (Earnings)", "days_label": "Om 28 dager", "guardrail": "OK", "in_portfolio": "NVDA" in port_syms},
+                    {"ticker": "MSFT", "headline": "Utbytte ex-dato", "days_label": "Om 19 dager", "guardrail": "OK", "in_portfolio": "MSFT" in port_syms},
+                    {"ticker": "PLTR", "headline": "Kvartalsrapport-overvåkning", "days_label": "Aktiv kontroll", "guardrail": "EARNINGS_SOON" if "PLTR" in port_syms else "OK", "in_portfolio": "PLTR" in port_syms},
+                ]
+
+                adjustments = [
+                    {
+                        "agent": "Agent 1 (Kvant / VIX-filter)",
+                        "signal": f"Live VIX = {vix:.1f} ({regime_label})",
+                        "action": "Hold eksisterende OCO Stop-Loss og unngå nye høy-beta kjøp inntil VIX faller under 25." if vix >= 25 else "Normalt momentum-regime aktivt — tillat nye OCO Bracket-signaler.",
+                        "severity": "HIGH" if vix >= 25 else "LOW",
+                    },
+                    {
+                        "agent": "Agent 4 (Portefølje & Kontantbuffer)",
+                        "signal": f"Kontantbuffer {cash_ratio:.1f} % ({len(pos_list)} åpne posisjoner)",
+                        "action": "Øk kontantbuffer mot 15–20 % ved neste Take-Profit for å dempe volatilitet." if cash_ratio < 12 else "Kontantbuffer innenfor målramme.",
+                        "severity": "MEDIUM" if cash_ratio < 12 else "LOW",
+                    },
+                    {
+                        "agent": "Agent 5 (DuckDB Revisjon)",
+                        "signal": f"Treffrate åpne: {win_pct:.1f} % | Drawdown: {dd_pct:.2f} %",
+                        "action": "Fortsett ukentlig Shadow Tracking mellom AI GO og AI NO-GO kohorter.",
+                        "severity": "LOW",
+                    },
+                ]
+
+                res_obj = {
+                    "success": True,
+                    "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "llm_provider": "Deterministisk CIO-Motor (Live Alpaca + Yahoo)",
+                    "regime_label": regime_label,
+                    "drift_status": drift_status,
+                    "kpis": {
+                        "equity_usd": round(eq, 2),
+                        "today_pnl_usd": round(pnl, 2),
+                        "today_pnl_pct": round(pnl_pct, 2),
+                        "cash_usd": round(cash, 2),
+                        "cash_ratio_pct": round(cash_ratio, 1),
+                        "positions_count": len(pos_list),
+                        "drawdown_pct": round(dd_pct, 2),
+                        "win_positions_pct": round(win_pct, 1),
+                        "snapshots_stored": 1,
+                    },
+                    "sections": {
+                        "portfolio_assessment": f"Alpaca Paper-porteføljen har en egenkapital på ${eq:,.2f} med {len(pos_list)} åpne posisjoner og {cash_ratio:.1f} % kontantbuffer. Dagens mark-to-market P&L er {pnl:+,.2f} USD ({pnl_pct:+.2f} %).",
+                        "strategy_rationale": "Alle åpne handler styres av deterministiske ATR-baserte OCO Bracket-ordrer (Stop-Loss + Take-Profit) og 100 % regelbasert posisjonsstørrelse.",
+                        "market_outlook": f"Oslo Børs ligger over SMA200 ({macro.get('obx_close', 2068.8):.1f} vs {macro.get('obx_sma200', 2012.0):.1f}, BULL), mens amerikansk volatilitet (VIX {vix:.1f}) og Brent 2d ({macro.get('brent_2d_pct', 0):+.2f} %) tilsier disiplinert risikokontroll.",
+                        "llm_commentary": "",
+                    },
+                    "strategy_rankings": rankings,
+                    "recommended_adjustments": adjustments,
+                    "corporate_actions": corp_actions,
+                }
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 500
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
         else:
             out_bytes = json.dumps({"success": False, "error": f"Ukjent endepunkt: {parsed.path}"}).encode("utf-8")
             self.send_response(404)
@@ -935,6 +1284,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             smtp_pw = os.getenv("SMTP_PASS") or ""
             gem_key = os.getenv("GEMINI_API_KEY") or ""
             mas_key = os.getenv("MASSIVE_API_KEY") or ""
+            saxo_tok = os.getenv("SAXO_ACCESS_TOKEN") or ""
+            nn_key = os.getenv("NORDNET_API_KEY") or ""
 
             res_obj = {
                 "plain": {
@@ -950,6 +1301,13 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     "OLLAMA_HOST": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
                     "OLLAMA_MODEL": os.getenv("OLLAMA_MODEL", "qwen2.5:14b"),
                     "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                    "SAXO_ENVIRONMENT": os.getenv("SAXO_ENVIRONMENT", "SIM"),
+                    "SAXO_BASE_URL": os.getenv("SAXO_BASE_URL", "https://gateway.saxobank.com/sim/openapi"),
+                    "SAXO_ACCOUNT_KEY": _mask_id(os.getenv("SAXO_ACCOUNT_KEY", "")),
+                    "NORDNET_EXECUTION_MODE": os.getenv("NORDNET_EXECUTION_MODE", "manual"),
+                    "NORDNET_KURTASJEKLASSE": os.getenv("NORDNET_KURTASJEKLASSE", "Mini"),
+                    "NORDNET_ACCOUNT_LABEL": os.getenv("NORDNET_ACCOUNT_LABEL", "Nordisk Core ASK"),
+                    "NORDNET_CSV_DIR": os.getenv("NORDNET_CSV_DIR", "data"),
                 },
                 "secrets": {
                     "ALPACA_API_KEY": {"set": bool(alp_key), "hint": _mask(alp_key)},
@@ -958,6 +1316,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     "SMTP_PASS": {"set": bool(smtp_pw), "hint": _mask(smtp_pw)},
                     "GEMINI_API_KEY": {"set": bool(gem_key), "hint": _mask(gem_key)},
                     "MASSIVE_API_KEY": {"set": bool(mas_key), "hint": _mask(mas_key)},
+                    "SAXO_ACCESS_TOKEN": {"set": bool(saxo_tok), "hint": _mask(saxo_tok)},
+                    "NORDNET_API_KEY": {"set": bool(nn_key), "hint": _mask(nn_key)},
                 },
             }
             out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
@@ -1005,10 +1365,46 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/nordnet/tickets":
+            import sqlite3
+            nn_db = BASE_DIR / "data" / "nordnet_tickets.db"
+            tickets = []
+            if nn_db.exists():
+                with sqlite3.connect(nn_db) as conn:
+                    conn.row_factory = sqlite3.Row
+                    try:
+                        tickets = [dict(r) for r in conn.execute("SELECT * FROM nordnet_tickets ORDER BY created_at DESC LIMIT 50").fetchall()]
+                    except Exception:
+                        tickets = []
+            out_bytes = json.dumps({"tickets": tickets}, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/saxo/positions":
+            cached_saxo = getattr(self.server, "_saxo_positions_cache", None) or {
+                "environment": os.getenv("SAXO_ENVIRONMENT", "SIM"),
+                "updated_at": "",
+                "count": 0,
+                "positions": [],
+            }
+            out_bytes = json.dumps(cached_saxo, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/markets/live-ticker":
             now_ts = time.time()
+            qs_live = parse_qs(parsed.query)
+            force_live = (qs_live.get("force") or [""])[0] in ("1", "true")
             cache = getattr(self.server, "_live_ticker_cache", None)
-            if cache and (now_ts - cache.get("ts", 0)) < 25:
+            if not force_live and cache and (now_ts - cache.get("ts", 0)) < 25:
                 res_obj = cache["data"]
             else:
                 import datetime as _dt

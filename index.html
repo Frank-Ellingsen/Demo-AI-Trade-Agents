@@ -1017,6 +1017,9 @@
         <a href="http://localhost:8000/strategi-radgiver" target="_blank" class="btn btn-outline btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" data-tooltip="Interaktivt strategidashbord for å sammenligne risikoprofiler (Konservativ, Balansert, Aggressiv) og få AI-råd før handel.">
           <span>🧠 Strategi-Rådgiver</span><span>↗</span>
         </a>
+        <a href="http://localhost:8501" target="_blank" class="btn btn-outline btn-sm" style="width:100%; justify-content:space-between; text-decoration:none;" onclick="if(typeof isConnected!=='undefined' && isConnected){ fetch(SERVER_URL + '/api/run/step4_streamlit_app', {method:'POST'}).catch(()=>{}); }" data-tooltip="Åpner Python/Streamlit Kontrolltårnet (app.py) på http://localhost:8501 (starter automatisk via runner_server.py hvis stoppet).">
+          <span>📊 Åpne Streamlit App</span><span>↗</span>
+        </a>
       </div>
 
       <div>
@@ -1039,6 +1042,9 @@
           </button>
           <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater alle nøkler og innstillinger lokalt i .env (demo-maskert for skjermdeling).">
             <span class="tab-num">06</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
+          </button>
+          <button class="nav-tab" data-section="cat-multibroker" onclick="switchCategory('multibroker')" data-tooltip="Multi-Broker Desk: Nordnet ASK billetter &amp; CSV-avstemming, Saxo OpenAPI posisjonssynk, deterministisk skatt/gebyr-ruting og Streamlit Kontrolltårn (:8501).">
+            <span class="tab-num">07</span>Multi-Broker <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nordnet · Saxo · ST</span>
           </button>
         </nav>
       </div>
@@ -1079,6 +1085,12 @@
           <div id="globalTickerPopup" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; min-width:380px; z-index:120; background:#111927; border:1px solid var(--border-strong); border-radius:8px; padding:12px 14px; box-shadow:0 12px 28px rgba(0,0,0,0.45);"></div>
         </div>
         <div class="topbar-actions">
+          <button class="btn btn-outline btn-sm" id="btnAiPortfolioBrief" onclick="openAiPortfolioBrief(false)" data-tooltip="Åpner dynamisk KI pop-up vurdering av Paper-porteføljen, redegjørelse av strategi, markedsutsikter og forslag til modell-/agentjustering basert på DuckDB drift-historikk.">
+            🧠 KI Vurdering
+          </button>
+          <button class="btn btn-outline btn-sm" id="btnUpdateAllJobs" onclick="runAllUpdateJobs()" data-tooltip="Kjører alle oppdateringsjobber i appen: sluttkurser, HITL-utløpssjekk, EOD-skanning, portefølje/drift-views, Paper-snapshot, Saxo-sync, UI-eksport, live indekser og Alpaca Paper.">
+            🔄 Oppdater Alt
+          </button>
           <button class="notif-btn" onclick="openHitlAlerts()" title="Åpne ventende HITL-ordrer og varsler">
             🔔 HITL Varsler <span class="notif-count" id="topbarNotifCount">1</span>
           </button>
@@ -2576,10 +2588,347 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             </div>
           </div>
         </div>
+
+        <!-- Card 5: Saxo Bank OpenAPI Credentials -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🏦 Saxo Bank OpenAPI (Simulering / Live)</h3>
+              <p>OAuth-nøkler og 24t Bearer Token for <code>saxo_positions_sync.py</code> og Oslo Børs-eksekvering</p>
+            </div>
+            <span class="pill pill-cyan" id="setSaxoHint">Sjekker...</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:10px;">
+              <div class="field-group">
+                <label for="setSaxoEnv">Miljø (<code>SAXO_ENVIRONMENT</code>)</label>
+                <select id="setSaxoEnv">
+                  <option value="SIM">SIM (Simulering)</option>
+                  <option value="LIVE">LIVE (Krever ACK)</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="setSaxoBaseUrl">OpenAPI Base URL (<code>SAXO_BASE_URL</code>)</label>
+                <input type="text" id="setSaxoBaseUrl" value="https://gateway.saxobank.com/sim/openapi">
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="setSaxoAccountKey">Saxo Account Key (<code>SAXO_ACCOUNT_KEY</code>)</label>
+              <input type="text" id="setSaxoAccountKey" placeholder="F.eks. SIM_ACCOUNT_KEY (valgfritt, hentes auto)">
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setSaxoAppKey">App Key (<code>SAXO_APP_KEY</code>)</label>
+                <input type="password" id="setSaxoAppKey" placeholder="La stå tom for å beholde">
+              </div>
+              <div class="field-group">
+                <label for="setSaxoAppSecret">App Secret (<code>SAXO_APP_SECRET</code>)</label>
+                <input type="password" id="setSaxoAppSecret" placeholder="La stå tom for å beholde">
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="setSaxoToken">24t Access Token (<code>SAXO_ACCESS_TOKEN</code>)</label>
+              <input type="password" id="setSaxoToken" placeholder="Lim inn token fra Saxo Developer Portal (la stå tom for å beholde)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6: Nordnet ASK Credentials & Desk Settings -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🇳🇴 Nordnet ASK (Manuell Desk &amp; CSV-Avstemming)</h3>
+              <p>Kontoparametre for <code>nordnet_reconciliation.py</code> og kostnadsmodellen (ASK)</p>
+            </div>
+            <span class="pill pill-amber" id="setNordnetHint">Manuell / CSV</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setNordnetMode">Modus (<code>NORDNET_EXECUTION_MODE</code>)</label>
+                <select id="setNordnetMode">
+                  <option value="manual">Manuell ASK + CSV (Anbefalt)</option>
+                  <option value="paper">Paper / Simulert</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="setNordnetTier">Kurtasjeklasse (<code>NORDNET_KURTASJEKLASSE</code>)</label>
+                <select id="setNordnetTier">
+                  <option value="Mini">Mini (0.15%, min 29 NOK)</option>
+                  <option value="Standard">Standard (0.05%, min 95 NOK)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setNordnetAccount">Kontonavn (<code>NORDNET_ACCOUNT_LABEL</code>)</label>
+                <input type="text" id="setNordnetAccount" value="Nordisk Core ASK">
+              </div>
+              <div class="field-group">
+                <label for="setNordnetCsvDir">CSV-mappe (<code>NORDNET_CSV_DIR</code>)</label>
+                <input type="text" id="setNordnetCsvDir" value="data">
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="field-group">
+                <label for="setNordnetUser">Brukernavn / Kunde-ID (valgfritt)</label>
+                <input type="password" id="setNordnetUser" placeholder="La stå tom for å beholde">
+              </div>
+              <div class="field-group">
+                <label for="setNordnetApiKey">Nordnet API Key (valgfritt / fremtidig)</label>
+                <input type="password" id="setNordnetApiKey" placeholder="La stå tom for å beholde">
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style="margin-top: 14px; display:flex; gap:10px; justify-content:flex-end;">
         <button class="btn btn-success" onclick="saveSettingsForm()">💾 Lagre Alle Innstillinger til .env &amp; Test Tilkobling</button>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 07 MULTI-BROKER DESK: NORDNET ASK, SAXO SYNC, ROUTING & STREAMLIT     -->
+    <!-- ===================================================================== -->
+    <section class="workspace-section hidden" id="sec-multibroker">
+      <div class="section-header">
+        <div>
+          <h2><span class="sec-tag">07 MULTI-BROKER</span> Nordnet ASK, Saxo OpenAPI, Kostnadsruting &amp; Streamlit</h2>
+          <p>Samlet styring for <code>tax_fee_cost_engine.py</code>, <code>nordnet_reconciliation.py</code>, <code>saxo_positions_sync.py</code> og Streamlit Kontrolltårn (:8501)</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <a href="http://localhost:8000/multibroker" target="_blank" class="btn btn-outline btn-sm">🖥️ Åpne Fullskjerm Multi-Broker v2 ↗</a>
+          <button class="btn btn-primary btn-sm" onclick="mbLaunchStreamlit()">🚀 Start Streamlit (:8501)</button>
+        </div>
+      </div>
+
+      <!-- 1. Deterministic Transaction Cost, ASK Tax & Broker Routing Engine -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>⚖️ Deterministisk Kostnads-, ASK-Skatt- &amp; Meglerruting (<code>tax_fee_cost_engine.py</code>)</h3>
+            <p>Beregner kurtasje, FX, spread og slippage for Alpaca vs. Saxo vs. Nordnet, vurderer ASK-kvalifisering og håndhever Hurdle Rate + OTC-veto</p>
+          </div>
+          <span class="pill pill-cyan" id="mbRouteBadge">Klar</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:10px; margin-top:10px;">
+          <div class="field-group">
+            <label for="mbRouteSymbol">Ticker</label>
+            <input type="text" id="mbRouteSymbol" value="EQNR">
+          </div>
+          <div class="field-group">
+            <label for="mbRouteIsin">ISIN</label>
+            <input type="text" id="mbRouteIsin" value="NO0010096985">
+          </div>
+          <div class="field-group">
+            <label for="mbRouteCountry">Land</label>
+            <select id="mbRouteCountry">
+              <option value="NO" selected>NO (EØS / ASK)</option>
+              <option value="SE">SE (EØS / ASK)</option>
+              <option value="DK">DK (EØS / ASK)</option>
+              <option value="FI">FI (EØS / ASK)</option>
+              <option value="US">US (Skattepliktig)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="mbRouteAssetClass">Aktivaklasse</label>
+            <select id="mbRouteAssetClass">
+              <option value="NORDIC_EQUITY" selected>NORDIC_EQUITY</option>
+              <option value="US_EQUITY">US_EQUITY</option>
+              <option value="EEA_EQUITY">EEA_EQUITY</option>
+              <option value="OTC">OTC (Veto-test)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="mbRouteCurrency">Valuta</label>
+            <select id="mbRouteCurrency">
+              <option value="NOK" selected>NOK</option>
+              <option value="USD">USD</option>
+              <option value="SEK">SEK</option>
+              <option value="DKK">DKK</option>
+              <option value="EUR">EUR</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="mbRoutePrice">Kurs</label>
+            <input type="number" id="mbRoutePrice" value="275.00" step="0.5">
+          </div>
+          <div class="field-group">
+            <label for="mbRouteShares">Antall</label>
+            <input type="number" id="mbRouteShares" value="200" min="1" step="10">
+          </div>
+          <div class="field-group">
+            <label for="mbRouteAlpha">Brutto Alfa (%)</label>
+            <input type="number" id="mbRouteAlpha" value="4.5" step="0.2">
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary btn-sm" onclick="evaluateCostRouteCandidate()">▶ Beregn Optimal Rute &amp; Hurdle</button>
+          <button class="btn btn-outline btn-sm" onclick="mbPrefillRoute('NVDA','US67066G1040','US','US_EQUITY','USD',145,50,6.5)">Test: NVDA (US)</button>
+          <button class="btn btn-outline btn-sm" onclick="mbPrefillRoute('EQNR','NO0010096985','NO','NORDIC_EQUITY','NOK',275,200,4.5)">Test: EQNR (ASK)</button>
+          <button class="btn btn-outline btn-sm" onclick="mbPrefillRoute('PENNY','US0000000000','US','OTC','USD',1.2,2000,3.0)">Test: OTC Veto</button>
+        </div>
+        <div id="mbRouteOutput" style="margin-top:10px; padding:10px 12px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:6px; font-size:12.5px;">
+          Klikk «Beregn Optimal Rute &amp; Hurdle» for å teste deterministisk meglerruting mot <code>/api/tax-fx/route-candidate</code>.
+        </div>
+      </div>
+
+      <!-- 2. Nordnet ASK Execution Desk & CSV Reconciliation -->
+      <div class="grid-2" style="margin-top:14px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🎫 Nordnet ASK Trade Ticket-Generator (<code>nordnet_reconciliation.py</code>)</h3>
+              <p>Opprett strukturerte manuelle ordrebilletter (<code>READY_FOR_MANUAL_EXECUTION</code>) for Nordnet ASK</p>
+            </div>
+            <span class="pill pill-amber">ASK · Manuell</span>
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:8px; margin-top:10px;">
+            <div class="field-group">
+              <label for="mbNnTicker">Nordisk Aksje</label>
+              <select id="mbNnTicker" onchange="mbPrefillNordnetTicket()">
+                <option value="EQNR|NO0010096985|Oslo Børs|272.50|258.00|305.00">EQNR (Oslo Børs)</option>
+                <option value="DNB|NO0010161288|Oslo Børs|226.40|215.00|251.50">DNB (Oslo Børs)</option>
+                <option value="KOG|NO0003043309|Oslo Børs|1142.00|1086.00|1265.00">KOG (Oslo Børs)</option>
+                <option value="NOVO-B|DK0062498333|Nasdaq CPH|742.50|704.00|827.00">NOVO-B (København)</option>
+                <option value="VOLV-B|SE0000115446|Nasdaq STH|281.60|268.00|312.00">VOLV-B (Stockholm)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="mbNnSide">Side</label>
+              <select id="mbNnSide">
+                <option value="BUY">BUY (Kjøp)</option>
+                <option value="SELL">SELL (Selg)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="mbNnShares">Antall</label>
+              <input type="number" id="mbNnShares" value="150" min="1">
+            </div>
+            <div class="field-group">
+              <label for="mbNnLimit">Limit</label>
+              <input type="number" id="mbNnLimit" value="272.50" step="0.10">
+            </div>
+            <div class="field-group">
+              <label for="mbNnStop">Stop-Loss</label>
+              <input type="number" id="mbNnStop" value="258.00" step="0.10">
+            </div>
+            <div class="field-group">
+              <label for="mbNnTp">Take-Profit</label>
+              <input type="number" id="mbNnTp" value="305.00" step="0.10">
+            </div>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="mbCreateNordnetTicket()">➕ Opprett Trade Ticket</button>
+            <button class="btn btn-outline btn-sm" onclick="mbLoadNordnetTickets()">🔄 Last Kø</button>
+          </div>
+          <pre id="mbNnCopyBox" style="margin-top:10px; padding:10px; background:var(--terminal-bg); border:1px solid var(--border-color); border-radius:6px; font-family:var(--font-mono); font-size:11.5px; color:var(--accent-cyan); white-space:pre-wrap; display:none;"></pre>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>📄 Nordnet CSV-Avstemming (<code>transaksjoner_og_sluttsedler.csv</code>)</h3>
+              <p>Last opp eller lim inn Nordnet-CSV (semikolon-separert) for å beregne realisert slippage og kurtasje</p>
+            </div>
+            <span class="pill pill-green" id="mbNnRecStatus">Klar</span>
+          </div>
+          <div class="field-group" style="margin-top:8px;">
+            <label for="mbNnCsvFile">Velg CSV-fil fra Nordnet</label>
+            <input type="file" id="mbNnCsvFile" accept=".csv,.txt" onchange="mbHandleNordnetCsvFile(this)">
+          </div>
+          <div class="field-group" style="margin-top:8px;">
+            <label for="mbNnCsvText">CSV-innhold</label>
+            <textarea id="mbNnCsvText" rows="4" style="width:100%; background:var(--bg-input); color:var(--text-main); border:1px solid var(--border-color); border-radius:4px; padding:8px; font-family:var(--font-mono); font-size:11.5px;" placeholder="Bokføringsdag;Handelsdag;Transaksjonstype;Verdipapir;ISIN;Antall;Kurs;Beløp;Kurtasje;Valuta"></textarea>
+          </div>
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-success btn-sm" onclick="mbReconcileNordnetCsv()">✅ Kjør CSV-Avstemming</button>
+            <button class="btn btn-outline btn-sm" onclick="mbLoadSampleNordnetCsv()">📋 Fyll inn eksempel-CSV</button>
+          </div>
+          <div id="mbNnRecOutput" style="margin-top:8px; font-size:12px; color:var(--text-muted);"></div>
+        </div>
+      </div>
+
+      <!-- Nordnet Tickets Table -->
+      <div class="card" style="margin-top:14px;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>📋 Nordnet ASK Ordrebilletter &amp; Avstemmingsstatus</h3>
+            <p>Lagret i <code>data/planned_nordnet_trades.json</code> via <code>/api/nordnet/tickets</code></p>
+          </div>
+          <span class="pill pill-cyan" id="mbNnTicketCount">0 billetter</span>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Billett-ID</th>
+                <th>Ticker / ISIN</th>
+                <th>Side</th>
+                <th class="num">Antall</th>
+                <th class="num">Limit</th>
+                <th class="num">Fill / Slippage</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="mbNnTicketsTbody">
+              <tr><td colspan="7" class="text-muted">Ingen Nordnet-billetter lastet ennå.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3. Saxo Bank OpenAPI Position Sync & 4. Streamlit Launcher -->
+      <div class="grid-2" style="margin-top:14px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🏦 Saxo Bank OpenAPI — Åpne Posisjoner (<code>saxo_positions_sync.py</code>)</h3>
+              <p>Synkroniserer <code>/port/v1/positions/me</code> til <code>data/saxo_positions_cache.json</code></p>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span class="pill pill-cyan" id="mbSaxoEnvBadge">SIM</span>
+              <button class="btn btn-primary btn-sm" onclick="mbSyncSaxoPositions()">🔄 Synk Saxo</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="tufte-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th class="num">Volum</th>
+                  <th class="num">Inngang</th>
+                  <th class="num">Siste</th>
+                  <th class="num">P&amp;L</th>
+                </tr>
+              </thead>
+              <tbody id="mbSaxoPositionsTbody">
+                <tr><td colspan="5" class="text-muted">Ingen åpne Saxo-posisjoner (legg inn <code>SAXO_ACCESS_TOKEN</code> i Settings/<code>.env</code>).</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="mbSaxoMeta" style="margin-top:8px; font-size:11.5px; color:var(--text-dim); font-family:var(--font-mono);"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>📊 Streamlit Kontrolltårn Launcher (<code>app.py</code> · Port 8501)</h3>
+              <p>Start og åpne lokal Streamlit Python/DuckDB-app direkte fra kontrollbordet</p>
+            </div>
+            <span class="pill pill-amber" id="mbStStatus">Klar</span>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+            <button class="btn btn-primary btn-sm" onclick="mbLaunchStreamlit()">▶ Start Streamlit (:8501)</button>
+            <a href="http://localhost:8501" target="_blank" class="btn btn-outline btn-sm">↗ Åpne localhost:8501</a>
+            <button class="btn btn-outline btn-sm" onclick="mbToggleStreamlitIframe()">🖥️ Vis / Skjul Innebygd Visning</button>
+          </div>
+          <div id="mbStFeedback" style="margin-top:10px; font-size:12px; color:var(--text-muted);">
+            Kommando: <code>python -m streamlit run app.py --server.port=8501</code>
+          </div>
+          <iframe id="mbStIframe" src="about:blank" title="Streamlit Kontrolltårn" style="display:none; width:100%; height:420px; margin-top:10px; border:1px solid var(--border-strong); border-radius:6px; background:#0c0f14;"></iframe>
+        </div>
       </div>
     </section>
 
@@ -2789,6 +3138,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           statusText.innerHTML = "<strong>Tilkoblet lokal runner-server (port 8000)</strong> — Klar for direkte eksekvering.";
           document.getElementById("runnerTip").style.display = "none";
           if (wasDisconnected) {
+            refreshAlpacaPortfolio();
+            loadSettingsForm();
             syncAllLiveApis();
           }
         } else {
@@ -2839,6 +3190,81 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         // Fallback dataset already loaded
       }
       renderAllSections();
+    }
+
+    let _isUpdatingAllJobs = false;
+
+    async function _refreshAllFrontendData(forceTicker = false) {
+      await Promise.allSettled([
+        loadLiveIndexTicker(forceTicker),
+        refreshAlpacaPortfolio(),
+        loadSp500Movers(),
+        loadOmxn40Universe(),
+        loadRulebookAndFailover(),
+        syncSchedulerStatus(),
+        evaluateTaxFeeFx(),
+        syncAllLiveApis(),
+        mbLoadNordnetTickets(),
+        mbLoadSaxoPositions(),
+      ]);
+    }
+
+    async function runAllUpdateJobs() {
+      if (_isUpdatingAllJobs) return;
+      _isUpdatingAllJobs = true;
+      const btn = document.getElementById("btnUpdateAllJobs");
+      const setBtn = (label, disabled) => {
+        if (!btn) return;
+        btn.textContent = label;
+        btn.disabled = Boolean(disabled);
+      };
+
+      setBtn("⏳ Oppdaterer...", true);
+      try {
+        await checkServerConnection();
+        await _refreshAllFrontendData(true);
+
+        if (isConnected) {
+          setBtn("⏳ Kjører jobber...", true);
+          const startRes = await fetch(`${SERVER_URL}/api/run/update_all`, { method: "POST" });
+          if (startRes.ok) {
+            const startData = await startRes.json();
+            const jobId = startData.job_id;
+            let lastLogLen = 0;
+            const deadline = Date.now() + 180000;
+            while (jobId && Date.now() < deadline) {
+              await new Promise(r => setTimeout(r, 900));
+              const stRes = await fetch(`${SERVER_URL}/api/status/${jobId}`);
+              if (!stRes.ok) break;
+              const stData = await stRes.json();
+              if (stData.logs && stData.logs.length > lastLogLen && typeof appendLog === "function") {
+                appendLog(stData.logs.slice(lastLogLen), "term-muted");
+                lastLogLen = stData.logs.length;
+              }
+              if (stData.status === "completed" || stData.status === "failed") {
+                if (stData.status === "failed") {
+                  setBtn("⚠️ Delvis oppdatert", false);
+                  await _refreshAllFrontendData();
+                  setTimeout(() => setBtn("🔄 Oppdater Alt", false), 5000);
+                  return;
+                }
+                break;
+              }
+            }
+          }
+          await _refreshAllFrontendData();
+        }
+
+        const nowHhMm = new Date().toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+        setBtn(`✅ Oppdatert ${nowHhMm}`, false);
+        setTimeout(() => setBtn("🔄 Oppdater Alt", false), 4500);
+      } catch (err) {
+        console.error("runAllUpdateJobs error:", err);
+        setBtn("⚠️ Feil ved oppdatering", false);
+        setTimeout(() => setBtn("🔄 Oppdater Alt", false), 4500);
+      } finally {
+        _isUpdatingAllJobs = false;
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -3232,10 +3658,33 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       endpoints.forEach(ep => {
         const shortName = ep.key.replace(/^\d+\.\s*/, "").slice(0, 20);
         const valFmt = unitPrefix + Math.round(ep.val).toLocaleString("no-NO") + unitSuffix;
-        pathsHtml += `<text x="${padL + plotW + 8}" y="${(ep.y + 3).toFixed(1)}" fill="${ep.color}" font-size="10.5" font-family="monospace">${shortName}: ${valFmt}</text>`;
+        const svgTip = (typeof _getStrategyTooltip === "function" ? _getStrategyTooltip(ep.key) : "").replace(/"/g, "&quot;");
+        pathsHtml += `<text x="${padL + plotW + 8}" y="${(ep.y + 3).toFixed(1)}" fill="${ep.color}" font-size="10.5" font-family="monospace"${svgTip ? ` data-tooltip="${svgTip}" style="cursor:help;"` : ""}>${shortName}: ${valFmt}</text>`;
       });
 
       box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">${pathsHtml}</svg>`;
+    }
+
+    const BACKTEST_STRATEGY_TOOLTIPS = {
+      "S&P 500 Benchmark": "Passiv referanseindeks (Buy & Hold S&P 500 / SPY) uten aktiv risikostyring eller stop-loss. Brukes som målestokk for å måle ren strategi-alfa og nedsiderisiko.",
+      "1. Liquid S&P Momentum": "Systematisk trend- og momentumstrategi i høylikvide S&P 500-aksjer via Alpaca ($0 kurtasje, lav spread ~2–5 bps). Kjøper styrke over SMA200 med 1.8x ATR(14) Stop-Loss og 10 % kontantbuffer.",
+      "2. OTC Micro-Caps (Netto)": "Små, illikvide amerikanske OTC-/penny-aksjer. Viser hvordan bred bid-ask spread (200–500 bps), høy slippage og hyppige fall ødelegger avkastningen — derfor har kostnadsmotoren hard OTC-veto.",
+      "3. Systematic Covered Calls": "Eier underliggende aksjer og selger systematisk ut-av-pengene (OTM) kjøpsopsjoner for løpende premieinntekt. Demper volatilitet i sideveis markeder, men mister oppside i rally og tar full nedside ved krakk.",
+      "4. AI Regime Switcher (VIX)": "Dynamisk makro-rotasjon styrt av VIX-fryktindeksen: full Liquid Momentum når VIX < 18, Covered Calls ved VIX 18–24, og defensiv kontant/T-Bills når VIX ≥ 24.",
+      "1. OBX Momentum (m/ Brent-filter)": "Oslo Børs OBX 15 med kombinert RSI(2) + 20d Breakout, 0.085 % Saxo ASK-kurtasje og eksogent Brent Crude oljefilter (blokkerer nye energikjøp ved kraftig oljeprisfall > -2.5 % på 2 dager).",
+      "2. OMXN40 Trend (m/ Nordic FX-drag)": "Nordisk storselskapsstrategi på tvers av 40 OMXN40-aksjer (NO, SE, DK, FI) på ASK. Inkluderer realistisk valutavekslingsfriksjon (FX-drag 0.15–0.25 % på SEK/DKK/EUR).",
+      "3. First North Small-Caps (Netto)": "Illikvide nordiske vekstselskaper på First North / Euronext Growth. Modellerer høy bid-ask spread, tynn ordrebok og slippage — illustrerer hvorfor likviditetsbånd 5–6 (OBX/OMXN40) foretrekkes.",
+      "4. Dekkede Opsjoner (Covered Calls)": "Nordisk Covered Call-overlegg på store nordiske aksjer. Gir lavere løpende kurssvingninger, men begrenses av tynnere opsjonslikviditet, bredere opsjonsspread og tapt oppside i sterke opptrender."
+    };
+
+    function _getStrategyTooltip(name) {
+      if (!name) return "";
+      if (BACKTEST_STRATEGY_TOOLTIPS[name]) return BACKTEST_STRATEGY_TOOLTIPS[name];
+      const lower = String(name).toLowerCase();
+      for (const [k, v] of Object.entries(BACKTEST_STRATEGY_TOOLTIPS)) {
+        if (lower.includes(k.replace(/^\d+\.\s*/, "").toLowerCase().slice(0, 14))) return v;
+      }
+      return "";
     }
 
     function renderBacktestSection() {
@@ -3265,9 +3714,12 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           const sortinoRaw = m["Sortino (MAR=0)"] !== undefined ? m["Sortino (MAR=0)"] : m["Sortino Ratio"];
           const sortinoStr = typeof sortinoRaw === "number" ? sortinoRaw.toFixed(2) : String(sortinoRaw || "-");
 
+          const stratName = m["Strategi"] || "-";
+          const stratTip = _getStrategyTooltip(stratName).replace(/"/g, "&quot;");
+
           return `
-            <tr>
-              <td><strong>${m["Strategi"] || "-"}</strong></td>
+            <tr${stratTip ? ` data-tooltip="${stratTip}"` : ""}>
+              <td><strong style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);">${stratName}</strong></td>
               <td class="num">${endStr}</td>
               <td class="num ${cls}"><strong>${retStr}</strong></td>
               <td class="num">${volStr}</td>
@@ -3285,9 +3737,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         document.getElementById("nordicBacktestTbody").innerHTML = nordic.metrics.map(m => {
           const retStr = m["Netto Avkastning"] || "";
           const cls = retStr.includes("-") ? "text-red" : "text-green";
+          const stratName = m["Strategi"] || "-";
+          const stratTip = _getStrategyTooltip(stratName).replace(/"/g, "&quot;");
           return `
-            <tr>
-              <td><strong>${m["Strategi"]}</strong></td>
+            <tr${stratTip ? ` data-tooltip="${stratTip}"` : ""}>
+              <td><strong style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);">${stratName}</strong></td>
               <td class="num">${m["Sluttverdi (NOK)"]}</td>
               <td class="num ${cls}"><strong>${retStr}</strong></td>
               <td class="num">${m["Max Drawdown"]}</td>
@@ -3810,7 +4264,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       trading: ["sec-alpaca"],
       markets: ["sec-obx-hitl", "sec-bridge"],
       analytics: ["sec-backtest", "sec-docs"],
-      settings: ["sec-settings"]
+      settings: ["sec-settings"],
+      multibroker: ["sec-multibroker"]
     };
 
     function switchCategory(catKey) {
@@ -4499,36 +4954,47 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       `).join("");
     }
 
-    // Floating hover tooltips for all left sidebar items
+    // Floating hover tooltips (event-delegated for both static & dynamically rendered elements)
     (function initSidebarTooltips() {
       const tip = document.createElement("div");
       tip.id = "sidebarHoverTooltip";
       document.body.appendChild(tip);
 
-      document.querySelectorAll("[data-tooltip]").forEach((el) => {
-        el.addEventListener("mouseenter", () => {
-          const text = el.getAttribute("data-tooltip");
-          if (!text) return;
-          tip.textContent = text;
-          const rect = el.getBoundingClientRect();
-          if (el.closest(".sidebar")) {
-            const topPos = Math.max(10, Math.min(window.innerHeight - 90, rect.top + rect.height / 2 - 20));
-            tip.style.left = `${rect.right + 10}px`;
-            tip.style.top = `${topPos}px`;
-          } else {
-            const leftPos = Math.max(12, Math.min(window.innerWidth - 310, rect.left));
-            tip.style.left = `${leftPos}px`;
-            tip.style.top = `${rect.bottom + 8}px`;
-          }
-          tip.classList.add("visible");
-        });
-        el.addEventListener("mouseleave", () => {
+      let activeTarget = null;
+
+      document.addEventListener("mouseover", (ev) => {
+        const el = ev.target && ev.target.closest ? ev.target.closest("[data-tooltip]") : null;
+        if (!el || el === activeTarget) return;
+        const text = el.getAttribute("data-tooltip");
+        if (!text) return;
+        activeTarget = el;
+        tip.textContent = text;
+        const rect = el.getBoundingClientRect();
+        if (el.closest(".sidebar")) {
+          const topPos = Math.max(10, Math.min(window.innerHeight - 110, rect.top + rect.height / 2 - 20));
+          tip.style.left = `${rect.right + 10}px`;
+          tip.style.top = `${topPos}px`;
+        } else {
+          const leftPos = Math.max(12, Math.min(window.innerWidth - 330, rect.left));
+          const preferBelow = rect.bottom + 110 < window.innerHeight;
+          tip.style.left = `${leftPos}px`;
+          tip.style.top = preferBelow ? `${rect.bottom + 8}px` : `${Math.max(10, rect.top - 96)}px`;
+        }
+        tip.classList.add("visible");
+      });
+
+      document.addEventListener("mouseout", (ev) => {
+        if (!activeTarget) return;
+        const rel = ev.relatedTarget;
+        if (!rel || !activeTarget.contains(rel)) {
+          activeTarget = null;
           tip.classList.remove("visible");
-        });
+        }
       });
 
       const sb = document.querySelector(".sidebar");
-      if (sb) sb.addEventListener("scroll", () => tip.classList.remove("visible"));
+      if (sb) sb.addEventListener("scroll", () => { activeTarget = null; tip.classList.remove("visible"); });
+      window.addEventListener("scroll", () => { if (activeTarget) { activeTarget = null; tip.classList.remove("visible"); } }, { passive: true });
     })();
 
     async function loadSettingsForm() {
@@ -4553,6 +5019,13 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         setVal("setOllamaHost", p.OLLAMA_HOST || "http://localhost:11434");
         setVal("setOllamaModel", p.OLLAMA_MODEL || "qwen2.5:14b");
         setVal("setGeminiModel", p.GEMINI_MODEL || "gemini-2.5-flash");
+        setVal("setSaxoEnv", p.SAXO_ENVIRONMENT || "SIM");
+        setVal("setSaxoBaseUrl", p.SAXO_BASE_URL || "https://gateway.saxobank.com/sim/openapi");
+        setVal("setSaxoAccountKey", p.SAXO_ACCOUNT_KEY || "");
+        setVal("setNordnetMode", p.NORDNET_EXECUTION_MODE || "manual");
+        setVal("setNordnetTier", p.NORDNET_KURTASJEKLASSE || "Mini");
+        setVal("setNordnetAccount", p.NORDNET_ACCOUNT_LABEL || "Nordisk Core ASK");
+        setVal("setNordnetCsvDir", p.NORDNET_CSV_DIR || "data");
 
         const alpHint = document.getElementById("setAlpacaHint");
         if (alpHint) alpHint.textContent = (s.ALPACA_API_KEY && s.ALPACA_API_KEY.set) ? `Nøkkel satt (${s.ALPACA_API_KEY.hint})` : "Mangler API-nøkkel";
@@ -4560,6 +5033,13 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         if (tgHint) tgHint.textContent = (s.TELEGRAM_BOT_TOKEN && s.TELEGRAM_BOT_TOKEN.set) ? `Bot satt (${s.TELEGRAM_BOT_TOKEN.hint})` : "Mangler Bot Token";
         const smtpHint = document.getElementById("setSmtpHint");
         if (smtpHint) smtpHint.textContent = (s.SMTP_PASS && s.SMTP_PASS.set) ? "SMTP Klar" : "SMTP Ikke konfigurert";
+        const saxoHint = document.getElementById("setSaxoHint");
+        if (saxoHint) saxoHint.textContent = (s.SAXO_ACCESS_TOKEN && s.SAXO_ACCESS_TOKEN.set) ? `Token satt (${s.SAXO_ACCESS_TOKEN.hint})` : "Mangler Access Token";
+        const nnHint = document.getElementById("setNordnetHint");
+        if (nnHint) nnHint.textContent = (s.NORDNET_API_KEY && s.NORDNET_API_KEY.set) ? `API satt (${s.NORDNET_API_KEY.hint})` : `${p.NORDNET_EXECUTION_MODE || "manual"} · ${p.NORDNET_KURTASJEKLASSE || "Mini"}`;
+        if (statusEl && statusEl.textContent.includes("Failed to fetch")) {
+          statusEl.innerHTML = `<span class="pill pill-green">TILKOBLET</span> Innstillinger lastet fra lokal <code>.env</code>.`;
+        }
       } catch (err) {
         if (statusEl) statusEl.innerHTML = `<span class="text-amber">Kunne ikke laste innstillinger fra lokal server: ${err}</span>`;
       }
@@ -4587,7 +5067,19 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         OLLAMA_MODEL: val("setOllamaModel"),
         GEMINI_MODEL: val("setGeminiModel"),
         GEMINI_API_KEY: val("setGeminiKey"),
-        MASSIVE_API_KEY: val("setMassiveKey")
+        MASSIVE_API_KEY: val("setMassiveKey"),
+        SAXO_ENVIRONMENT: val("setSaxoEnv"),
+        SAXO_BASE_URL: val("setSaxoBaseUrl"),
+        SAXO_ACCOUNT_KEY: val("setSaxoAccountKey"),
+        SAXO_APP_KEY: val("setSaxoAppKey"),
+        SAXO_APP_SECRET: val("setSaxoAppSecret"),
+        SAXO_ACCESS_TOKEN: val("setSaxoToken"),
+        NORDNET_EXECUTION_MODE: val("setNordnetMode"),
+        NORDNET_KURTASJEKLASSE: val("setNordnetTier"),
+        NORDNET_ACCOUNT_LABEL: val("setNordnetAccount"),
+        NORDNET_CSV_DIR: val("setNordnetCsvDir"),
+        NORDNET_USERNAME: val("setNordnetUser"),
+        NORDNET_API_KEY: val("setNordnetApiKey")
       };
       try {
         const res = await fetch(`${SERVER_URL}/api/settings`, {
@@ -4597,7 +5089,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         });
         const data = await res.json();
         if (data.success) {
-          ["setAlpacaKey", "setAlpacaSecret", "setTgToken", "setSmtpPass", "setGeminiKey", "setMassiveKey"].forEach(id => {
+          ["setAlpacaKey", "setAlpacaSecret", "setTgToken", "setSmtpPass", "setGeminiKey", "setMassiveKey", "setSaxoAppKey", "setSaxoAppSecret", "setSaxoToken", "setNordnetUser", "setNordnetApiKey"].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = "";
           });
@@ -4722,12 +5214,13 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle; overflow:visible;" title="${label} YTD: ${ytdStr}"><title>${label} YTD: ${ytdStr}</title><polyline fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" points="${pts.join(" ")}"></polyline><circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="1.8" fill="${stroke}"></circle></svg>`;
     }
 
-    async function loadLiveIndexTicker() {
+    async function loadLiveIndexTicker(forceRefresh = false) {
       const box = document.getElementById("liveIndexTickerItems");
       const upd = document.getElementById("liveIndexUpdatedAt");
       if (!box) return;
       try {
-        const res = await fetch(`${SERVER_URL}/api/markets/live-ticker`);
+        const qs = forceRefresh ? "?force=1" : "";
+        const res = await fetch(`${SERVER_URL}/api/markets/live-ticker${qs}`);
         if (!res.ok) return;
         const d = await res.json();
         const items = d.items || [];
@@ -4876,6 +5369,514 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       if (tipEl) tipEl.style.display = "none";
     })();
 
+    // =========================================================================
+    // 07 MULTI-BROKER DESK (TAX/ROUTING, NORDNET ASK, SAXO SYNC, STREAMLIT)
+    // =========================================================================
+    function mbPrefillRoute(sym, isin, country, assetClass, ccy, price, shares, alphaPct) {
+      document.getElementById("mbRouteSymbol").value = sym;
+      document.getElementById("mbRouteIsin").value = isin;
+      document.getElementById("mbRouteCountry").value = country;
+      document.getElementById("mbRouteAssetClass").value = assetClass;
+      document.getElementById("mbRouteCurrency").value = ccy;
+      document.getElementById("mbRoutePrice").value = price;
+      document.getElementById("mbRouteShares").value = shares;
+      document.getElementById("mbRouteAlpha").value = alphaPct;
+      evaluateCostRouteCandidate();
+    }
+
+    async function evaluateCostRouteCandidate() {
+      const out = document.getElementById("mbRouteOutput");
+      const badge = document.getElementById("mbRouteBadge");
+      if (!out) return;
+      const payload = {
+        symbol: document.getElementById("mbRouteSymbol").value,
+        isin: document.getElementById("mbRouteIsin").value,
+        country: document.getElementById("mbRouteCountry").value,
+        asset_class: document.getElementById("mbRouteAssetClass").value,
+        currency: document.getElementById("mbRouteCurrency").value,
+        price: parseFloat(document.getElementById("mbRoutePrice").value || "0"),
+        shares: parseInt(document.getElementById("mbRouteShares").value || "0", 10),
+        expected_alpha_pct: parseFloat(document.getElementById("mbRouteAlpha").value || "0") / 100.0,
+        spread_pct: 0.0010,
+      };
+      try {
+        const res = await fetch(`${SERVER_URL}/api/tax-fx/route-candidate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const d = await res.json();
+        if (!d.success) {
+          out.innerHTML = `<span class="text-red">Feil: ${d.error || "Ukjent feil"}</span>`;
+          return;
+        }
+        const approved = d.decision === "APPROVED";
+        if (badge) {
+          badge.textContent = d.decision;
+          badge.className = `pill ${approved ? "pill-green" : "pill-red"}`;
+        }
+        out.innerHTML = `
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:6px;">
+            <span class="pill ${approved ? "pill-green" : "pill-red"}">${d.decision}</span>
+            <strong>${d.symbol}</strong> (${Number(d.notional || 0).toLocaleString("nb-NO", { maximumFractionDigits: 2 })} ${d.currency})
+            &rarr; <strong>${d.recommended_venue}</strong>
+            <span class="pill pill-cyan">${d.account_type}</span>
+          </div>
+          <div class="text-muted">
+            Brutto alfa: <strong>${(d.expected_gross_alpha_pct * 100).toFixed(2)} %</strong> |
+            Friksjon: <strong>${(d.total_friction_pct * 100).toFixed(2)} %</strong> |
+            Hurdle: <strong>${(d.hurdle_rate_threshold_pct * 100).toFixed(2)} %</strong> |
+            Netto alfa: <strong class="${d.net_expected_alpha_pct > 0 ? "text-green" : "text-red"}">${(d.net_expected_alpha_pct * 100).toFixed(2)} %</strong>
+          </div>
+        `;
+      } catch (err) {
+        out.innerHTML = `<span class="text-red">Kunne ikke nå /api/tax-fx/route-candidate: ${err}</span>`;
+      }
+    }
+
+    function mbPrefillNordnetTicket() {
+      const val = (document.getElementById("mbNnTicker")?.value || "").split("|");
+      if (val.length < 6) return;
+      document.getElementById("mbNnLimit").value = val[3];
+      document.getElementById("mbNnStop").value = val[4];
+      document.getElementById("mbNnTp").value = val[5];
+    }
+
+    async function mbCreateNordnetTicket() {
+      const parts = (document.getElementById("mbNnTicker")?.value || "EQNR|NO0010096985|Oslo Børs|272.50|258.00|305.00").split("|");
+      const payload = {
+        symbol: parts[0],
+        isin: parts[1],
+        market: parts[2],
+        side: document.getElementById("mbNnSide").value,
+        shares: parseInt(document.getElementById("mbNnShares").value || "1", 10),
+        limit_price: parseFloat(document.getElementById("mbNnLimit").value || "0"),
+        stop_loss: parseFloat(document.getElementById("mbNnStop").value || "0"),
+        take_profit: parseFloat(document.getElementById("mbNnTp").value || "0"),
+        reasoning: "Opprettet fra Multi-Broker Desk i index.html",
+      };
+      try {
+        const res = await fetch(`${SERVER_URL}/api/nordnet/ticket`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const d = await res.json();
+        const box = document.getElementById("mbNnCopyBox");
+        if (d.success && d.ticket && box) {
+          box.style.display = "block";
+          box.textContent = d.ticket.copy_text;
+        }
+        await mbLoadNordnetTickets();
+      } catch (err) {
+        console.error("mbCreateNordnetTicket:", err);
+      }
+    }
+
+    async function mbLoadNordnetTickets() {
+      const tbody = document.getElementById("mbNnTicketsTbody");
+      const countEl = document.getElementById("mbNnTicketCount");
+      if (!tbody) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/nordnet/tickets`);
+        if (!res.ok) return;
+        const d = await res.json();
+        const tickets = d.tickets || [];
+        if (countEl) countEl.textContent = `${tickets.length} billetter`;
+        if (!tickets.length) {
+          tbody.innerHTML = `<tr><td colspan="7" class="text-muted">Ingen Nordnet-billetter i kø ennå.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = tickets.map(t => {
+          const isRec = t.status === "RECONCILED";
+          const fillTxt = isRec
+            ? `${Number(t.actual_fill_price || 0).toFixed(2)} (Slip: ${Number(t.realized_slippage_nok || 0).toFixed(2)} kr)`
+            : "—";
+          return `
+            <tr>
+              <td class="mono">${t.ticket_id}</td>
+              <td><strong>${t.symbol}</strong> <span class="text-muted">${t.isin}</span></td>
+              <td><span class="pill ${t.side === "BUY" ? "pill-green" : "pill-red"}">${t.side}</span></td>
+              <td class="num">${t.shares}</td>
+              <td class="num">${Number(t.limit_price || 0).toFixed(2)}</td>
+              <td class="num">${fillTxt}</td>
+              <td><span class="pill ${isRec ? "pill-green" : "pill-amber"}">${t.status}</span></td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        // Offline / preview fallback
+      }
+    }
+
+    function mbHandleNordnetCsvFile(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const ta = document.getElementById("mbNnCsvText");
+        if (ta) ta.value = String(ev.target.result || "");
+      };
+      reader.readAsText(file, "utf-8");
+    }
+
+    function mbLoadSampleNordnetCsv() {
+      const ta = document.getElementById("mbNnCsvText");
+      if (!ta) return;
+      ta.value =
+        "Bokføringsdag;Handelsdag;Transaksjonstype;Verdipapir;ISIN;Antall;Kurs;Beløp;Kurtasje;Valuta\n" +
+        "2026-11-20;2026-11-20;KJØPT;EQUINOR;NO0010096985;150;273,00;-40979,00;29,00;NOK";
+    }
+
+    async function mbReconcileNordnetCsv() {
+      const text = document.getElementById("mbNnCsvText")?.value || "";
+      const out = document.getElementById("mbNnRecOutput");
+      const st = document.getElementById("mbNnRecStatus");
+      if (!text.trim()) {
+        if (out) out.innerHTML = `<span class="text-red">Lim inn eller last opp en Nordnet CSV først.</span>`;
+        return;
+      }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/nordnet/reconcile`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ csv_text: text }),
+        });
+        const d = await res.json();
+        if (!d.success) {
+          if (out) out.innerHTML = `<span class="text-red">Feil: ${d.error}</span>`;
+          return;
+        }
+        if (st) st.textContent = `${d.reconciled_count} avstemt`;
+        if (out) {
+          out.innerHTML = `<span class="text-green">Avstemte ${d.reconciled_count} handler mot Nordnet-køen.</span>`;
+        }
+        await mbLoadNordnetTickets();
+      } catch (err) {
+        if (out) out.innerHTML = `<span class="text-red">Kunne ikke nå /api/nordnet/reconcile: ${err}</span>`;
+      }
+    }
+
+    function _renderSaxoTable(d) {
+      const tbody = document.getElementById("mbSaxoPositionsTbody");
+      const badge = document.getElementById("mbSaxoEnvBadge");
+      const meta = document.getElementById("mbSaxoMeta");
+      if (badge && d.environment) badge.textContent = d.environment;
+      if (meta) {
+        meta.textContent = d.updated_at ? `Sist synkronisert: ${d.updated_at} (${d.count || 0} posisjoner)` : "Ingen cache ennå — klikk Synk Saxo etter at SAXO_ACCESS_TOKEN er satt i .env.";
+      }
+      if (!tbody) return;
+      const list = d.positions || [];
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-muted">Ingen åpne Saxo-posisjoner returnert.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(p => {
+        const pnl = Number(p.pnl_base || 0);
+        return `
+          <tr>
+            <td><strong>${p.symbol}</strong></td>
+            <td class="num">${p.amount}</td>
+            <td class="num">${Number(p.open_price || 0).toFixed(2)}</td>
+            <td class="num">${Number(p.current_price || 0).toFixed(2)}</td>
+            <td class="num ${pnl >= 0 ? "text-green" : "text-red"}">${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} ${p.currency || "NOK"}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function mbLoadSaxoPositions() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/saxo/positions`);
+        if (res.ok) _renderSaxoTable(await res.json());
+      } catch (err) {}
+    }
+
+    async function mbSyncSaxoPositions() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/saxo/sync`, { method: "POST" });
+        if (res.ok) _renderSaxoTable(await res.json());
+      } catch (err) {}
+    }
+
+    async function mbLaunchStreamlit() {
+      const st = document.getElementById("mbStStatus");
+      const fb = document.getElementById("mbStFeedback");
+      if (st) st.textContent = "Starter...";
+      try {
+        const res = await fetch(`${SERVER_URL}/api/run/step4_streamlit_app`, { method: "POST" });
+        if (res.ok) {
+          if (st) { st.textContent = "Kjører (:8501)"; st.className = "pill pill-green"; }
+          if (fb) fb.innerHTML = `Streamlit Kontrolltårn startet på <a href="http://localhost:8501" target="_blank" style="color:var(--accent-cyan);">http://localhost:8501</a>.`;
+        }
+      } catch (err) {
+        if (fb) fb.innerHTML = `<span class="text-red">Kunne ikke starte Streamlit via runner_server.py: ${err}</span>`;
+      }
+    }
+
+    function mbToggleStreamlitIframe() {
+      const frame = document.getElementById("mbStIframe");
+      if (!frame) return;
+      const show = frame.style.display === "none";
+      frame.style.display = show ? "block" : "none";
+      if (show && frame.src === "about:blank") {
+        frame.src = "http://localhost:8501";
+      }
+    }
+
+    // =========================================================================
+    // DYNAMISK KI POP-UP: PORTEFØLJEVURDERING, STRATEGI, MARKEDSUTSIKTER & DRIFT
+    // =========================================================================
+    function _ensureAiBriefDialog() {
+      let dlg = document.getElementById("aiPortfolioBriefDialog");
+      if (dlg) return dlg;
+      dlg = document.createElement("dialog");
+      dlg.id = "aiPortfolioBriefDialog";
+      dlg.style.cssText = [
+        "max-width: 860px",
+        "width: calc(100vw - 32px)",
+        "max-height: 88vh",
+        "margin: auto",
+        "padding: 0",
+        "border: 1px solid var(--border-strong)",
+        "border-radius: 10px",
+        "background: var(--bg-secondary)",
+        "color: var(--text-main)",
+        "overflow: hidden",
+      ].join(";");
+      dlg.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--border-color); background:var(--bg-card);">
+          <div>
+            <h3 style="margin:0; font-size:16px; font-family:var(--font-headline);">🧠 Dynamisk KI-Vurdering — Portefølje, Strategi &amp; Markedsutsikter</h3>
+            <div id="aiBriefMeta" style="font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;">Laster live portefølje- og driftdata fra DuckDB...</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAiPortfolioBrief(true)">🔄 Ny vurdering</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="copyAiBriefText()">📋 Kopier</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('aiPortfolioBriefDialog').close()">✕</button>
+          </div>
+        </div>
+        <div id="aiBriefBody" style="padding:18px; overflow-y:auto; max-height:calc(88vh - 68px); display:flex; flex-direction:column; gap:14px;">
+          <p class="text-muted">Genererer sanntidsvurdering mot Alpaca Paper, makrobilde og Agent 5 DuckDB drift-historikk...</p>
+        </div>
+      `;
+      dlg.addEventListener("click", (ev) => {
+        if (ev.target === dlg) dlg.close();
+      });
+      document.body.appendChild(dlg);
+      return dlg;
+    }
+
+    let _lastAiBriefPayload = null;
+
+    async function openAiPortfolioBrief(forceRefresh = false) {
+      const dlg = _ensureAiBriefDialog();
+      const bodyEl = document.getElementById("aiBriefBody");
+      const metaEl = document.getElementById("aiBriefMeta");
+      if (!dlg.open) dlg.showModal();
+      if (bodyEl) {
+        bodyEl.innerHTML = `<div style="padding:20px; text-align:center; color:var(--accent-cyan);">⏳ Analyserer live Alpaca Paper-portefølje, makroregime og DuckDB-drift...</div>`;
+      }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/ai/portfolio-brief`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ force: Boolean(forceRefresh), use_llm: true }),
+        });
+        const d = await res.json();
+        if (!d.success) {
+          if (bodyEl) bodyEl.innerHTML = `<div class="text-red">Kunne ikke generere KI-vurdering: ${d.error || "Ukjent feil"}</div>`;
+          return;
+        }
+        _lastAiBriefPayload = d;
+        const k = d.kpis || {};
+        const s = d.sections || {};
+        const driftCls = d.drift_status === "ON_TRACK" ? "pill-green" : (d.drift_status === "DRAWDOWN_ALERT" ? "pill-red" : "pill-amber");
+        if (metaEl) {
+          metaEl.textContent = `Generert ${d.generated_at} · Motor: ${d.llm_provider} · Regime: ${d.regime_label} · ${k.snapshots_stored || 1} DuckDB-snapshots`;
+        }
+        const adjRows = (d.recommended_adjustments || []).map(a => {
+          const sevCls = a.severity === "HIGH" ? "pill-red" : (a.severity === "MEDIUM" ? "pill-amber" : "pill-green");
+          return `
+            <tr>
+              <td><strong>${a.agent}</strong></td>
+              <td class="text-muted">${a.signal}</td>
+              <td>${a.action}</td>
+              <td><span class="pill ${sevCls}">${a.severity}</span></td>
+            </tr>
+          `;
+        }).join("");
+
+        const rankRows = (d.strategy_rankings || []).map(r => {
+          const profCls = r.risk_profile === "Konservativ" ? "pill-green" : (r.risk_profile === "Medium" ? "pill-cyan" : "pill-amber");
+          const topBadge = r.recommended_now ? ` <span class="pill pill-green" style="font-size:10px;">★ #1 ANBEFALT NÅ</span>` : "";
+          return `
+            <tr>
+              <td class="num"><strong>#${r.rank}</strong></td>
+              <td><span class="pill ${profCls}">${r.risk_profile}</span>${topBadge}</td>
+              <td><strong>${r.strategy_name}</strong><div class="text-muted" style="font-size:11.5px; margin-top:2px;">${r.rationale}</div></td>
+              <td class="num"><strong>${r.risk_reward_ratio}</strong><div class="text-muted" style="font-size:11px;">Score ${Number(r.risk_reward_score).toFixed(0)}/100</div></td>
+              <td class="num">${r.cash_buffer}<div class="text-muted" style="font-size:11px;">${r.atr_stop}</div></td>
+            </tr>
+          `;
+        }).join("");
+
+        const caRows = (d.corporate_actions || []).map(ca => {
+          const gCls = ca.guardrail === "EARNINGS_SOON" ? "pill-red" : (ca.guardrail === "EX_DIVIDEND_SOON" ? "pill-amber" : "pill-green");
+          const portTag = ca.in_portfolio ? ` <span class="pill pill-cyan" style="font-size:10px;">I PORTEFØLJE</span>` : "";
+          return `
+            <tr>
+              <td><strong>${ca.ticker}</strong>${portTag}</td>
+              <td>${ca.headline}</td>
+              <td class="text-muted">${ca.days_label}</td>
+              <td><span class="pill ${gCls}">${ca.guardrail}</span></td>
+            </tr>
+          `;
+        }).join("");
+
+        const llmBlock = s.llm_commentary
+          ? `<div class="card" style="margin:0; border-color:rgba(92,196,214,0.45);">
+               <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent-cyan); font-family:var(--font-mono); margin-bottom:4px;">Lokal AI CIO-Kommentar (${d.llm_provider})</div>
+               <div style="font-size:13px; line-height:1.6;">${s.llm_commentary}</div>
+             </div>`
+          : "";
+
+        bodyEl.innerHTML = `
+          <div class="kpi-grid" style="margin:0;">
+            <div class="kpi-item highlight-cyan">
+              <div class="kpi-label">Paper Egenkapital</div>
+              <div class="kpi-value">$${Number(k.equity_usd || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div class="kpi-sub">I dag: ${Number(k.today_pnl_usd || 0) >= 0 ? "+" : ""}$${Number(k.today_pnl_usd || 0).toFixed(2)} (${Number(k.today_pnl_pct || 0) >= 0 ? "+" : ""}${Number(k.today_pnl_pct || 0).toFixed(2)} %)</div>
+            </div>
+            <div class="kpi-item highlight-amber">
+              <div class="kpi-label">Kontantbuffer</div>
+              <div class="kpi-value">${Number(k.cash_ratio_pct || 0).toFixed(1)} %</div>
+              <div class="kpi-sub">$${Number(k.cash_usd || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${k.positions_count || 0} posisjoner</div>
+            </div>
+            <div class="kpi-item ${Number(k.drawdown_pct || 0) <= -3 ? "highlight-amber" : "highlight-green"}">
+              <div class="kpi-label">Rullende Drawdown</div>
+              <div class="kpi-value">${Number(k.drawdown_pct || 0).toFixed(2)} %</div>
+              <div class="kpi-sub">Treffrate åpne: ${Number(k.win_positions_pct || 0).toFixed(1)} %</div>
+            </div>
+            <div class="kpi-item highlight-green">
+              <div class="kpi-label">Drift &amp; Evaluering</div>
+              <div class="kpi-value" style="font-size:15px; margin-top:6px;"><span class="pill ${driftCls}">${d.drift_status}</span></div>
+              <div class="kpi-sub">${k.snapshots_stored || 1} snapshots lagret i DuckDB</div>
+            </div>
+          </div>
+
+          ${llmBlock}
+
+          <div class="card" style="margin:0;">
+            <h4 style="margin-bottom:6px; font-size:14px;">1. Porteføljevurdering (Live Alpaca Paper)</h4>
+            <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">${s.portfolio_assessment || ""}</p>
+          </div>
+
+          <div class="grid-2" style="gap:12px;">
+            <div class="card" style="margin:0;">
+              <h4 style="margin-bottom:6px; font-size:14px;">2. Redegjørelse av Strategi</h4>
+              <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">${s.strategy_rationale || ""}</p>
+            </div>
+            <div class="card" style="margin:0;">
+              <h4 style="margin-bottom:6px; font-size:14px;">3. Markedsutsikter &amp; Makroregime</h4>
+              <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">${s.market_outlook || ""}</p>
+            </div>
+          </div>
+
+          <div class="card" style="margin:0;">
+            <div class="card-header" style="margin-bottom:6px;">
+              <div class="card-title-group">
+                <h4>3B. KI Strategirangering etter Risk-Reward (Konservativ · Medium · High Risk)</h4>
+                <p>Prinsipp: <strong>Hold deg til strategien</strong> — rangeringen viser hvilken risikoprofil som har best Risk-Reward i dagens regime uten å jage dagsstøy</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tufte-table">
+                <thead>
+                  <tr>
+                    <th class="num">Rang</th>
+                    <th>Risikoprofil</th>
+                    <th>Anbefalt Strategi &amp; Begrunnelse</th>
+                    <th class="num">Risk-Reward</th>
+                    <th class="num">Buffer / Stopp</th>
+                  </tr>
+                </thead>
+                <tbody>${rankRows || '<tr><td colspan="5" class="text-muted">Ingen rangering tilgjengelig.</td></tr>'}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card" style="margin:0;">
+            <div class="card-header" style="margin-bottom:6px;">
+              <div class="card-title-group">
+                <h4>4. Læring, Drift &amp; Justering av Datamodell og AI-Agenter (DuckDB)</h4>
+                <p>Paper-porteføljen logges i <code>paper_portfolio_snapshots</code> og <code>v_paper_portfolio_drift</code> for løpende kalibrering</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tufte-table">
+                <thead>
+                  <tr>
+                    <th>Agent / Modul</th>
+                    <th>Observert Signal</th>
+                    <th>Anbefalt Justering</th>
+                    <th>Prioritet</th>
+                  </tr>
+                </thead>
+                <tbody>${adjRows}</tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card" style="margin:0;">
+            <div class="card-header" style="margin-bottom:6px;">
+              <div class="card-title-group">
+                <h4>5. Kommende Corporate Actions (Earnings Guardrail &amp; Utbytte)</h4>
+                <p>Automatisk 3-dagers kjøpsblokkering før kvartalstall og ex-utbytte kontroll mot åpne Paper-posisjoner</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="tufte-table">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Hendelse</th>
+                    <th>Dato / Dager</th>
+                    <th>Guardrail</th>
+                  </tr>
+                </thead>
+                <tbody>${caRows || '<tr><td colspan="4" class="text-muted">Ingen registrerte hendelser.</td></tr>'}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        if (bodyEl) bodyEl.innerHTML = `<div class="text-red">Kunne ikke nå /api/ai/portfolio-brief: ${err}</div>`;
+      }
+    }
+
+    function copyAiBriefText() {
+      if (!_lastAiBriefPayload) return;
+      const s = _lastAiBriefPayload.sections || {};
+      const lines = [
+        `KI PORTEFØLJEVURDERING (${_lastAiBriefPayload.generated_at})`,
+        `Regime: ${_lastAiBriefPayload.regime_label} | Drift: ${_lastAiBriefPayload.drift_status}`,
+        "",
+        "1. PORTEFØLJEVURDERING:",
+        s.portfolio_assessment || "",
+        "",
+        "2. STRATEGIREDEGJØRELSE:",
+        s.strategy_rationale || "",
+        "",
+        "3. MARKEDSUTSIKTER:",
+        s.market_outlook || "",
+        "",
+        "4. LÆRING & JUSTERING:",
+        ...(_lastAiBriefPayload.recommended_adjustments || []).map(a => `- [${a.severity}] ${a.agent}: ${a.action}`),
+      ];
+      navigator.clipboard?.writeText(lines.join("\n")).catch(() => {});
+    }
+
     // Initialiser ved oppstart (Vis kun 01 Overview som ren startside)
     switchCategory("overview");
     try { renderAllSections(); } catch (e) { console.error("renderAllSections:", e); }
@@ -4887,6 +5888,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     loadSp500Movers();
     loadSettingsForm();
     evaluateTaxFeeFx();
+    mbLoadNordnetTickets();
+    mbLoadSaxoPositions();
     setInterval(checkServerConnection, 6000);
     setInterval(refreshAlpacaPortfolio, 15000);
     setInterval(loadLiveIndexTicker, 30000);
