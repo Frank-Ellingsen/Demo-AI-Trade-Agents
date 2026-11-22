@@ -1180,22 +1180,15 @@
           <div class="svg-chart-box" id="overviewPerfChartBox"></div>
           <details open id="perfChartExplainer" style="margin-top:12px; border-top:1px solid var(--border-strong); padding-top:10px;">
             <summary style="cursor:pointer; font-size:12px; font-weight:600; color:var(--text-main); list-style:none; display:flex; justify-content:space-between; align-items:center;">
-              <span>Forklaring på grafen: Hva · Hvorfor · Hvordan fikse</span>
+              <span>Forklaring på grafen: Hva · Hvorfor</span>
               <span style="font-size:11px; color:var(--accent-cyan, #38bdf8); font-weight:400;">Vis / skjul</span>
             </summary>
             <div style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px; font-size:12px; line-height:1.5; color:var(--text-muted);">
               <div style="border-left:2px solid #38bdf8; padding-left:10px;">
-                <strong style="color:var(--text-main);">Hva:</strong> <span id="perfExpWhat">Laster benchmark-sammenligning…</span>
+                <strong style="color:var(--text-main);">Hva:</strong> <span id="perfExpWhat">Laster kurveforklaring…</span>
               </div>
               <div style="border-left:2px solid #f59e0b; padding-left:10px;">
-                <strong style="color:var(--text-main);">Hvorfor:</strong> <span id="perfExpWhy">Laster posisjons- og VIX-analyse…</span>
-              </div>
-              <div style="border-left:2px solid #34d399; padding-left:10px;">
-                <strong style="color:var(--text-main);">Hvordan fikse:</strong> <span id="perfExpFix">Laster konkrete tiltak…</span>
-                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
-                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px;" onclick="switchCategory('hedging')">🛡️ Åpne 06 Sikring &amp; Derivater</button>
-                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px;" onclick="switchCategory('postmortem')">🧠 Åpne 09 Post-Mortem</button>
-                </div>
+                <strong style="color:var(--text-main);">Hvorfor:</strong> <span id="perfExpWhy">Laster avviksforklaring…</span>
               </div>
             </div>
           </details>
@@ -5667,8 +5660,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     function renderPerfChartExplainer(cfg) {
       const whatEl = document.getElementById("perfExpWhat");
       const whyEl = document.getElementById("perfExpWhy");
-      const fixEl = document.getElementById("perfExpFix");
-      if (!whatEl || !whyEl || !fixEl) return;
+      if (!whatEl || !whyEl) return;
 
       const alp = SUITE_STATE.alpaca_portfolio || {};
       const equity = Number(alp.equity || 100000);
@@ -5679,41 +5671,32 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const incDate = bench.inception_date || alp.inception_date || "2026-11-19";
       const useInc = (ACTIVE_PERF_RANGE === "YTD" || ACTIVE_PERF_RANGE === "ALL") && bench.sp500 && bench.sp500.INCEPTION;
       const bKey = useInc ? "INCEPTION" : (ACTIVE_PERF_RANGE === "ALL" ? "1Y" : ACTIVE_PERF_RANGE);
-      const spRet = bench.sp500 && bench.sp500[bKey] ? Number(bench.sp500[bKey].return_pct) : -3.70;
-      const omxRet = bench.omx && bench.omx[bKey] ? Number(bench.omx[bKey].return_pct) : -2.51;
-      const obxRet = bench.obx && bench.obx[bKey] ? Number(bench.obx[bKey].return_pct) : -1.50;
+      const spRet = bench.sp500 && bench.sp500[bKey] ? Number(bench.sp500[bKey].return_pct) : 0;
+      const omxRet = bench.omx && bench.omx[bKey] ? Number(bench.omx[bKey].return_pct) : 0;
+      const obxRet = bench.obx && bench.obx[bKey] ? Number(bench.obx[bKey].return_pct) : 0;
       const relSp = cfg.pct - spRet;
-      const vix = Number((SUITE_STATE.live_macro || {}).vix_close || 35.9);
 
       whatEl.innerHTML =
-        `Alle fire kurver er indeksert fra <strong>$100 000</strong> ${useInc ? `på første kjøpsdato (<strong>${incDate}</strong>)` : `i perioden <strong>${ACTIVE_PERF_RANGE}</strong>`}. ` +
-        `Porteføljen står på <strong>${cfg.pct >= 0 ? "+" : ""}${cfg.pct.toFixed(2)} %</strong> ($${Math.round(equity).toLocaleString("en-US")}), ` +
-        `som er <strong class="${relSp >= 0 ? "text-green" : "text-red"}">${relSp >= 0 ? "+" : ""}${relSp.toFixed(2)} pp</strong> mot S&amp;P 500 (${spRet >= 0 ? "+" : ""}${spRet.toFixed(2)} %), ` +
-        `mot OMX (${omxRet >= 0 ? "+" : ""}${omxRet.toFixed(2)} %) og OBX (${obxRet >= 0 ? "+" : ""}${obxRet.toFixed(2)} %).`;
+        `Grafen indekserer alle fire kurver fra <strong>$100 000</strong> ${useInc ? `på første kjøpsdato (<strong>${incDate}</strong>)` : `for perioden <strong>${ACTIVE_PERF_RANGE}</strong>`}: ` +
+        `<strong>Portefølje</strong> ligger på <strong>${cfg.pct >= 0 ? "+" : ""}${cfg.pct.toFixed(2)} %</strong> ($${Math.round(equity).toLocaleString("en-US")}), ` +
+        `mot <strong>S&amp;P 500</strong> (${spRet >= 0 ? "+" : ""}${spRet.toFixed(2)} %), <strong>OMX</strong> (${omxRet >= 0 ? "+" : ""}${omxRet.toFixed(2)} %) og <strong>OBX</strong> (${obxRet >= 0 ? "+" : ""}${obxRet.toFixed(2)} %) — ` +
+        `et relativt avvik på <strong class="${relSp >= 0 ? "text-green" : "text-red"}">${relSp >= 0 ? "+" : ""}${relSp.toFixed(2)} pp</strong> mot S&amp;P 500.`;
 
-      const sorted = [...posList].sort((a, b) => Number(a.unrealized_plpc || 0) - Number(b.unrealized_plpc || 0));
-      const dragNames = sorted.slice(0, 3).map(p => `${p.symbol} (${Number(p.unrealized_plpc || 0).toFixed(1)} %)`).join(", ");
-      const aggCount = posList.filter(p => STOCK_SELECTION_PARAMS[String(p.symbol || "").toUpperCase()]?.tier === "aggressive").length;
+      const sortedLow = [...posList].sort((a, b) => Number(a.unrealized_plpc || 0) - Number(b.unrealized_plpc || 0));
+      const sortedHigh = [...posList].sort((a, b) => Number(b.unrealized_plpc || 0) - Number(a.unrealized_plpc || 0));
+      const topDrags = sortedLow.slice(0, 3).map(p => `${p.symbol} (${Number(p.unrealized_plpc || 0) >= 0 ? "+" : ""}${Number(p.unrealized_plpc || 0).toFixed(1)} %)`).join(", ");
+      const topGains = sortedHigh.slice(0, 3).map(p => `${p.symbol} (${Number(p.unrealized_plpc || 0) >= 0 ? "+" : ""}${Number(p.unrealized_plpc || 0).toFixed(1)} %)`).join(", ");
 
-      if (relSp < 0) {
+      if (posList.length === 0) {
+        whyEl.innerHTML = `Porteføljekurven ligger flat på $100 000 fordi kontoen er 100 % i kontanter uten åpne posisjoner, mens indeks-kurvene følger markedsbevegelsene.`;
+      } else if (relSp < 0) {
         whyEl.innerHTML =
-          `Hovedårsaken er <strong>regime-mismatch i VIX ${vix.toFixed(1)}</strong>: ${aggCount} av ${posList.length} posisjoner er høy-beta AI/Tech-aksjer (Profil 3), som faller 2–3× raskere enn S&amp;P 500 i volatilitetssjokk. ` +
-          `Største trekk ned: <strong>${dragNames || "Ingen åpne posisjoner"}</strong>. ` +
-          `Samtidig demper <strong>${cashPct.toFixed(1)} % kontantbuffer</strong> og defensive Profil 2-posisjoner (XOM, AAPL, JPM) fallet.`;
+          `Porteføljekurven ligger <strong>${Math.abs(relSp).toFixed(2)} pp under S&amp;P 500</strong> fordi enkeltposisjoner med høyere svingning trekker kurven ned (${topDrags}), ` +
+          `mens ${cashPct.toFixed(1)} % kontantandel demper utslaget sammenlignet med 100 % aksjeeksponering.`;
       } else {
         whyEl.innerHTML =
-          `Porteføljen slår S&amp;P 500 med <strong>+${relSp.toFixed(2)} pp</strong> i dagens VIX ${vix.toFixed(1)}-regime takket være aktiv seleksjon og ${cashPct.toFixed(1)} % kontantbuffer.`;
-      }
-
-      if (vix >= 25) {
-        fixEl.innerHTML =
-          `1) <strong>Stans nye høy-beta-kjøp</strong> mens VIX (${vix.toFixed(1)}) er ≥ 25 (regimeregelen blokkerer automatisk). ` +
-          `2) <strong>Sikre største tapere med Zero-Cost Collar</strong> (95 % Put / 105 % Call) i <em>06 Sikring &amp; Derivater</em> for å sette gulv uten ekstra premiekostnad. ` +
-          `3) <strong>Roter mot Profil 1/2</strong> (indeks/energi/finans) eller hold ${cashPct.toFixed(1)} % kontanter til VIX faller under 22, og logg erfaringen i <em>09 Post-Mortem</em>.`;
-      } else {
-        fixEl.innerHTML =
-          `1) <strong>La momentum-posisjonene jobbe</strong> mot 20–60 dagers horisont med aktive ATR-stopp. ` +
-          `2) <strong>Rebalanser</strong> dersom enkeltsektor overstiger maksgrensen, og overvåk AI Sharpe-effekten i <em>09 Post-Mortem</em>.`;
+          `Porteføljekurven ligger <strong>+${relSp.toFixed(2)} pp over S&amp;P 500</strong> drevet av sterkere relativ utvikling i åpne posisjoner (${topGains}) ` +
+          `kombinert med ${cashPct.toFixed(1)} % kontantandel som reduserer nedsidebevegelser i grafen.`;
       }
     }
 
