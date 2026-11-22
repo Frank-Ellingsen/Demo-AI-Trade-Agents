@@ -1040,11 +1040,17 @@
           <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="Multi-Univers backtest, AI Strategi-rådgiver, Agent Rulebook, 3-trinns failover og deterministisk Skatt/Gebyr/FX-motor.">
             <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Skatt/FX</span>
           </button>
+          <button class="nav-tab" data-section="cat-hedging" onclick="switchCategory('hedging')" data-tooltip="Interaktiv payoff-kalkulator med dynamiske hockey-stick grafer, Black-Scholes Greeks (Put, Call, Collar) og AI Hedging Advisor.">
+            <span class="tab-num">06</span>Sikring &amp; Derivater <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Hockey-Stick</span>
+          </button>
           <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater alle nøkler og innstillinger lokalt i .env (demo-maskert for skjermdeling).">
-            <span class="tab-num">06</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
+            <span class="tab-num">07</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
           </button>
           <button class="nav-tab" data-section="cat-multibroker" onclick="switchCategory('multibroker')" data-tooltip="Multi-Broker Desk: Nordnet ASK billetter &amp; CSV-avstemming, Saxo OpenAPI posisjonssynk, deterministisk skatt/gebyr-ruting og Streamlit Kontrolltårn (:8501).">
-            <span class="tab-num">07</span>Multi-Broker <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nordnet · Saxo · ST</span>
+            <span class="tab-num">08</span>Multi-Broker <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nordnet · Saxo · ST</span>
+          </button>
+          <button class="nav-tab" data-section="cat-postmortem" onclick="switchCategory('postmortem')" data-tooltip="Lukket erfaringslæring (agent_learning_loop.py) og ukentlig A/B Shadow Tracking Audit (weekly_audit_report.py) i DuckDB.">
+            <span class="tab-num">09</span>Post-Mortem <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Lessons &amp; Audit</span>
           </button>
         </nav>
       </div>
@@ -1172,6 +1178,27 @@
             <span class="pill pill-green" id="perfRangeReturnPill">+8.42 % YTD</span>
           </div>
           <div class="svg-chart-box" id="overviewPerfChartBox"></div>
+          <details open id="perfChartExplainer" style="margin-top:12px; border-top:1px solid var(--border-strong); padding-top:10px;">
+            <summary style="cursor:pointer; font-size:12px; font-weight:600; color:var(--text-main); list-style:none; display:flex; justify-content:space-between; align-items:center;">
+              <span>Forklaring på grafen: Hva · Hvorfor · Hvordan fikse</span>
+              <span style="font-size:11px; color:var(--accent-cyan, #38bdf8); font-weight:400;">Vis / skjul</span>
+            </summary>
+            <div style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px; font-size:12px; line-height:1.5; color:var(--text-muted);">
+              <div style="border-left:2px solid #38bdf8; padding-left:10px;">
+                <strong style="color:var(--text-main);">Hva:</strong> <span id="perfExpWhat">Laster benchmark-sammenligning…</span>
+              </div>
+              <div style="border-left:2px solid #f59e0b; padding-left:10px;">
+                <strong style="color:var(--text-main);">Hvorfor:</strong> <span id="perfExpWhy">Laster posisjons- og VIX-analyse…</span>
+              </div>
+              <div style="border-left:2px solid #34d399; padding-left:10px;">
+                <strong style="color:var(--text-main);">Hvordan fikse:</strong> <span id="perfExpFix">Laster konkrete tiltak…</span>
+                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">
+                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px;" onclick="switchCategory('hedging')">🛡️ Åpne 06 Sikring &amp; Derivater</button>
+                  <button class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px;" onclick="switchCategory('postmortem')">🧠 Åpne 09 Post-Mortem</button>
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
 
         <!-- Right: Top Movers & Upcoming Events -->
@@ -1205,15 +1232,60 @@
                 <thead>
                   <tr><th>Ticker</th><th>Hendelse</th><th class="num">Dato / Dager</th><th>Guardrail</th></tr>
                 </thead>
-                <tbody>
-                  <tr><td><strong>EQNR.OL</strong></td><td>Utbytte / Tilbakekjøp</td><td class="num">Om 12 dager</td><td><span class="pill pill-green">OK (Klar)</span></td></tr>
-                  <tr><td><strong>NVDA</strong></td><td>Kvartalstall Q3</td><td class="num">Om 28 dager</td><td><span class="pill pill-green">OK (Klar)</span></td></tr>
-                  <tr><td><strong>MSFT</strong></td><td>Utbytte ex-dato</td><td class="num">Om 19 dager</td><td><span class="pill pill-green">OK (Klar)</span></td></tr>
-                  <tr><td><strong>PLTR</strong></td><td>Kvartalsrapport</td><td class="num text-red">I kveld (0d)</td><td><span class="pill pill-red">EARNINGS_SOON</span></td></tr>
+                <tbody id="ovCorporateActionsTbody">
+                  <tr><td colspan="4" class="text-muted" style="text-align:center; padding:12px;">Laster kommende hendelser fra DuckDB / Paper-Drift…</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- AI Strategy Diagnosis & Stock Selection Parameters -->
+      <div class="card" style="margin-top:16px;" id="ovStrategyDiagnosisCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>AI-Strategidiagnose: Hvorfor strategien virker / ikke virker så langt</h3>
+            <p id="ovDiagSubtitle">Live dekomponering av åpne Alpaca Paper-posisjoner mot markedsregime (VIX) og utvalgsparametere fra <code>dynamic_recommender.py</code></p>
+          </div>
+          <span class="pill" id="ovDiagStatusPill">Analyserer…</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; margin-bottom:16px;" id="ovDiagSummaryGrid">
+          <div style="border-left:2px solid #f87171; padding:8px 12px; background:rgba(255,255,255,0.02);">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:4px;">Hva som trekker ned</div>
+            <div id="ovDiagHeadwind" style="font-size:12.5px; line-height:1.5; color:var(--text-main);">Laster live posisjoner…</div>
+          </div>
+          <div style="border-left:2px solid #34d399; padding:8px 12px; background:rgba(255,255,255,0.02);">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:4px;">Hva som virker</div>
+            <div id="ovDiagTailwind" style="font-size:12.5px; line-height:1.5; color:var(--text-main);">Laster live posisjoner…</div>
+          </div>
+          <div style="border-left:2px solid #38bdf8; padding:8px 12px; background:rgba(255,255,255,0.02);">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:4px;">Horisont &amp; regimevurdering</div>
+            <div id="ovDiagVerdict" style="font-size:12.5px; line-height:1.5; color:var(--text-main);">Laster live markedsregime…</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:8px;">Utvalgsparametere brukt for å plukke hver enkelt aksje</div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th>Profil / Strategi</th>
+                <th>Sektor</th>
+                <th>Utvalgsparametere (ATR · R:R · Filter)</th>
+                <th class="num">Snittkost</th>
+                <th class="num">Kurs nå</th>
+                <th class="num">Vekt</th>
+                <th class="num">Avkastning</th>
+                <th class="num">Vs. S&amp;P 500</th>
+              </tr>
+            </thead>
+            <tbody id="ovSelectionParamsTbody">
+              <tr><td colspan="9" class="text-muted" style="text-align:center; padding:12px;">Laster aksjeparametere…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -2248,6 +2320,214 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     </section>
 
     <!-- ===================================================================== -->
+    <!-- 06 SIKRING & DERIVATER: INTERAKTIV PAYOFF & HOCKEY-STICK GRAFER       -->
+    <!-- ===================================================================== -->
+    <section class="workspace-section hidden" id="sec-hedging">
+      <div class="section-header">
+        <div>
+          <h2><span class="sec-tag">06 SIKRING &amp; DERIVATER</span> Interaktiv Payoff-kalkulator &amp; Hockey-Stick Grafer</h2>
+          <p>Deterministisk Black-Scholes opsjonsprising, Greeks og porteføljesikring (<code>derivatives_hedging_engine.py</code>) koblet mot live VIX og dine åpne Alpaca Paper-posisjoner</p>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" id="hedgeBtnCollar" onclick="setHedgeStrategyQuick('ZERO_COST_COLLAR')">Zero-Cost Collar</button>
+          <button class="btn btn-outline btn-sm" id="hedgeBtnPut" onclick="setHedgeStrategyQuick('PROTECTIVE_PUT')">Protective Put</button>
+          <button class="btn btn-outline btn-sm" id="hedgeBtnCall" onclick="setHedgeStrategyQuick('COVERED_CALL')">Covered Call</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-item highlight-cyan">
+          <div class="kpi-label">Underliggende Posisjon</div>
+          <div class="kpi-value" id="hedgeKpiPosVal">—</div>
+          <div class="kpi-sub" id="hedgeKpiPosSub">Velg posisjon under</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-label">Netto Opsjonspremie</div>
+          <div class="kpi-value" id="hedgeKpiNetPrem">—</div>
+          <div class="kpi-sub" id="hedgeKpiNetPremSub">Per aksje / totalt</div>
+        </div>
+        <div class="kpi-item highlight-green">
+          <div class="kpi-label">Maks Tap Sikret (−25 % sjokk)</div>
+          <div class="kpi-value" id="hedgeKpiMaxLoss">—</div>
+          <div class="kpi-sub" id="hedgeKpiMaxLossSub">Udekket tap: —</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-label">Maks Gevinst (+25 % oppgang)</div>
+          <div class="kpi-value" id="hedgeKpiMaxGain">—</div>
+          <div class="kpi-sub" id="hedgeKpiRegimeSub">Live VIX-regime</div>
+        </div>
+      </div>
+
+      <div class="card" id="derivativesHedgingCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🛡️ AI Hedging Advisor &amp; Parametere</h3>
+            <p id="hedgeAdviceSubtitle">Juster strike-nivåer, løpetid og implisitt volatilitet for å se hockey-stick kurven reagere i sanntid</p>
+          </div>
+          <span class="pill pill-cyan" id="hedgeRegimePill">Laster…</span>
+        </div>
+
+        <div id="hedgeAdviceBanner" style="margin-bottom:14px; padding:10px 12px; border-left:2px solid #38bdf8; background:rgba(255,255,255,0.02); font-size:12.5px; line-height:1.5; color:var(--text-main);">
+          Laster AI Hedging Advisor vurdering…
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:16px;">
+          <div class="field-group">
+            <label for="hedgeTicker">Ticker / Posisjon</label>
+            <select id="hedgeTicker" onchange="loadDerivativesHedging(true)">
+              <option value="NVDA" selected>NVDA (Alpaca Paper)</option>
+              <option value="AVGO">AVGO (Alpaca Paper)</option>
+              <option value="PLTR">PLTR (Alpaca Paper)</option>
+              <option value="AAPL">AAPL (Alpaca Paper)</option>
+              <option value="TSLA">TSLA (Alpaca Paper)</option>
+              <option value="META">META (Alpaca Paper)</option>
+              <option value="AMZN">AMZN (Alpaca Paper)</option>
+              <option value="JPM">JPM (Alpaca Paper)</option>
+              <option value="CAT">CAT (Alpaca Paper)</option>
+              <option value="XOM">XOM (Alpaca Paper)</option>
+              <option value="SPY">SPY (Indeks ETF)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="hedgeStrategy">Sikringsstrategi</label>
+            <select id="hedgeStrategy" onchange="loadDerivativesHedging(false)">
+              <option value="ZERO_COST_COLLAR" selected>Zero-Cost Collar</option>
+              <option value="PROTECTIVE_PUT">Protective Put</option>
+              <option value="COVERED_CALL">Covered Call</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="hedgePutPct">Put Strike: <strong id="hedgePutPctVal">95 %</strong></label>
+            <input type="range" id="hedgePutPct" value="95" min="80" max="100" step="1" oninput="document.getElementById('hedgePutPctVal').textContent=this.value+' %'; loadDerivativesHedging(false)">
+          </div>
+          <div class="field-group">
+            <label for="hedgeCallPct">Call Strike: <strong id="hedgeCallPctVal">105 %</strong></label>
+            <input type="range" id="hedgeCallPct" value="105" min="100" max="120" step="1" oninput="document.getElementById('hedgeCallPctVal').textContent=this.value+' %'; loadDerivativesHedging(false)">
+          </div>
+          <div class="field-group">
+            <label for="hedgeDays">Forfall: <strong id="hedgeDaysVal">30 d</strong></label>
+            <input type="range" id="hedgeDays" value="30" min="7" max="180" step="1" oninput="document.getElementById('hedgeDaysVal').textContent=this.value+' d'; loadDerivativesHedging(false)">
+          </div>
+          <div class="field-group">
+            <label for="hedgeIvPct">Implisitt Vol (IV): <strong id="hedgeIvPctVal">36 %</strong></label>
+            <input type="range" id="hedgeIvPct" value="36" min="12" max="90" step="1" oninput="document.getElementById('hedgeIvPctVal').textContent=this.value+' %'; loadDerivativesHedging(false)">
+          </div>
+        </div>
+
+        <div class="grid-pipeline">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:6px;">Dynamisk Hockey-Stick Payoff ved forfall (−25 % til +25 % kursutslag)</div>
+            <div class="svg-chart-box" id="hedgePayoffSvgBox" style="min-height:280px;"></div>
+            <div id="hedgeSummaryLine" style="margin-top:8px; font-size:12px; color:var(--text-muted); line-height:1.5;"></div>
+          </div>
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:6px;">Black-Scholes Greeks (Analytisk)</div>
+            <div class="table-wrap">
+              <table class="tufte-table">
+                <thead>
+                  <tr><th>Kontrakt</th><th class="num">Strike</th><th class="num">Pris</th><th class="num">Delta</th><th class="num">Gamma</th><th class="num">Theta/d</th><th class="num">Vega</th></tr>
+                </thead>
+                <tbody id="hedgeGreeksTbody">
+                  <tr><td colspan="7" class="text-muted" style="text-align:center; padding:12px;">Laster Black-Scholes…</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="font-size:12px; font-weight:600; color:var(--text-main); margin:14px 0 6px;">Utfallsmatrise ved forfall (Udekket vs. Sikret)</div>
+            <div class="table-wrap">
+              <table class="tufte-table">
+                <thead>
+                  <tr><th class="num">Kurs ved forfall</th><th class="num">Udekket P&amp;L</th><th class="num">Sikret P&amp;L</th><th class="num">Sikringseffekt</th></tr>
+                </thead>
+                <tbody id="hedgeScenarioTbody">
+                  <tr><td colspan="4" class="text-muted" style="text-align:center; padding:10px;">Laster scenarier…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concrete Efficient Hedge Portfolio: Index Futures, Index Options & Single-Stock Options -->
+      <div class="card" style="margin-top:16px;" id="hedgeInstrumentsCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>⚖️ Effektiv Sikringsportefølje: Index Futures, Index Options &amp; Aksjeopsjoner</h3>
+            <p id="hedgeInstSummary">Rangert etter totalkostnad (fees + bid-ask spread), likviditet, kontraktsstørrelse (over-hedge) og norsk skatteeffektivitet</p>
+          </div>
+          <span class="pill pill-green" id="hedgeTopRecPill">Beregner…</span>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Klasse</th>
+                <th>Instrument</th>
+                <th class="num">Kontr.</th>
+                <th class="num">Dekning</th>
+                <th class="num">Fee ($)</th>
+                <th class="num">Spread</th>
+                <th class="num">Premie ($)</th>
+                <th>Skatt &amp; Effektivitet</th>
+                <th class="num">Score</th>
+              </tr>
+            </thead>
+            <tbody id="hedgeInstrumentsTbody">
+              <tr><td colspan="9" class="text-muted" style="text-align:center; padding:12px;">Laster sikringsinstrumenter…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Profit Lock-In Guardrail & Realize / Close All Positions -->
+      <div class="card" style="margin-top:16px;" id="profitLockInCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🔒 Gevinstsikring (Profit Lock-In) &amp; Realisering av Portefølje</h3>
+            <p>Sett netto gevinstmål (f.eks. +10 % eller +15 %) med trailing gulv, eller realiser og lukk alle åpne Alpaca Paper-posisjoner med 2-stegs bekreftelse</p>
+          </div>
+          <span class="pill pill-cyan" id="profitLockStatusPill">Laster…</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+          <div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:8px;">1. Konfigurer Lock-In Gevinstmål (Netto %)</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+              <button class="btn btn-outline btn-sm" onclick="setProfitLockQuick(5)">+5 %</button>
+              <button class="btn btn-primary btn-sm" onclick="setProfitLockQuick(10)">+10 %</button>
+              <button class="btn btn-outline btn-sm" onclick="setProfitLockQuick(15)">+15 %</button>
+              <button class="btn btn-outline btn-sm" onclick="setProfitLockQuick(20)">+20 %</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+              <div class="field-group">
+                <label for="lockTargetPct">Netto Gevinstmål (%)</label>
+                <input type="number" id="lockTargetPct" value="10" min="1" max="100" step="0.5">
+              </div>
+              <div class="field-group">
+                <label for="lockTrailingPct">Trailing Lock-In Gulv (%)</label>
+                <input type="number" id="lockTrailingPct" value="75" min="25" max="95" step="5">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveProfitLockConfig()">💾 Lagre Lock-In Regel</button>
+            <div id="profitLockLiveText" style="margin-top:10px; font-size:12px; color:var(--text-muted); line-height:1.55;">Laster live status mot mål…</div>
+          </div>
+
+          <div style="border-left:1px solid var(--border-strong); padding-left:16px;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:8px;">2. Realiser Gevinst / Lukk Alle Posisjoner (Alpaca Paper)</div>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin:0 0 10px;">
+              Kansellerer alle åpne ordrer og lukker samtlige posisjoner til markedskurs for å låse inn 100 % kontanter. Beskyttet med 2-stegs bekreftelse og Paper API-sperre.
+            </p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm" onclick="previewCloseAllPositions()">🔍 Forhåndsvis Realisering (Dry-Run)</button>
+              <button class="btn btn-sm" id="btnCloseAllArm" onclick="executeCloseAllPositions()" style="background:#7f1d1d; color:#fecaca; border:1px solid #f87171;">🔴 Realiser &amp; Lukk Alle Posisjoner</button>
+            </div>
+            <div id="closeAllFeedback" style="margin-top:10px; font-size:12px; color:var(--text-muted); line-height:1.5;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
     <!-- SEKSJON 6: RISIKOPROFILER (ASK), DOKUMENTASJON & EKSTERNE DASHBOARDS  -->
     <!-- ===================================================================== -->
     <section class="workspace-section hidden" id="sec-docs">
@@ -2932,6 +3212,182 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       </div>
     </section>
 
+    <!-- ===================================================================== -->
+    <!-- 08 AGENT POST-MORTEM & LESSONS LEARNED (CLOSED-LOOP & WEEKLY AUDIT)   -->
+    <!-- ===================================================================== -->
+    <section class="workspace-section hidden" id="sec-postmortem">
+      <div class="section-header">
+        <div>
+          <h2><span class="sec-tag">08 POST-MORTEM</span> Agent Post-Mortem, Lessons Learned &amp; Ukentlig A/B-Audit</h2>
+          <p>Lukket erfaringslæring (<code>agent_learning_loop.py</code>) og skyggesporing (<code>weekly_audit_report.py</code>) direkte mot <code>data/obx_analytics.duckdb</code></p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="runPostMortemSync()">🔄 Synk &amp; Kjør Post-Mortem</button>
+          <button class="btn btn-outline btn-sm" onclick="runWeeklyAuditAction(false)">📊 Kjør Ukentlig A/B-Audit</button>
+          <button class="btn btn-outline btn-sm" onclick="runWeeklyAuditAction(true)">📲 Send Audit til Telegram</button>
+        </div>
+      </div>
+
+      <div id="pmActionBanner" style="display:none; margin-bottom:12px; padding:10px 14px; border-radius:6px; border:1px solid var(--border-strong); background:rgba(56,189,248,0.08); font-size:12.5px;"></div>
+
+      <div class="kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-item highlight-cyan">
+          <div class="kpi-label">Evaluerte Prediksjoner</div>
+          <div class="kpi-value" id="pmKpiEvaluated">—</div>
+          <div class="kpi-sub" id="pmKpiPending">Venter på fasit: —</div>
+        </div>
+        <div class="kpi-item highlight-green">
+          <div class="kpi-label">Akkumulerte Lærdommer</div>
+          <div class="kpi-value" id="pmKpiLessons">—</div>
+          <div class="kpi-sub" id="pmKpiAvgRet">Snittavkastning: —</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-label">Stop-Loss / Take-Profit</div>
+          <div class="kpi-value" id="pmKpiSlTp">—</div>
+          <div class="kpi-sub">STOP_LOSS_HIT vs. TAKE_PROFIT_HIT</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-label">AI Sharpe-effekt (10d Audit)</div>
+          <div class="kpi-value" id="pmKpiSharpeDelta">—</div>
+          <div class="kpi-sub" id="pmKpiSignalsTotal">Signaler i DuckDB: —</div>
+        </div>
+      </div>
+
+      <div class="grid-pipeline">
+        <!-- Left: Weekly A/B Shadow Tracking Audit -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>Ukentlig Shadow Tracking A/B-Audit (10d horisont)</h3>
+              <p id="pmAuditVerdict">Sammenligner teknisk baseline mot GEMINI GO og GEMINI NO-GO (inkl. 0,25 % friksjon)</p>
+            </div>
+            <span class="pill pill-cyan" id="pmAuditBadge">DuckDB</span>
+          </div>
+          <div class="table-wrap">
+            <table class="tufte-table">
+              <thead>
+                <tr><th>Kohort</th><th class="num">N</th><th class="num">Win %</th><th class="num">Snitt %</th><th class="num">SL-treff %</th><th class="num">Sharpe</th></tr>
+              </thead>
+              <tbody id="pmAuditCohortTbody">
+                <tr><td colspan="6" class="text-muted" style="text-align:center; padding:12px;">Laster A/B-audit…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:14px; font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:6px;">Avslagsårsaker (Hva skjedde med AI NO-GO?)</div>
+          <div class="table-wrap">
+            <table class="tufte-table">
+              <thead>
+                <tr><th>Årsak (NO-GO)</th><th class="num">N</th><th class="num">Hyp. Snitt %</th><th class="num">SL-treff %</th></tr>
+              </thead>
+              <tbody id="pmAuditRejectionTbody">
+                <tr><td colspan="4" class="text-muted" style="text-align:center; padding:10px;">Ingen modne avslag enda.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Manual Post-Mortem Entry + Episodic Memory Preview -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>Registrer Post-Mortem &amp; Episodisk Minne</h3>
+              <p>Logg fasit fra en lukket handel rett inn i <code>agent_lessons_learned</code> for fremtidige beslutningsprompter</p>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; margin-bottom:8px;">
+            <div class="field-group">
+              <label for="pmInTicker">Ticker</label>
+              <input type="text" id="pmInTicker" value="NVDA">
+            </div>
+            <div class="field-group">
+              <label for="pmInStrategy">Strategi</label>
+              <input type="text" id="pmInStrategy" value="momentum_us">
+            </div>
+            <div class="field-group">
+              <label for="pmInRet">Fasit Avk. (%)</label>
+              <input type="number" id="pmInRet" step="0.1" value="-6.2">
+            </div>
+            <div class="field-group">
+              <label for="pmInMae">Maks Fall / MAE (%)</label>
+              <input type="number" id="pmInMae" step="0.1" value="-8.4">
+            </div>
+          </div>
+          <div class="field-group" style="margin-bottom:8px;">
+            <label for="pmInThesis">Opprinnelig tese</label>
+            <input type="text" id="pmInThesis" value="Høy-beta AI-momentum over SMA200 med 2.5x ATR stopp">
+          </div>
+          <div class="field-group" style="margin-bottom:10px;">
+            <label for="pmInNews">Realisert risikofaktor / nyhetsbilde under handelen</label>
+            <input type="text" id="pmInNews" value="VIX hoppet til 35.9 — bredt teknologisalg og høy beta-forsterkning">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="submitManualPostMortem()">➕ Syntetiser &amp; Lagre Lærdom i DuckDB</button>
+
+          <div style="margin-top:14px; font-size:12px; font-weight:600; color:var(--text-main); margin-bottom:6px;">Few-Shot Episodic Memory (injiseres i neste AI-prompt)</div>
+          <pre id="pmMemoryPromptBox" style="background:#0b1018; border:1px solid var(--border-strong); border-radius:6px; padding:10px; font-size:11px; color:var(--text-muted); white-space:pre-wrap; max-height:210px; overflow-y:auto; margin:0;">Laster prompt-forhåndsvisning…</pre>
+        </div>
+      </div>
+
+      <!-- Bottom: Full Lessons Learned Table -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>Akkumulerte Lærdommer (<code>agent_lessons_learned</code>)</h3>
+            <p>Historiske feil, treff og whipsaw-erfaringer som AI-Risikomanageren sjekker før hvert nytt kjøpssignal</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Tidspunkt</th>
+                <th>Ticker</th>
+                <th>Strategi</th>
+                <th>Kategori</th>
+                <th class="num">Avkastning</th>
+                <th class="num">MAE</th>
+                <th>Syntetisert Lærdom</th>
+              </tr>
+            </thead>
+            <tbody id="pmLessonsTbody">
+              <tr><td colspan="7" class="text-muted" style="text-align:center; padding:14px;">Laster lærdommer fra DuckDB…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Hybrid AI Agent Testbench (Tier 1 Ollama + DuckDB RAG + Tier 2 Gemini) -->
+      <div class="card" style="margin-top:16px;" id="hybridAgentCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🧠 Hybrid AI-Agent Testbenk — Tier 1 Ollama (<code>llama3.1:8b</code>, temp 0.1) + DuckDB RAG + Tier 2 <code>Gemini 3.8 Flash</code></h3>
+            <p>Kaller <code>http://localhost:11434/api/generate</code> (Tier 1) → DuckDB episodisk minne → <code>gemini-3.8-flash</code> (Tier 2) mot live VIX og Brent</p>
+          </div>
+          <span class="pill pill-cyan" id="hybridDecisionPill">Klar</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:8px;">
+          <div class="field-group">
+            <label for="hybTicker">Ticker</label>
+            <input type="text" id="hybTicker" value="NVDA">
+          </div>
+          <div class="field-group">
+            <label for="hybStrategy">Strategi</label>
+            <input type="text" id="hybStrategy" value="LIQUID_MOMENTUM">
+          </div>
+          <div class="field-group" style="grid-column:span 2;">
+            <label for="hybHeadline">Nyhetsoverskrift / Børsmelding (Tier 1 screening)</label>
+            <input type="text" id="hybHeadline" value="Cloud-datasentre øker bestillinger av nestegenerasjons AI-brikker">
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn btn-primary btn-sm" onclick="runHybridAgentEval()">▶ Kjør Hybrid 3-trinns Evaluering</button>
+          <button class="btn btn-outline btn-sm" onclick="presetHybridTest('EQNR.OL','TREND_BREAKOUT','Equinor tildelt nye leteblokker i Nordsjøen, produksjon som planlagt')">Preset: EQNR (Oljefilter-test)</button>
+          <button class="btn btn-outline btn-sm" onclick="presetHybridTest('PLTR','LIQUID_MOMENTUM','Palantir legger frem kvartalsrapport i kveld etter børsslutt')">Preset: PLTR (Earnings Trap)</button>
+        </div>
+        <pre id="hybridEvalOutput" style="background:#0b1018; border:1px solid var(--border-strong); border-radius:6px; padding:10px; font-size:11.5px; color:var(--text-muted); white-space:pre-wrap; margin:0; display:none;"></pre>
+      </div>
+    </section>
+
       </div>
     </div>
   </div>
@@ -3141,6 +3597,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             refreshAlpacaPortfolio();
             loadSettingsForm();
             syncAllLiveApis();
+            loadLiveIndexTicker(true);
           }
         } else {
           isConnected = false;
@@ -3206,7 +3663,45 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         syncAllLiveApis(),
         mbLoadNordnetTickets(),
         mbLoadSaxoPositions(),
+        loadDerivativesHedging(forceTicker),
+        loadProfitLockStatus(),
+        loadPostMortemDashboard(),
+        loadCorporateActionsOverview(),
       ]);
+      try { updateGlobalChatContextChip(); } catch (e) {}
+    }
+
+    async function loadCorporateActionsOverview() {
+      const tb = document.getElementById("ovCorporateActionsTbody");
+      if (!tb) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/analytics/paper-drift`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        const actions = Array.isArray(d.corporate_actions) ? d.corporate_actions : [];
+        if (!actions.length) {
+          tb.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding:12px;">Ingen registrerte hendelser i kalenderen.</td></tr>`;
+          return;
+        }
+        tb.innerHTML = actions.slice(0, 8).map(ca => {
+          const isBlock = String(ca.guardrail || "").includes("EARNINGS_SOON") || Number(ca.days_until) <= 3;
+          const pillCls = isBlock ? "pill-red" : "pill-green";
+          const portTag = ca.in_portfolio ? ` <span style="font-size:10px; color:var(--accent-cyan, #38bdf8);">(I port.)</span>` : "";
+          const dateStr = ca.event_date ? `${ca.event_date} · ${ca.days_label || ""}` : (ca.days_label || "—");
+          return `
+            <tr>
+              <td><strong>${ca.ticker}</strong>${portTag}</td>
+              <td>${ca.headline || ca.event_type || "Hendelse"}</td>
+              <td class="num ${isBlock ? "text-red" : ""}">${dateStr}</td>
+              <td><span class="pill ${pillCls}">${ca.guardrail || "OK"}</span></td>
+            </tr>
+          `;
+        }).join("");
+      } catch (e) {
+        tb.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding:12px;">Offline: Start runner_server.py for live hendelseskalender.</td></tr>`;
+      }
     }
 
     async function runAllUpdateJobs() {
@@ -4264,8 +4759,10 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       trading: ["sec-alpaca"],
       markets: ["sec-obx-hitl", "sec-bridge"],
       analytics: ["sec-backtest", "sec-docs"],
+      hedging: ["sec-hedging"],
       settings: ["sec-settings"],
-      multibroker: ["sec-multibroker"]
+      multibroker: ["sec-multibroker"],
+      postmortem: ["sec-postmortem"]
     };
 
     function switchCategory(catKey) {
@@ -4278,7 +4775,595 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         sec.classList.toggle("hidden", orderIdx === -1);
         sec.style.order = orderIdx === -1 ? "" : String(orderIdx);
       });
+      if (catKey === "postmortem") {
+        loadPostMortemDashboard();
+      } else if (catKey === "hedging") {
+        loadDerivativesHedging(true);
+        loadProfitLockStatus();
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function setHedgeStrategyQuick(strat) {
+      const sel = document.getElementById("hedgeStrategy");
+      if (sel) sel.value = strat;
+      const map = { ZERO_COST_COLLAR: "hedgeBtnCollar", PROTECTIVE_PUT: "hedgeBtnPut", COVERED_CALL: "hedgeBtnCall" };
+      Object.entries(map).forEach(([k, id]) => {
+        const b = document.getElementById(id);
+        if (b) b.className = k === strat ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm";
+      });
+      loadDerivativesHedging(false);
+    }
+
+    async function loadDerivativesHedging(syncIvToVix = false) {
+      const ticker = (document.getElementById("hedgeTicker") || {}).value || "NVDA";
+      const strategy = (document.getElementById("hedgeStrategy") || {}).value || "ZERO_COST_COLLAR";
+      const putPct = Number((document.getElementById("hedgePutPct") || {}).value || 95) / 100;
+      const callPct = Number((document.getElementById("hedgeCallPct") || {}).value || 105) / 100;
+      const days = Number((document.getElementById("hedgeDays") || {}).value || 30);
+      const ivInput = document.getElementById("hedgeIvPct");
+      const liveVix = SUITE_STATE.live_macro && SUITE_STATE.live_macro.vix_close ? Number(SUITE_STATE.live_macro.vix_close) : null;
+      if (syncIvToVix && liveVix && ivInput) {
+        ivInput.value = String(Math.round(liveVix));
+        const ivLbl = document.getElementById("hedgeIvPctVal");
+        if (ivLbl) ivLbl.textContent = `${Math.round(liveVix)} %`;
+      }
+      const vol = Number((ivInput || {}).value || 35) / 100;
+
+      const map = { ZERO_COST_COLLAR: "hedgeBtnCollar", PROTECTIVE_PUT: "hedgeBtnPut", COVERED_CALL: "hedgeBtnCall" };
+      Object.entries(map).forEach(([k, id]) => {
+        const b = document.getElementById(id);
+        if (b) b.className = k === strategy ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm";
+      });
+
+      const qs = new URLSearchParams({
+        ticker,
+        strategy,
+        put_pct: putPct.toFixed(3),
+        call_pct: callPct.toFixed(3),
+        days: String(days),
+        vol: vol.toFixed(3)
+      });
+
+      try {
+        const res = await fetch(`${SERVER_URL}/api/analytics/hedging?${qs.toString()}`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        renderDerivativesHedging(d);
+      } catch (e) {
+        const banner = document.getElementById("hedgeAdviceBanner");
+        if (banner) banner.textContent = "Offline: Start python runner_server.py for live Black-Scholes & Hockey-Stick beregning.";
+      }
+    }
+
+    function renderDerivativesHedging(d) {
+      const pill = document.getElementById("hedgeRegimePill");
+      const banner = document.getElementById("hedgeAdviceBanner");
+      const tb = document.getElementById("hedgeGreeksTbody");
+      const scTb = document.getElementById("hedgeScenarioTbody");
+      const sumEl = document.getElementById("hedgeSummaryLine");
+      const svgBox = document.getElementById("hedgePayoffSvgBox");
+
+      const kPos = document.getElementById("hedgeKpiPosVal");
+      const kPosSub = document.getElementById("hedgeKpiPosSub");
+      const kPrem = document.getElementById("hedgeKpiNetPrem");
+      const kPremSub = document.getElementById("hedgeKpiNetPremSub");
+      const kLoss = document.getElementById("hedgeKpiMaxLoss");
+      const kLossSub = document.getElementById("hedgeKpiMaxLossSub");
+      const kGain = document.getElementById("hedgeKpiMaxGain");
+      const kRegSub = document.getElementById("hedgeKpiRegimeSub");
+
+      const netPrem = Number(d.net_premium_total || 0);
+      if (kPos) kPos.textContent = `$${Number(d.position_value).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+      if (kPosSub) kPosSub.textContent = `${d.ticker}: ${d.shares} stk @ $${Number(d.spot).toFixed(2)}`;
+      if (kPrem) kPrem.textContent = `${netPrem >= 0 ? "+" : "-"}$${Math.abs(Math.round(netPrem)).toLocaleString("en-US")}`;
+      if (kPremSub) kPremSub.textContent = `${netPrem >= 0 ? "Netto kreditt" : "Netto kostnad"} ($${Number(d.net_premium_per_share).toFixed(2)}/aksje)`;
+      if (kLoss) kLoss.textContent = `$${Math.round(Number(d.max_loss_hedged)).toLocaleString("en-US")}`;
+      if (kLossSub) kLossSub.textContent = `Udekket (−25 %): $${Math.round(Number(d.max_loss_unhedged_25pct)).toLocaleString("en-US")}`;
+      if (kGain) kGain.textContent = `+$${Math.round(Number(d.max_gain_hedged_25pct)).toLocaleString("en-US")}`;
+      if (kRegSub) kRegSub.textContent = `VIX ${Number(d.vix).toFixed(1)} · IV ${Number(d.iv_pct).toFixed(0)} % · ${d.days_to_exp}d`;
+
+      if (pill && d.advice) {
+        pill.textContent = `${d.advice.regime} · ${d.advice.suggested_strategy}`;
+        pill.className = d.advice.urgency === "HIGH" ? "pill pill-red" : (d.advice.urgency === "MEDIUM" ? "pill pill-amber" : "pill pill-green");
+      }
+      if (banner && d.advice) {
+        banner.innerHTML = `<strong>AI Hedging Advisor (VIX ${Number(d.vix).toFixed(1)} · Prioritet: ${d.advice.urgency}):</strong> ${d.advice.reasoning}`;
+      }
+      if (tb) {
+        const pg = d.put_greeks || {};
+        const cg = d.call_greeks || {};
+        tb.innerHTML = `
+          <tr>
+            <td><strong>Put (Gulv)</strong></td>
+            <td class="num">$${Number(d.put_strike).toFixed(2)}</td>
+            <td class="num">$${Number(pg.price || 0).toFixed(2)}</td>
+            <td class="num">${Number(pg.delta || 0).toFixed(2)}</td>
+            <td class="num">${Number(pg.gamma || 0).toFixed(4)}</td>
+            <td class="num text-red">${Number(pg.theta || 0).toFixed(3)}</td>
+            <td class="num">${Number(pg.vega || 0).toFixed(3)}</td>
+          </tr>
+          <tr>
+            <td><strong>Call (Tak)</strong></td>
+            <td class="num">$${Number(d.call_strike).toFixed(2)}</td>
+            <td class="num">$${Number(cg.price || 0).toFixed(2)}</td>
+            <td class="num">${Number(cg.delta || 0).toFixed(2)}</td>
+            <td class="num">${Number(cg.gamma || 0).toFixed(4)}</td>
+            <td class="num text-green">${Number(cg.theta || 0).toFixed(3)}</td>
+            <td class="num">${Number(cg.vega || 0).toFixed(3)}</td>
+          </tr>
+        `;
+      }
+      if (scTb && Array.isArray(d.curve) && d.curve.length >= 9) {
+        const idxs = [0, 6, 12, 16, 20, 24, 28, 34, d.curve.length - 1];
+        const unique = [...new Set(idxs.filter(i => i >= 0 && i < d.curve.length))];
+        scTb.innerHTML = unique.map(i => {
+          const pt = d.curve[i];
+          const pctMove = ((pt.underlying_price - d.spot) / d.spot) * 100;
+          const hCls = pt.hedged_pnl >= 0 ? "text-green" : "text-red";
+          const pCls = pt.protection_value >= 0 ? "text-green" : "text-amber";
+          return `
+            <tr>
+              <td class="num"><strong>$${pt.underlying_price.toFixed(2)}</strong> <span class="text-muted">(${pctMove >= 0 ? "+" : ""}${pctMove.toFixed(0)}%)</span></td>
+              <td class="num text-muted">${pt.unhedged_pnl >= 0 ? "+" : ""}$${Math.round(pt.unhedged_pnl).toLocaleString("en-US")}</td>
+              <td class="num ${hCls}"><strong>${pt.hedged_pnl >= 0 ? "+" : ""}$${Math.round(pt.hedged_pnl).toLocaleString("en-US")}</strong></td>
+              <td class="num ${pCls}">${pt.protection_value >= 0 ? "+" : ""}$${Math.round(pt.protection_value).toLocaleString("en-US")}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+      if (sumEl) {
+        const premSign = netPrem >= 0 ? "+" : "";
+        const premLabel = netPrem >= 0 ? "Netto kreditt" : "Netto kostnad";
+        sumEl.innerHTML =
+          `<strong>${d.strategy_type}</strong> på <strong>${d.ticker}</strong> (${d.shares} stk @ $${Number(d.spot).toFixed(2)}) · ` +
+          `Put $${Number(d.put_strike).toFixed(2)} / Call $${Number(d.call_strike).toFixed(2)} · ` +
+          `${premLabel}: <strong class="${netPrem >= 0 ? "text-green" : "text-amber"}">${premSign}$${Math.round(netPrem)}</strong>`;
+      }
+      if (svgBox && Array.isArray(d.curve) && d.curve.length >= 2) {
+        const W = 560, H = 270, padL = 60, padR = 18, padT = 22, padB = 34;
+        const pts = d.curve;
+        const xs = pts.map(p => p.underlying_price);
+        const allY = pts.flatMap(p => [p.unhedged_pnl, p.hedged_pnl, 0]);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...allY), maxY = Math.max(...allY);
+        const spanX = Math.max(1e-6, maxX - minX);
+        const spanY = Math.max(1e-6, maxY - minY);
+        const sx = x => padL + ((x - minX) / spanX) * (W - padL - padR);
+        const sy = y => padT + (1 - (y - minY) / spanY) * (H - padT - padB);
+
+        const pathUnhedged = pts.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.underlying_price).toFixed(1)},${sy(p.unhedged_pnl).toFixed(1)}`).join(" ");
+        const pathHedged = pts.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.underlying_price).toFixed(1)},${sy(p.hedged_pnl).toFixed(1)}`).join(" ");
+        const y0 = sy(0).toFixed(1);
+        const xSpot = sx(d.spot).toFixed(1);
+        const xPut = sx(Math.max(minX, Math.min(maxX, d.put_strike))).toFixed(1);
+        const xCall = sx(Math.max(minX, Math.min(maxX, d.call_strike))).toFixed(1);
+
+        // Protection shading where hedged > unhedged (downside cushion)
+        const protPts = pts.filter(p => p.hedged_pnl > p.unhedged_pnl);
+        let protArea = "";
+        if (protPts.length >= 2) {
+          const topEdge = protPts.map((p, i) => `${i === 0 ? "M" : "L"}${sx(p.underlying_price).toFixed(1)},${sy(p.hedged_pnl).toFixed(1)}`).join(" ");
+          const botEdge = [...protPts].reverse().map(p => `L${sx(p.underlying_price).toFixed(1)},${sy(p.unhedged_pnl).toFixed(1)}`).join(" ");
+          protArea = `<path d="${topEdge} ${botEdge} Z" fill="rgba(52,211,153,0.14)" />`;
+        }
+
+        const showPut = d.strategy_type !== "COVERED_CALL";
+        const showCall = d.strategy_type !== "PROTECTIVE_PUT";
+
+        svgBox.innerHTML = `
+          <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:270px; display:block;">
+            ${protArea}
+            <line x1="${padL}" y1="${y0}" x2="${W - padR}" y2="${y0}" stroke="rgba(148,163,184,0.35)" stroke-dasharray="3,3" />
+            <line x1="${xSpot}" y1="${padT}" x2="${xSpot}" y2="${H - padB}" stroke="rgba(56,189,248,0.4)" stroke-dasharray="2,3" />
+            ${showPut ? `<line x1="${xPut}" y1="${padT}" x2="${xPut}" y2="${H - padB}" stroke="rgba(52,211,153,0.45)" stroke-dasharray="2,4" /><text x="${xPut}" y="${padT - 5}" text-anchor="middle" fill="#34d399" font-size="9.5" font-family="monospace">Put $${Number(d.put_strike).toFixed(0)}</text>` : ""}
+            ${showCall ? `<line x1="${xCall}" y1="${padT}" x2="${xCall}" y2="${H - padB}" stroke="rgba(245,158,11,0.45)" stroke-dasharray="2,4" /><text x="${xCall}" y="${padT - 5}" text-anchor="middle" fill="#f59e0b" font-size="9.5" font-family="monospace">Call $${Number(d.call_strike).toFixed(0)}</text>` : ""}
+            <path d="${pathUnhedged}" fill="none" stroke="rgba(148,163,184,0.65)" stroke-width="1.6" stroke-dasharray="5,4" />
+            <path d="${pathHedged}" fill="none" stroke="#38bdf8" stroke-width="2.6" />
+            <text x="${padL}" y="${H - 10}" fill="#94a3b8" font-size="10" font-family="monospace">$${minX.toFixed(0)} (−25%)</text>
+            <text x="${xSpot}" y="${H - 10}" text-anchor="middle" fill="#38bdf8" font-size="10" font-family="monospace">Spot $${Number(d.spot).toFixed(0)}</text>
+            <text x="${W - padR}" y="${H - 10}" text-anchor="end" fill="#94a3b8" font-size="10" font-family="monospace">$${maxX.toFixed(0)} (+25%)</text>
+            <text x="${padL - 8}" y="${padT + 8}" text-anchor="end" fill="#34d399" font-size="10" font-family="monospace">+$${Math.round(maxY).toLocaleString("en-US")}</text>
+            <text x="${padL - 8}" y="${Number(y0) + 3}" text-anchor="end" fill="#94a3b8" font-size="10" font-family="monospace">$0</text>
+            <text x="${padL - 8}" y="${H - padB}" text-anchor="end" fill="#f87171" font-size="10" font-family="monospace">-$${Math.abs(Math.round(minY)).toLocaleString("en-US")}</text>
+            <text x="${W - padR}" y="${padT + 10}" text-anchor="end" fill="#38bdf8" font-size="10" font-family="monospace">Cyan: Sikret · Grønn skygge: Beskyttelse · Grå: Udekket</text>
+          </svg>
+        `;
+      }
+
+      // Render Efficient Hedge Portfolio Instruments Table
+      const instRec = d.instrument_recommendations;
+      const instTb = document.getElementById("hedgeInstrumentsTbody");
+      const instSum = document.getElementById("hedgeInstSummary");
+      const topPill = document.getElementById("hedgeTopRecPill");
+      if (instRec && instTb) {
+        if (instSum) {
+          instSum.innerHTML =
+            `Eksponering: <strong>$${Number(instRec.exposed_usd).toLocaleString("en-US")}</strong> · Tech-andel: <strong>${instRec.tech_share_pct} %</strong> · ` +
+            `Vektet Beta: <strong>${instRec.weighted_beta}</strong> · Mål-sikring (${instRec.target_hedge_ratio_pct}%): <strong>$${Number(instRec.target_hedge_notional_usd).toLocaleString("en-US")}</strong>`;
+        }
+        if (topPill && instRec.recommended_primary) {
+          topPill.textContent = `Anbefalt: ${instRec.recommended_primary.symbol} (Score ${instRec.recommended_primary.efficiency_score}/100)`;
+        }
+        instTb.innerHTML = (instRec.instruments || []).map((it, idx) => {
+          const scoreCls = it.efficiency_score >= 88 ? "text-green" : (it.efficiency_score >= 78 ? "text-amber" : "text-red");
+          const premStr = it.net_prem_usd === 0 ? "$0" : `${it.net_prem_usd > 0 ? "+" : "-"}$${Math.abs(Math.round(it.net_prem_usd))}`;
+          const premCls = it.net_prem_usd > 0 ? "text-green" : (it.net_prem_usd < 0 ? "text-amber" : "text-muted");
+          const badge = idx === 0 ? ` <span class="pill pill-green" style="font-size:9.5px; padding:1px 5px;">TOP</span>` : "";
+          return `
+            <tr>
+              <td class="text-muted" style="font-size:11px; white-space:nowrap;">${it.instrument_class}</td>
+              <td><strong>${it.symbol}</strong>${badge}<div style="font-size:10.5px; color:var(--text-dim);">${it.venue} · ${it.liquidity}</div></td>
+              <td class="num">${it.contracts}</td>
+              <td class="num">${Number(it.coverage_pct).toFixed(0)} %</td>
+              <td class="num">$${Number(it.est_fee_usd).toFixed(2)}</td>
+              <td class="num">${Number(it.est_spread_bps).toFixed(1)} bps</td>
+              <td class="num ${premCls}"><strong>${premStr}</strong></td>
+              <td style="font-size:11px; color:var(--text-muted);">${it.tax_efficiency}</td>
+              <td class="num ${scoreCls}"><strong>${it.efficiency_score}</strong></td>
+            </tr>
+          `;
+        }).join("");
+      }
+    }
+
+    let _closeAllArmed = false;
+
+    function setProfitLockQuick(pct) {
+      const el = document.getElementById("lockTargetPct");
+      if (el) el.value = String(pct);
+      saveProfitLockConfig();
+    }
+
+    async function loadProfitLockStatus() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/portfolio/profit-lock`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        const cfg = d.config || {};
+        const live = d.live || {};
+        const tEl = document.getElementById("lockTargetPct");
+        const trEl = document.getElementById("lockTrailingPct");
+        if (tEl && cfg.target_net_gain_pct) tEl.value = String(cfg.target_net_gain_pct);
+        if (trEl && cfg.trailing_lock_pct) trEl.value = String(cfg.trailing_lock_pct);
+
+        const pill = document.getElementById("profitLockStatusPill");
+        if (pill) {
+          pill.textContent = live.triggered
+            ? `TRIGGERED (+${Number(live.net_gain_pct).toFixed(2)} % ≥ +${cfg.target_net_gain_pct} %)`
+            : `Aktivt mål: +${cfg.target_net_gain_pct} % (Nå: ${live.net_gain_pct >= 0 ? "+" : ""}${Number(live.net_gain_pct).toFixed(2)} %)`;
+          pill.className = live.triggered ? "pill pill-green" : "pill pill-cyan";
+        }
+        const txt = document.getElementById("profitLockLiveText");
+        if (txt) {
+          txt.innerHTML =
+            `Nåværende egenkapital: <strong>$${Number(live.equity_usd).toLocaleString("en-US")}</strong> (${live.net_gain_pct >= 0 ? "+" : ""}${Number(live.net_gain_pct).toFixed(2)} %) · ` +
+            `Lock-In mål (+${cfg.target_net_gain_pct} %): <strong>$${Number(live.target_equity_usd).toLocaleString("en-US")}</strong><br>` +
+            `Avstand til gevinstmål: <strong>${live.distance_to_target_usd > 0 ? `+$${Math.round(live.distance_to_target_usd).toLocaleString("en-US")} (+${Number(live.distance_to_target_pct).toFixed(2)} pp)` : "MÅL NÅDD ✅"}</strong> · ` +
+            `Est. 37,84 % norsk skatt ved realisering nå: <strong>$${Math.round(live.est_no_tax_usd).toLocaleString("en-US")}</strong>`;
+        }
+      } catch (e) {}
+    }
+
+    async function saveProfitLockConfig() {
+      const target = Number((document.getElementById("lockTargetPct") || {}).value || 10);
+      const trailing = Number((document.getElementById("lockTrailingPct") || {}).value || 75);
+      try {
+        const res = await fetch(`${SERVER_URL}/api/portfolio/profit-lock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ enabled: true, target_net_gain_pct: target, trailing_lock_pct: trailing })
+        });
+        if (res.ok) loadProfitLockStatus();
+      } catch (e) {}
+    }
+
+    async function previewCloseAllPositions() {
+      const fb = document.getElementById("closeAllFeedback");
+      if (fb) fb.textContent = "Beregner forhåndsvisning av full realisering…";
+      try {
+        const res = await fetch(`${SERVER_URL}/api/portfolio/close-all`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ dry_run: true })
+        });
+        const d = await res.json();
+        if (fb) {
+          fb.innerHTML =
+            `<strong>Forhåndsvisning (Dry-Run):</strong> ${d.message || ""}<br>` +
+            `Posisjoner (${d.positions_to_close}): <code>${(d.tickers || []).join(", ") || "Ingen"}</code> · ` +
+            `Urealisert P&amp;L: <strong>$${Number(d.estimated_unrealized_pl_usd || 0).toLocaleString("en-US")}</strong> · ` +
+            `Est. norsk skatt (37,84 %): <strong>$${Number(d.estimated_no_tax_usd || 0).toLocaleString("en-US")}</strong>`;
+        }
+      } catch (e) {
+        if (fb) fb.textContent = `Feil: ${e}`;
+      }
+    }
+
+    async function executeCloseAllPositions() {
+      const btn = document.getElementById("btnCloseAllArm");
+      const fb = document.getElementById("closeAllFeedback");
+      if (!_closeAllArmed) {
+        _closeAllArmed = true;
+        if (btn) btn.textContent = "⚠️ KLIKK IGJEN FOR Å LUKKE ALLE POSISJONER";
+        if (fb) fb.innerHTML = `<span class="text-amber">Bekreftelse kreves: Klikk den røde knappen én gang til innen 8 sekunder for å realisere og lukke alle åpne Alpaca Paper-posisjoner.</span>`;
+        setTimeout(() => {
+          _closeAllArmed = false;
+          if (btn) btn.textContent = "🔴 Realiser & Lukk Alle Posisjoner";
+        }, 8000);
+        return;
+      }
+      _closeAllArmed = false;
+      if (btn) btn.textContent = "Lukker posisjoner…";
+      try {
+        const res = await fetch(`${SERVER_URL}/api/portfolio/close-all`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ dry_run: false, confirm: "CLOSE_ALL_PAPER" })
+        });
+        const d = await res.json();
+        if (fb) {
+          fb.innerHTML = d.success
+            ? `<strong class="text-green">✅ ${d.message}</strong>`
+            : `<strong class="text-red">❌ ${d.error || "Kunne ikke lukke posisjoner"}</strong>`;
+        }
+        if (d.success) {
+          setTimeout(() => { refreshAlpacaPortfolio(); loadProfitLockStatus(); }, 1500);
+        }
+      } catch (e) {
+        if (fb) fb.textContent = `Feil: ${e}`;
+      } finally {
+        if (btn) btn.textContent = "🔴 Realiser & Lukk Alle Posisjoner";
+      }
+    }
+
+    async function loadPostMortemDashboard() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/analytics/post-mortem`, {
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        renderPostMortemDashboard(data.learning, data.audit);
+      } catch (e) {
+        const b = document.getElementById("pmActionBanner");
+        if (b) {
+          b.style.display = "block";
+          b.textContent = "Offline: Start python runner_server.py for å lese DuckDB post-mortem og ukentlig audit.";
+        }
+      }
+    }
+
+    function renderPostMortemDashboard(learning, audit) {
+      const k = (learning && learning.kpis) || {};
+      const elEval = document.getElementById("pmKpiEvaluated");
+      const elPend = document.getElementById("pmKpiPending");
+      const elLes = document.getElementById("pmKpiLessons");
+      const elAvg = document.getElementById("pmKpiAvgRet");
+      const elSlTp = document.getElementById("pmKpiSlTp");
+      const elSh = document.getElementById("pmKpiSharpeDelta");
+      const elSigTot = document.getElementById("pmKpiSignalsTotal");
+
+      if (elEval) elEval.textContent = String(k.evaluated_count ?? 0);
+      if (elPend) elPend.textContent = `Venter på fasit: ${k.pending_count ?? 0} (totalt ${k.total_predictions ?? 0})`;
+      if (elLes) elLes.textContent = String(k.lessons_count ?? 0);
+      if (elAvg) elAvg.textContent = `Snittavkastning: ${(Number(k.avg_lesson_return_pct || 0) >= 0 ? "+" : "")}${Number(k.avg_lesson_return_pct || 0).toFixed(2)} %`;
+      if (elSlTp) elSlTp.textContent = `${k.stop_loss_hits ?? 0} SL / ${k.take_profit_hits ?? 0} TP`;
+
+      if (audit) {
+        if (elSh) {
+          elSh.textContent = audit.sharpe_delta !== null && audit.sharpe_delta !== undefined
+            ? `${audit.sharpe_delta >= 0 ? "+" : ""}${Number(audit.sharpe_delta).toFixed(2)}`
+            : "Avventer 10d";
+        }
+        if (elSigTot) elSigTot.textContent = `Signaler i DuckDB: ${audit.total_signals_logged ?? 0} (${audit.matured_10d_signals ?? 0} modne 10d)`;
+        const vEl = document.getElementById("pmAuditVerdict");
+        if (vEl && audit.verdict_text) vEl.textContent = audit.verdict_text;
+
+        const cTb = document.getElementById("pmAuditCohortTbody");
+        if (cTb) {
+          const cohorts = Array.isArray(audit.cohorts) ? audit.cohorts : [];
+          if (cohorts.length) {
+            cTb.innerHTML = cohorts.map(c => `
+              <tr>
+                <td><strong>${c.cohort}</strong></td>
+                <td class="num">${c.n}</td>
+                <td class="num">${Number(c.win_pct).toFixed(1)} %</td>
+                <td class="num ${c.avg_ret >= 0 ? "text-green" : "text-red"}"><strong>${c.avg_ret >= 0 ? "+" : ""}${Number(c.avg_ret).toFixed(2)} %</strong></td>
+                <td class="num">${Number(c.sl_pct).toFixed(1)} %</td>
+                <td class="num">${c.sharpe !== null && c.sharpe !== undefined ? Number(c.sharpe).toFixed(2) : "—"}</td>
+              </tr>
+            `).join("");
+          } else if (Array.isArray(audit.raw_signal_breakdown) && audit.raw_signal_breakdown.length) {
+            cTb.innerHTML = audit.raw_signal_breakdown.map(r => `
+              <tr>
+                <td><strong>${r.cohort}</strong> <span class="text-muted">(${r.reason})</span></td>
+                <td class="num">${r.count}</td>
+                <td class="num text-muted" colspan="3">Modnes (10d vindu ikke fullført)</td>
+                <td class="num">${Number(r.avg_conf_pct).toFixed(0)} % konf.</td>
+              </tr>
+            `).join("");
+          } else {
+            cTb.innerHTML = `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:12px;">Ingen evaluerte 10d-signaler i DuckDB enda.</td></tr>`;
+          }
+        }
+
+        const rTb = document.getElementById("pmAuditRejectionTbody");
+        if (rTb) {
+          const rejs = Array.isArray(audit.rejections) ? audit.rejections : [];
+          if (rejs.length) {
+            rTb.innerHTML = rejs.map(r => `
+              <tr>
+                <td><strong>${r.reason}</strong></td>
+                <td class="num">${r.n}</td>
+                <td class="num ${r.snitt_ret_pct <= 0 ? "text-green" : "text-red"}">${r.snitt_ret_pct >= 0 ? "+" : ""}${Number(r.snitt_ret_pct).toFixed(2)} %</td>
+                <td class="num">${Number(r.sl_treff_pct).toFixed(0)} %</td>
+              </tr>
+            `).join("");
+          } else {
+            rTb.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding:10px;">Ingen modne 10d-avslag enda.</td></tr>`;
+          }
+        }
+      }
+
+      const lTb = document.getElementById("pmLessonsTbody");
+      if (lTb) {
+        const lessons = (learning && Array.isArray(learning.lessons)) ? learning.lessons : [];
+        if (lessons.length) {
+          lTb.innerHTML = lessons.map(l => {
+            const pillCls = l.outcome_category === "TAKE_PROFIT_HIT" ? "pill-green"
+              : (l.outcome_category === "STOP_LOSS_HIT" ? "pill-red" : "pill-cyan");
+            const retCls = l.actual_return_pct >= 0 ? "text-green" : "text-red";
+            return `
+              <tr>
+                <td class="text-muted" style="font-size:11px; white-space:nowrap;">${l.created_at}</td>
+                <td><strong>${l.ticker}</strong></td>
+                <td class="text-muted" style="font-size:11.5px;">${l.strategy}</td>
+                <td><span class="pill ${pillCls}">${l.outcome_category}</span></td>
+                <td class="num ${retCls}"><strong>${l.actual_return_pct >= 0 ? "+" : ""}${Number(l.actual_return_pct).toFixed(2)} %</strong></td>
+                <td class="num text-red">${Number(l.mae_pct).toFixed(2)} %</td>
+                <td style="font-size:11.5px; color:var(--text-main);">${l.lesson_text}</td>
+              </tr>
+            `;
+          }).join("");
+        } else {
+          lTb.innerHTML = `<tr><td colspan="7" class="text-muted" style="text-align:center; padding:14px;">Ingen lærdommer lagret ennå. Klikk «Synk &amp; Kjør Post-Mortem» eller legg inn en manuell evaluering over.</td></tr>`;
+        }
+      }
+
+      const memBox = document.getElementById("pmMemoryPromptBox");
+      if (memBox && learning && learning.memory_preview_prompt) {
+        memBox.textContent = learning.memory_preview_prompt;
+      }
+    }
+
+    async function runPostMortemSync() {
+      const b = document.getElementById("pmActionBanner");
+      if (b) { b.style.display = "block"; b.textContent = "Synkroniserer signal_evaluations → agent_prediction_log og kjører post-mortem mot ohlcv_daily…"; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/analytics/post-mortem/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ mode: "sync" })
+        });
+        const data = await res.json();
+        if (data.success) {
+          renderPostMortemDashboard(data.learning, data.audit);
+          const s = data.learning.sync_stats || {};
+          if (b) b.textContent = `Ferdig: Importerte ${s.imported || 0} prediksjoner og kjørte ${s.evaluated || 0} nye post-mortem analyser i DuckDB.`;
+        } else if (b) {
+          b.textContent = `Feil: ${data.error || "Ukjent feil"}`;
+        }
+      } catch (e) {
+        if (b) b.textContent = `Kunne ikke nå runner_server.py: ${e}`;
+      }
+    }
+
+    async function submitManualPostMortem() {
+      const b = document.getElementById("pmActionBanner");
+      const payload = {
+        mode: "manual",
+        ticker: (document.getElementById("pmInTicker") || {}).value || "NVDA",
+        strategy: (document.getElementById("pmInStrategy") || {}).value || "momentum_us",
+        actual_return_pct: Number((document.getElementById("pmInRet") || {}).value || 0),
+        mae_pct: Number((document.getElementById("pmInMae") || {}).value || 0),
+        thesis: (document.getElementById("pmInThesis") || {}).value || "",
+        news_during_trade: (document.getElementById("pmInNews") || {}).value || ""
+      };
+      if (b) { b.style.display = "block"; b.textContent = `Lagrer post-mortem for ${payload.ticker} i DuckDB…`; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/analytics/post-mortem/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          renderPostMortemDashboard(data.learning, data.audit);
+          if (b) b.textContent = `Ny lærdom lagret for ${payload.ticker}: ${data.lesson || "OK"}`;
+        } else if (b) {
+          b.textContent = `Feil: ${data.error || "Ukjent feil"}`;
+        }
+      } catch (e) {
+        if (b) b.textContent = `Kunne ikke nå runner_server.py: ${e}`;
+      }
+    }
+
+    async function runWeeklyAuditAction(sendTelegram) {
+      const b = document.getElementById("pmActionBanner");
+      if (b) { b.style.display = "block"; b.textContent = sendTelegram ? "Kjører ukentlig A/B-audit og sender til Telegram…" : "Kjører ukentlig A/B-audit (dry-run)…"; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/analytics/weekly-audit/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ send_telegram: Boolean(sendTelegram) })
+        });
+        const data = await res.json();
+        if (data.success) {
+          loadPostMortemDashboard();
+          if (b) {
+            const tgNote = sendTelegram ? (data.audit.telegram_sent ? " · Sendt til Telegram ✅" : " · Telegram ikke sendt (sjekk .env/nett)") : " · Dry-run OK";
+            b.textContent = `Ukentlig A/B-audit fullført (${data.audit.total_signals_logged} signaler i DuckDB)${tgNote}`;
+          }
+        } else if (b) {
+          b.textContent = `Audit-feil: ${data.error || "Ukjent feil"}`;
+        }
+      } catch (e) {
+        if (b) b.textContent = `Kunne ikke nå runner_server.py: ${e}`;
+      }
+    }
+
+    function presetHybridTest(ticker, strategy, headline) {
+      const t = document.getElementById("hybTicker");
+      const s = document.getElementById("hybStrategy");
+      const h = document.getElementById("hybHeadline");
+      if (t) t.value = ticker;
+      if (s) s.value = strategy;
+      if (h) h.value = headline;
+      runHybridAgentEval();
+    }
+
+    async function runHybridAgentEval() {
+      const out = document.getElementById("hybridEvalOutput");
+      const pill = document.getElementById("hybridDecisionPill");
+      const payload = {
+        ticker: (document.getElementById("hybTicker") || {}).value || "NVDA",
+        strategy: (document.getElementById("hybStrategy") || {}).value || "LIQUID_MOMENTUM",
+        news_headline: (document.getElementById("hybHeadline") || {}).value || ""
+      };
+      if (pill) { pill.textContent = "Kjører Tier 1 → RAG → Tier 2…"; pill.className = "pill pill-cyan"; }
+      if (out) { out.style.display = "block"; out.textContent = "Evaluerer handelssignal via hybrid_agent.py…"; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/ai/hybrid-evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (d.success) {
+          if (pill) {
+            pill.textContent = `${d.decision} · ${d.execution_engine}`;
+            pill.className = d.decision === "GO" ? "pill pill-green" : "pill pill-red";
+          }
+          const t1 = d.tier1_screening || {};
+          const lessonsStr = (d.lessons_used || []).map(l => `  • [${l.category} i ${l.ticker}] (${l.actual_return_pct}%): ${l.lesson}`).join("\n") || "  (Ingen tidligere lærdommer funnet)";
+          if (out) {
+            out.textContent =
+              `=== TIER 1 SCREENING (${t1.provider || "Lokal"}) ===\n` +
+              `Risk: ${t1.risk_type} | Sentiment: ${t1.sentiment} | Material Impact: ${t1.material_impact}\n\n` +
+              `=== DUCKDB RAG EPISODISK MINNE (${d.memory_lessons_applied} lærdommer) ===\n${lessonsStr}\n\n` +
+              `=== TIER 2 EVALUERING (${d.execution_engine}) ===\n${d.tier2_evaluation}`;
+          }
+        } else if (out) {
+          out.textContent = `Feil: ${d.error || "Ukjent feil"}`;
+        }
+      } catch (e) {
+        if (out) out.textContent = `Kunne ikke nå runner_server.py: ${e}`;
+      }
     }
 
     let _tickerSearchTimer = null;
@@ -4377,8 +5462,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
       const liveBench = SUITE_STATE.live_benchmarks || {};
       const inceptionDate = liveBench.inception_date || alp.inception_date || "";
-      const useInception = (rangeKey === "YTD" || rangeKey === "1D") && liveBench.sp500 && liveBench.sp500.INCEPTION;
-      const benchKey = useInception ? "INCEPTION" : rangeKey;
+      const useInception = (rangeKey === "YTD" || rangeKey === "ALL") && liveBench.sp500 && liveBench.sp500.INCEPTION;
+      const benchKey = useInception ? "INCEPTION" : (rangeKey === "ALL" ? "1Y" : rangeKey);
       const spObj = (liveBench.sp500 || {})[benchKey];
       const omxObj = (liveBench.omx || {})[benchKey];
       const obxObj = (liveBench.obx || {})[benchKey];
@@ -4413,9 +5498,9 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         }
       }
 
-      const spRet = spObj && spObj.return_pct !== undefined ? `${spObj.return_pct >= 0 ? "+" : ""}${Number(spObj.return_pct).toFixed(1)}%` : "";
-      const omxRet = omxObj && omxObj.return_pct !== undefined ? `${omxObj.return_pct >= 0 ? "+" : ""}${Number(omxObj.return_pct).toFixed(1)}%` : "";
-      const obxRet = obxObj && obxObj.return_pct !== undefined ? `${obxObj.return_pct >= 0 ? "+" : ""}${Number(obxObj.return_pct).toFixed(1)}%` : "";
+      const spRet = spObj && spObj.return_pct !== undefined ? `${spObj.return_pct >= 0 ? "+" : ""}${Number(spObj.return_pct).toFixed(2)}%` : "";
+      const omxRet = omxObj && omxObj.return_pct !== undefined ? `${omxObj.return_pct >= 0 ? "+" : ""}${Number(omxObj.return_pct).toFixed(2)}%` : "";
+      const obxRet = obxObj && obxObj.return_pct !== undefined ? `${obxObj.return_pct >= 0 ? "+" : ""}${Number(obxObj.return_pct).toFixed(2)}%` : "";
       const spLabel = spRet ? `S&P 500 (${spRet})` : "S&P 500";
       const omxLabel = omxRet ? `OMX (${omxRet})` : "OMX";
       const obxLabel = obxRet ? `OBX (${obxRet})` : "OBX";
@@ -4436,9 +5521,128 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       };
     }
 
+    const STOCK_SELECTION_PARAMS = {
+      // Profil 1: Konservativ (Index Core & Low-Vol)
+      SPY:  { profile: "Profil 1 · Konservativ", tier: "core", sector: "Indeks ETF", params: "ATR 1.2× SL · 1:2.0 R:R · Målvekt 25 % · CB 4 % · Low-Vol kjerne" },
+      QQQ:  { profile: "Profil 1 · Konservativ", tier: "core", sector: "Teknologi ETF", params: "ATR 1.2× SL · 1:2.0 R:R · Målvekt 25 % · CB 4 % · Nasdaq-100" },
+      XLV:  { profile: "Profil 1 · Konservativ", tier: "core", sector: "Helse ETF", params: "ATR 1.2× SL · 1:2.0 R:R · Målvekt 25 % · CB 4 % · Defensiv sektor" },
+      IWM:  { profile: "Profil 1 · Konservativ", tier: "core", sector: "Småkapital ETF", params: "ATR 1.2× SL · 1:2.0 R:R · Målvekt 25 % · CB 4 % · Bredde" },
+      // Profil 2: Balansert (Multi-Sektor Momentum — dynamic_recommender.py)
+      AAPL: { profile: "Profil 2 · Balansert", tier: "balanced", sector: "Teknologi", params: "ATR 1.8× SL · 1:2.2 R:R · Målvekt 20 % · CB 6 % · XSMOM S&P 500 kjerne" },
+      MSFT: { profile: "Profil 2 · Balansert", tier: "balanced", sector: "Teknologi", params: "ATR 1.8× SL · 1:2.2 R:R · Målvekt 20 % · CB 6 % · Residual Momentum" },
+      JPM:  { profile: "Profil 2 · Balansert", tier: "balanced", sector: "Finans", params: "ATR 1.8× SL · 1:2.2 R:R · Målvekt 20 % · CB 6 % · Sektor-diversifisering (Finans)" },
+      CAT:  { profile: "Profil 2 · Balansert", tier: "balanced", sector: "Industri", params: "ATR 1.8× SL · 1:2.2 R:R · Målvekt 20 % · CB 6 % · Syklisk infrastruktur-momentum" },
+      XOM:  { profile: "Profil 2 · Balansert", tier: "balanced", sector: "Energi", params: "ATR 1.8× SL · 1:2.2 R:R · Målvekt 20 % · CB 6 % · Olje-/inflasjonshedge (VIX-override)" },
+      // Profil 3: Aggressiv (Høy-Beta AI & Tech Outliers — dynamic_recommender.py)
+      NVDA: { profile: "Profil 3 · Aggressiv", tier: "aggressive", sector: "AI / Halvledere", params: "ATR 2.5× SL · 1:2.5 R:R · Målvekt 17 % · CB 8 % · Høy-beta 12m momentum-leder" },
+      AVGO: { profile: "Profil 3 · Aggressiv", tier: "aggressive", sector: "AI / Halvledere", params: "ATR 2.5× SL · 1:2.5 R:R · Målvekt 17 % · CB 8 % · AI-infrastruktur / ASIC-momentum" },
+      TSLA: { profile: "Profil 3 · Aggressiv", tier: "aggressive", sector: "Forbruk / AI", params: "ATR 2.5× SL · 1:2.5 R:R · Målvekt 16 % · CB 8 % · Outlier høy-beta momentum" },
+      META: { profile: "Profil 3 · Aggressiv", tier: "aggressive", sector: "Teknologi / AI", params: "ATR 2.5× SL · 1:2.5 R:R · Målvekt 17 % · CB 8 % · Stor-cap AI-momentum" },
+      PLTR: { profile: "Profil 3 · Aggressiv", tier: "aggressive", sector: "AI / Programvare", params: "ATR 2.5× SL · 1:2.5 R:R · Målvekt 17 % · CB 8 % · Høy-beta AI (Obs: Earnings Guardrail)" },
+      AMZN: { profile: "Profil 3 · Aggressiv", tier: "aggressive", sector: "Forbruk / Sky", params: "ATR 2.5× SL · 1:2.5 R:R · Målvekt 16 % · CB 8 % · AWS/AI-vekstmomentum" }
+    };
+
+    function renderOverviewStrategyDiagnosis() {
+      const tb = document.getElementById("ovSelectionParamsTbody");
+      const pill = document.getElementById("ovDiagStatusPill");
+      const headEl = document.getElementById("ovDiagHeadwind");
+      const tailEl = document.getElementById("ovDiagTailwind");
+      const verdEl = document.getElementById("ovDiagVerdict");
+      if (!tb) return;
+
+      const alp = SUITE_STATE.alpaca_portfolio || {};
+      const posList = Array.isArray(alp.positions) ? alp.positions : [];
+      const equity = Number(alp.equity || 100000);
+      const cash = Number(alp.cash || 0);
+      const cashPct = equity > 0 ? (cash / equity) * 100 : 100;
+      const portRetPct = ((equity - 100000) / 100000) * 100;
+      const bench = SUITE_STATE.live_benchmarks || {};
+      const spInc = bench.sp500 && bench.sp500.INCEPTION ? Number(bench.sp500.INCEPTION.return_pct) : -3.70;
+      const relSp = portRetPct - spInc;
+      const macro = SUITE_STATE.live_macro || {};
+      const vix = Number(macro.vix_close || 35.9);
+      const inceptionDate = bench.inception_date || alp.inception_date || "2026-11-19";
+
+      if (posList.length === 0) {
+        tb.innerHTML = `<tr><td colspan="9" class="text-muted" style="text-align:center; padding:12px;">Ingen åpne posisjoner i Alpaca Paper enda.</td></tr>`;
+        if (pill) { pill.textContent = "100 % Kontanter"; pill.className = "pill"; }
+        return;
+      }
+
+      const enriched = posList.map(p => {
+        const sym = String(p.symbol || "").toUpperCase();
+        const meta = STOCK_SELECTION_PARAMS[sym] || {
+          profile: "Egendefinert / Manuell",
+          tier: "other",
+          sector: "US Equity",
+          params: "Standard ATR 2.0× SL · 1:2.5 R:R · Likviditetsfilter"
+        };
+        const ret = Number(p.unrealized_plpc || 0);
+        const mv = Math.abs(Number(p.market_value || 0));
+        const wt = equity > 0 ? (mv / equity) * 100 : 0;
+        return { ...p, sym, meta, ret, mv, wt, vsSp: ret - spInc };
+      }).sort((a, b) => b.ret - a.ret);
+
+      const aggList = enriched.filter(x => x.meta.tier === "aggressive");
+      const balList = enriched.filter(x => x.meta.tier === "balanced");
+      const aggAvg = aggList.length ? aggList.reduce((s, x) => s + x.ret, 0) / aggList.length : 0;
+      const balAvg = balList.length ? balList.reduce((s, x) => s + x.ret, 0) / balList.length : 0;
+      const aggWt = aggList.reduce((s, x) => s + x.wt, 0);
+      const beatSpCount = enriched.filter(x => x.vsSp >= 0).length;
+      const worstTwo = [...enriched].sort((a, b) => a.ret - b.ret).slice(0, 2);
+      const bestTwo = enriched.slice(0, 2);
+
+      if (pill) {
+        const relStr = `${relSp >= 0 ? "+" : ""}${relSp.toFixed(2)} pp vs. S&P 500`;
+        pill.textContent = `${relStr} · VIX ${vix.toFixed(1)}`;
+        pill.className = relSp >= 0 ? "pill pill-green" : "pill pill-red";
+      }
+
+      if (headEl) {
+        headEl.innerHTML =
+          `<strong>Regime-mismatch &amp; høy beta:</strong> ${aggList.length} av ${enriched.length} posisjoner (${aggWt.toFixed(1)} % av porteføljen) kommer fra <strong>Profil 3 (Aggressiv AI &amp; Tech)</strong>, som har snittavkastning <strong class="text-red">${aggAvg.toFixed(2)} %</strong>. ` +
+          `I et <strong>VIX ${vix.toFixed(1)}</strong>-sjokk faller høy-beta halvledere (${worstTwo.map(x => `${x.sym} ${x.ret.toFixed(2)} %`).join(", ")}) typisk 2–3× mer enn S&amp;P 500 (${spInc.toFixed(2)} %).`;
+      }
+
+      if (tailEl) {
+        const cashBufferSave = Math.abs(Math.min(0, portRetPct)) * (cashPct / Math.max(1, 100 - cashPct));
+        tailEl.innerHTML =
+          `<strong>Sektor-diversifisering &amp; kontantbuffer:</strong> <strong>Profil 2 (Balansert)</strong> holder seg langt bedre (snitt <strong>${balAvg.toFixed(2)} %</strong>), ledet av ${bestTwo.map(x => `<strong>${x.sym}</strong> (${x.ret >= 0 ? "+" : ""}${x.ret.toFixed(2)} %)`).join(" og ")}. ` +
+          `${beatSpCount} av ${enriched.length} aksjer slår S&amp;P 500, og <strong>${cashPct.toFixed(1)} % kontantbuffer</strong> har dempet fallet med ca. <strong>${cashBufferSave.toFixed(2)} pp</strong>.`;
+      }
+
+      if (verdEl) {
+        const daysLive = Math.max(1, Math.round((Date.now() - new Date(inceptionDate).getTime()) / 86400000));
+        const vixNote = vix >= 25
+          ? `VIX (${vix.toFixed(1)}) er over 25-terskelen — regimefilteret anbefaler nå å <strong>ikke øke høy-beta</strong>, beholde vide ATR-stopp (2,5×) mot whipsaw, og favorisere kontanter / defensive sektorer til VIX roer seg.`
+          : `VIX (${vix.toFixed(1)}) er innenfor normalområdet — la momentum-posisjonene jobbe mot 20–60 dagers horisont.`;
+        verdEl.innerHTML =
+          `<strong>For tidlig å avskrive strategien (${daysLive}d siden ${inceptionDate}):</strong> Momentum-strategier har 20–60 dagers horisont; kortsiktig støy dominerer første uke. ${vixNote}`;
+      }
+
+      tb.innerHTML = enriched.map(x => {
+        const retCls = x.ret >= 0 ? "text-green" : "text-red";
+        const vsCls = x.vsSp >= 0 ? "text-green" : "text-red";
+        const profColor = x.meta.tier === "aggressive" ? "#f59e0b" : (x.meta.tier === "balanced" ? "#38bdf8" : "#34d399");
+        return `
+          <tr>
+            <td><strong>${x.sym}</strong></td>
+            <td style="color:${profColor}; font-size:11.5px; white-space:nowrap;">${x.meta.profile}</td>
+            <td class="text-muted" style="font-size:11.5px;">${x.meta.sector}</td>
+            <td style="font-size:11.5px; color:var(--text-muted);">${x.meta.params}</td>
+            <td class="num">${fmtUsd(x.avg_entry_price)}</td>
+            <td class="num">${fmtUsd(x.current_price)}</td>
+            <td class="num">${x.wt.toFixed(1)} %</td>
+            <td class="num ${retCls}"><strong>${x.ret >= 0 ? "+" : ""}${x.ret.toFixed(2)} %</strong></td>
+            <td class="num ${vsCls}">${x.vsSp >= 0 ? "+" : ""}${x.vsSp.toFixed(2)} pp</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
     function setPerfRange(rangeKey, btnEl) {
       ACTIVE_PERF_RANGE = rangeKey || ACTIVE_PERF_RANGE || "YTD";
-      const rangeIdxMap = { "1D": 1, "1W": 2, "1M": 3, "YTD": 4, "1Y": 5 };
+      const rangeIdxMap = { "1D": 1, "1W": 2, "1M": 3, "YTD": 4, "ALL": 5, "1Y": 5 };
       const targetBtn = btnEl || document.querySelector(`#perfRangeButtons button:nth-child(${rangeIdxMap[ACTIVE_PERF_RANGE] || 4})`);
       document.querySelectorAll("#perfRangeButtons button").forEach(b => {
         b.className = "btn btn-outline btn-sm";
@@ -4457,6 +5661,60 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       colorMap[cfg.omxLabel] = "#a78bfa";
       colorMap[cfg.obxLabel] = "#38bdf8";
       renderTufteSvgCurve("overviewPerfChartBox", cfg.series, "$", "", colorMap);
+      renderPerfChartExplainer(cfg);
+    }
+
+    function renderPerfChartExplainer(cfg) {
+      const whatEl = document.getElementById("perfExpWhat");
+      const whyEl = document.getElementById("perfExpWhy");
+      const fixEl = document.getElementById("perfExpFix");
+      if (!whatEl || !whyEl || !fixEl) return;
+
+      const alp = SUITE_STATE.alpaca_portfolio || {};
+      const equity = Number(alp.equity || 100000);
+      const cash = Number(alp.cash || 0);
+      const cashPct = equity > 0 ? (cash / equity) * 100 : 100;
+      const posList = Array.isArray(alp.positions) ? alp.positions : [];
+      const bench = SUITE_STATE.live_benchmarks || {};
+      const incDate = bench.inception_date || alp.inception_date || "2026-11-19";
+      const useInc = (ACTIVE_PERF_RANGE === "YTD" || ACTIVE_PERF_RANGE === "ALL") && bench.sp500 && bench.sp500.INCEPTION;
+      const bKey = useInc ? "INCEPTION" : (ACTIVE_PERF_RANGE === "ALL" ? "1Y" : ACTIVE_PERF_RANGE);
+      const spRet = bench.sp500 && bench.sp500[bKey] ? Number(bench.sp500[bKey].return_pct) : -3.70;
+      const omxRet = bench.omx && bench.omx[bKey] ? Number(bench.omx[bKey].return_pct) : -2.51;
+      const obxRet = bench.obx && bench.obx[bKey] ? Number(bench.obx[bKey].return_pct) : -1.50;
+      const relSp = cfg.pct - spRet;
+      const vix = Number((SUITE_STATE.live_macro || {}).vix_close || 35.9);
+
+      whatEl.innerHTML =
+        `Alle fire kurver er indeksert fra <strong>$100 000</strong> ${useInc ? `på første kjøpsdato (<strong>${incDate}</strong>)` : `i perioden <strong>${ACTIVE_PERF_RANGE}</strong>`}. ` +
+        `Porteføljen står på <strong>${cfg.pct >= 0 ? "+" : ""}${cfg.pct.toFixed(2)} %</strong> ($${Math.round(equity).toLocaleString("en-US")}), ` +
+        `som er <strong class="${relSp >= 0 ? "text-green" : "text-red"}">${relSp >= 0 ? "+" : ""}${relSp.toFixed(2)} pp</strong> mot S&amp;P 500 (${spRet >= 0 ? "+" : ""}${spRet.toFixed(2)} %), ` +
+        `mot OMX (${omxRet >= 0 ? "+" : ""}${omxRet.toFixed(2)} %) og OBX (${obxRet >= 0 ? "+" : ""}${obxRet.toFixed(2)} %).`;
+
+      const sorted = [...posList].sort((a, b) => Number(a.unrealized_plpc || 0) - Number(b.unrealized_plpc || 0));
+      const dragNames = sorted.slice(0, 3).map(p => `${p.symbol} (${Number(p.unrealized_plpc || 0).toFixed(1)} %)`).join(", ");
+      const aggCount = posList.filter(p => STOCK_SELECTION_PARAMS[String(p.symbol || "").toUpperCase()]?.tier === "aggressive").length;
+
+      if (relSp < 0) {
+        whyEl.innerHTML =
+          `Hovedårsaken er <strong>regime-mismatch i VIX ${vix.toFixed(1)}</strong>: ${aggCount} av ${posList.length} posisjoner er høy-beta AI/Tech-aksjer (Profil 3), som faller 2–3× raskere enn S&amp;P 500 i volatilitetssjokk. ` +
+          `Største trekk ned: <strong>${dragNames || "Ingen åpne posisjoner"}</strong>. ` +
+          `Samtidig demper <strong>${cashPct.toFixed(1)} % kontantbuffer</strong> og defensive Profil 2-posisjoner (XOM, AAPL, JPM) fallet.`;
+      } else {
+        whyEl.innerHTML =
+          `Porteføljen slår S&amp;P 500 med <strong>+${relSp.toFixed(2)} pp</strong> i dagens VIX ${vix.toFixed(1)}-regime takket være aktiv seleksjon og ${cashPct.toFixed(1)} % kontantbuffer.`;
+      }
+
+      if (vix >= 25) {
+        fixEl.innerHTML =
+          `1) <strong>Stans nye høy-beta-kjøp</strong> mens VIX (${vix.toFixed(1)}) er ≥ 25 (regimeregelen blokkerer automatisk). ` +
+          `2) <strong>Sikre største tapere med Zero-Cost Collar</strong> (95 % Put / 105 % Call) i <em>06 Sikring &amp; Derivater</em> for å sette gulv uten ekstra premiekostnad. ` +
+          `3) <strong>Roter mot Profil 1/2</strong> (indeks/energi/finans) eller hold ${cashPct.toFixed(1)} % kontanter til VIX faller under 22, og logg erfaringen i <em>09 Post-Mortem</em>.`;
+      } else {
+        fixEl.innerHTML =
+          `1) <strong>La momentum-posisjonene jobbe</strong> mot 20–60 dagers horisont med aktive ATR-stopp. ` +
+          `2) <strong>Rebalanser</strong> dersom enkeltsektor overstiger maksgrensen, og overvåk AI Sharpe-effekten i <em>09 Post-Mortem</em>.`;
+      }
     }
 
     function renderOverviewAndPortfolio() {
@@ -4551,6 +5809,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           }).join("");
         }
       }
+
+      renderOverviewStrategyDiagnosis();
 
       const holdTb = document.getElementById("holdingsTbody");
       if (holdTb) {
@@ -5285,6 +6545,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         if (d.benchmarks) {
           SUITE_STATE.live_benchmarks = d.benchmarks;
           try { setPerfRange(ACTIVE_PERF_RANGE); } catch (e) {}
+          try { renderOverviewStrategyDiagnosis(); } catch (e) {}
         }
       } catch (e) {
         // Static GitHub Pages / offline preview fallback with realistic snapshot + YTD sparklines
@@ -5308,7 +6569,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             source: "demo_snapshot",
             inception_date: "2026-11-19",
             sp500: {
-              INCEPTION: { return_pct: 0.33, norm: [1.0, 1.004, 1.002, 1.0033] },
+              INCEPTION: { return_pct: -3.70, norm: [1.0, 0.963009] },
               "1D": { return_pct: -1.43, norm: [1.0, 0.9857] },
               "1W": { return_pct: -0.8, norm: [1.0, 1.003, 0.998, 0.992] },
               "1M": { return_pct: 1.4, norm: [1.0, 1.005, 1.011, 1.014] },
@@ -5316,7 +6577,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
               "1Y": { return_pct: 9.11, norm: [1.0, 1.02, 1.05, 1.07, 1.0911] }
             },
             omx: {
-              INCEPTION: { return_pct: 0.0, norm: [1.0, 1.0] },
+              INCEPTION: { return_pct: -2.51, norm: [1.0, 0.974925] },
               "1D": { return_pct: -0.4, norm: [1.0, 0.996] },
               "1W": { return_pct: 0.5, norm: [1.0, 1.002, 1.005] },
               "1M": { return_pct: 2.1, norm: [1.0, 1.009, 1.021] },
@@ -5324,7 +6585,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
               "1Y": { return_pct: 16.4, norm: [1.0, 1.04, 1.09, 1.13, 1.164] }
             },
             obx: {
-              INCEPTION: { return_pct: 0.0, norm: [1.0, 1.0] },
+              INCEPTION: { return_pct: -1.50, norm: [1.0, 0.984981] },
               "1D": { return_pct: -0.25, norm: [1.0, 0.9975] },
               "1W": { return_pct: 1.2, norm: [1.0, 1.006, 1.012] },
               "1M": { return_pct: 3.8, norm: [1.0, 1.015, 1.029, 1.038] },
@@ -5890,9 +7151,146 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     evaluateTaxFeeFx();
     mbLoadNordnetTickets();
     mbLoadSaxoPositions();
+    loadCorporateActionsOverview();
     setInterval(checkServerConnection, 6000);
     setInterval(refreshAlpacaPortfolio, 15000);
     setInterval(loadLiveIndexTicker, 30000);
+
+    // =========================================================================
+    // ALWAYS-AVAILABLE FLOATING AI CHATBOT (PORTFOLIO + GENERAL FINANCE)
+    // =========================================================================
+    const GLOBAL_CHAT_HISTORY = [];
+
+    function toggleGlobalChat(forceOpen) {
+      const panel = document.getElementById("globalAiChatPanel");
+      const fab = document.getElementById("globalAiChatFab");
+      if (!panel) return;
+      const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : panel.style.display === "none";
+      panel.style.display = shouldOpen ? "flex" : "none";
+      if (fab) fab.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+      if (shouldOpen) {
+        updateGlobalChatContextChip();
+        const inp = document.getElementById("globalChatInput");
+        if (inp) setTimeout(() => inp.focus(), 60);
+      }
+    }
+
+    function updateGlobalChatContextChip() {
+      const chip = document.getElementById("globalChatCtxChip");
+      if (!chip) return;
+      const alp = SUITE_STATE.alpaca_portfolio || {};
+      const eq = Number(alp.equity || 100000);
+      const nPos = Array.isArray(alp.positions) ? alp.positions.length : 0;
+      const vix = Number((SUITE_STATE.live_macro || {}).vix_close || 0);
+      chip.textContent = `${vix > 0 ? `VIX ${vix.toFixed(1)} · ` : ""}$${Math.round(eq).toLocaleString("en-US")} · ${nPos} pos.`;
+    }
+
+    function formatChatMd(text) {
+      const esc = String(text || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return esc
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/`([^`]+)`/g, "<code style='background:rgba(255,255,255,0.08); padding:1px 4px; border-radius:3px;'>$1</code>")
+        .replace(/\n/g, "<br>");
+    }
+
+    function appendGlobalChatMsg(role, text, providerLabel) {
+      const box = document.getElementById("globalChatMessages");
+      if (!box) return;
+      const isUser = role === "user";
+      const wrap = document.createElement("div");
+      wrap.style.cssText = `align-self:${isUser ? "flex-end" : "flex-start"}; max-width:88%; padding:8px 11px; border-radius:8px; font-size:12.5px; line-height:1.5; background:${isUser ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.04)"}; border:1px solid ${isUser ? "rgba(56,189,248,0.4)" : "var(--border-strong)"}; color:var(--text-main);`;
+      wrap.innerHTML = formatChatMd(text) + (providerLabel ? `<div style="margin-top:4px; font-size:10px; color:var(--text-dim); font-family:var(--font-mono);">${providerLabel}</div>` : "");
+      box.appendChild(wrap);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearGlobalChat() {
+      GLOBAL_CHAT_HISTORY.length = 0;
+      const box = document.getElementById("globalChatMessages");
+      if (box) {
+        box.innerHTML = "";
+        appendGlobalChatMsg("assistant", "Hei! Spør meg om **porteføljen din** (posisjoner, VIX, benchmark, sikring) eller **generelle finans- og trading-spørsmål** (Calmar, CVaR, Zero-Cost Collar, ASK-skatt, RSI(2), osv.).", "Klar · llama3.1:8b / Gemini 3.8 Flash");
+      }
+    }
+
+    async function sendGlobalChat(presetText) {
+      const inp = document.getElementById("globalChatInput");
+      const msg = (presetText !== undefined ? presetText : (inp ? inp.value : "")).trim();
+      if (!msg) return;
+      if (inp && presetText === undefined) inp.value = "";
+
+      appendGlobalChatMsg("user", msg);
+      GLOBAL_CHAT_HISTORY.push({ role: "user", content: msg });
+
+      const box = document.getElementById("globalChatMessages");
+      const typing = document.createElement("div");
+      typing.id = "globalChatTyping";
+      typing.style.cssText = "align-self:flex-start; font-size:11.5px; color:var(--text-dim); padding:4px 6px;";
+      typing.textContent = "Analyserer med live porteføljedata (llama3.1:8b / Gemini 3.8 Flash)…";
+      if (box) { box.appendChild(typing); box.scrollTop = box.scrollHeight; }
+
+      try {
+        const res = await fetch(`${SERVER_URL}/api/ai/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ message: msg, history: GLOBAL_CHAT_HISTORY.slice(-8) })
+        });
+        const data = await res.json();
+        if (typing.parentNode) typing.parentNode.removeChild(typing);
+        const reply = data.reply || data.error || "Fikk ikke svar fra serveren.";
+        GLOBAL_CHAT_HISTORY.push({ role: "assistant", content: reply });
+        appendGlobalChatMsg("assistant", reply, data.provider || "AI Assistent");
+        const chip = document.getElementById("globalChatCtxChip");
+        if (chip && data.context_summary) chip.textContent = data.context_summary;
+      } catch (e) {
+        if (typing.parentNode) typing.parentNode.removeChild(typing);
+        appendGlobalChatMsg("assistant", "Kunne ikke nå lokal server (`http://localhost:8000/api/ai/chat`). Sjekk at `python runner_server.py` kjører.", "Offline");
+      }
+    }
   </script>
+
+  <!-- Floating Always-Available AI Chat Pop-Up -->
+  <button id="globalAiChatFab" onclick="toggleGlobalChat()" aria-expanded="false" aria-controls="globalAiChatPanel"
+    style="position:fixed; bottom:22px; right:22px; z-index:950; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:999px; background:#0f172a; color:#e2e8f0; border:1px solid rgba(56,189,248,0.55); font-size:12.5px; font-weight:600; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.45);">
+    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#34d399;"></span>
+    <span>💬 AI Trading-Assistent</span>
+  </button>
+
+  <aside id="globalAiChatPanel" aria-label="AI Trading- og Finansassistent"
+    style="display:none; position:fixed; bottom:74px; right:22px; width:min(410px, calc(100vw - 32px)); height:min(540px, calc(100vh - 110px)); z-index:950; flex-direction:column; background:#0d131f; border:1px solid var(--border-strong); border-radius:10px; box-shadow:0 16px 40px rgba(0,0,0,0.55); overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border-strong); background:#111927;">
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--text-main);">💬 AI Trading- &amp; Finansassistent</div>
+        <div id="globalChatCtxChip" style="font-size:10.5px; color:var(--accent-cyan, #38bdf8); font-family:var(--font-mono);">Synkroniserer live kontekst…</div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="clearGlobalChat()" title="Tøm samtale">Nullstill</button>
+        <button class="btn btn-outline btn-sm" style="font-size:12px; padding:2px 8px;" onclick="toggleGlobalChat(false)" title="Lukk">×</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:5px; flex-wrap:wrap; padding:8px 12px; border-bottom:1px solid var(--border-strong); background:rgba(255,255,255,0.015);">
+      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Analyser porteføljen min akkurat nå mot S&P 500 og VIX')">📊 Portefølje nå</button>
+      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Hvordan bør jeg sikre NVDA med Zero-Cost Collar i dagens VIX?')">🛡️ Sikre NVDA</button>
+      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Forklar Calmar Ratio, CVaR 95 % og Breakeven Slippage')">🎓 Risiko-nøkkeltall</button>
+      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Hva er reglene for ASK-skatt vs. US-aksjer på Alpaca?')">💰 ASK &amp; skatt</button>
+    </div>
+
+    <div id="globalChatMessages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;">
+      <div style="align-self:flex-start; max-width:90%; padding:8px 11px; border-radius:8px; font-size:12.5px; line-height:1.5; background:rgba(255,255,255,0.04); border:1px solid var(--border-strong); color:var(--text-main);">
+        Hei! Spør meg om <strong>porteføljen din</strong> (posisjoner, VIX, benchmark, sikring) eller <strong>generelle finans- og trading-spørsmål</strong> (Calmar, CVaR, Zero-Cost Collar, ASK-skatt, RSI(2), osv.).
+        <div style="margin-top:4px; font-size:10px; color:var(--text-dim); font-family:var(--font-mono);">Klar · llama3.1:8b / Gemini 3.8 Flash</div>
+      </div>
+    </div>
+
+    <form onsubmit="event.preventDefault(); sendGlobalChat();" style="display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--border-strong); background:#111927;">
+      <input type="text" id="globalChatInput" placeholder="Spør om portefølje, VIX, aksjer eller finans…" autocomplete="off"
+        style="flex:1; background:#0b1018; border:1px solid var(--border-strong); border-radius:6px; padding:8px 10px; font-size:12.5px; color:var(--text-main);">
+      <button type="submit" class="btn btn-primary btn-sm" style="padding:8px 12px;">Send</button>
+    </form>
+  </aside>
 </body>
 </html>
