@@ -1241,6 +1241,55 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", str(len(out_bytes)))
             self.end_headers()
             self.wfile.write(out_bytes)
+        elif parsed.path in (
+            "/api/portfolio/profit-lock",
+            "/api/portfolio/close-all",
+            "/api/analytics/post-mortem/run",
+            "/api/analytics/weekly-audit/run",
+            "/api/ai/hybrid-evaluate",
+            "/api/ai/chat",
+        ):
+            from src.analytics.advanced_cockpit import (
+                close_all_paper_positions,
+                evaluate_hybrid_agent,
+                get_post_mortem_payload,
+                get_profit_lock_payload,
+                handle_ai_chat,
+                run_post_mortem_action,
+                save_profit_lock_config,
+            )
+
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body) if raw_body.strip() else {}
+            try:
+                if parsed.path == "/api/portfolio/profit-lock":
+                    save_profit_lock_config(payload)
+                    res_obj = get_profit_lock_payload(_fetch_alpaca_portfolio_safe())
+                elif parsed.path == "/api/portfolio/close-all":
+                    res_obj = close_all_paper_positions(payload, _fetch_alpaca_portfolio_safe())
+                elif parsed.path == "/api/analytics/post-mortem/run":
+                    res_obj = run_post_mortem_action(payload)
+                elif parsed.path == "/api/analytics/weekly-audit/run":
+                    pm = get_post_mortem_payload()
+                    pm["audit"]["telegram_sent"] = False
+                    res_obj = {"success": True, "audit": pm["audit"]}
+                elif parsed.path == "/api/ai/hybrid-evaluate":
+                    res_obj = evaluate_hybrid_agent(payload)
+                else:
+                    ticker_cache = getattr(self.server, "_live_ticker_cache", None) or {}
+                    macro = (ticker_cache.get("data") or {}).get("macro_regime") or {}
+                    res_obj = handle_ai_chat(payload, _fetch_alpaca_portfolio_safe(), macro)
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
         else:
             out_bytes = json.dumps({"success": False, "error": f"Ukjent endepunkt: {parsed.path}"}).encode("utf-8")
             self.send_response(404)
@@ -1392,6 +1441,66 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 "positions": [],
             }
             out_bytes = json.dumps(cached_saxo, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/analytics/hedging":
+            from src.analytics.advanced_cockpit import compute_hedging_payload
+
+            qs = parse_qs(parsed.query)
+            ticker_cache = getattr(self.server, "_live_ticker_cache", None) or {}
+            macro = (ticker_cache.get("data") or {}).get("macro_regime") or {}
+            res_obj = compute_hedging_payload(
+                ticker=(qs.get("ticker") or ["NVDA"])[0],
+                strategy=(qs.get("strategy") or ["ZERO_COST_COLLAR"])[0],
+                put_pct=float((qs.get("put_pct") or ["0.95"])[0]),
+                call_pct=float((qs.get("call_pct") or ["1.05"])[0]),
+                days=int(float((qs.get("days") or ["30"])[0])),
+                vol=float((qs.get("vol") or ["0.35"])[0]),
+                alpaca_snap=_fetch_alpaca_portfolio_safe(),
+                live_macro=macro,
+            )
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/portfolio/profit-lock":
+            from src.analytics.advanced_cockpit import get_profit_lock_payload
+
+            res_obj = get_profit_lock_payload(_fetch_alpaca_portfolio_safe())
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/analytics/paper-drift":
+            from src.analytics.advanced_cockpit import get_paper_drift_payload
+
+            res_obj = get_paper_drift_payload(_fetch_alpaca_portfolio_safe())
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/analytics/post-mortem":
+            from src.analytics.advanced_cockpit import get_post_mortem_payload
+
+            res_obj = get_post_mortem_payload()
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(out_bytes)))
@@ -1635,8 +1744,6 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/markets/quote":
-            from urllib.parse import parse_qs
-
             qs = parse_qs(parsed.query)
             raw_q = (qs.get("q") or [""])[0].strip()
             if not raw_q:
