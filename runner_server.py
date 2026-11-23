@@ -1638,6 +1638,17 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/latency":
+            from alpaca_paper_runner import market_data as hybrid_market_data
+            res_obj = hybrid_market_data.measure_latencies()
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path in ("/api/status", "/api/positions", "/api/alpaca/account", "/api/alpaca/positions", "/api/alpaca/orders"):
             alp = _fetch_alpaca_portfolio_safe() or {}
             ticker_cache = getattr(self.server, "_live_ticker_cache", None) or {}
