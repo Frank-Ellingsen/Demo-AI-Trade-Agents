@@ -1249,6 +1249,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/api/intraday/report-telegram",
             "/api/intraday/backtest",
             "/api/intraday/options/evaluate",
+            "/api/intraday/options/auto-toggle",
             "/api/tax/record",
         ):
             from us_intraday_agent import INTRADAY_RUNNER, IntradaySignal
@@ -1257,7 +1258,12 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
             payload = json.loads(raw_body) if raw_body.strip() else {}
             try:
-                if parsed.path == "/api/intraday/options/evaluate":
+                if parsed.path == "/api/intraday/options/auto-toggle":
+                    from us_intraday_options_engine import OPTIONS_RUNNER
+
+                    enable = bool(payload.get("enable", not OPTIONS_RUNNER.running))
+                    res_obj = OPTIONS_RUNNER.start() if enable else OPTIONS_RUNNER.stop()
+                elif parsed.path == "/api/intraday/options/evaluate":
                     from us_intraday_options_agent import USIntradayOptionsAgent
                     from us_intraday_options_engine import OptionSignal, USOptionsIntradayAgent
 
@@ -1602,19 +1608,30 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed.path == "/api/intraday/options/summary":
-            from us_intraday_options_engine import OptionsBacktrackingVault
+            from us_intraday_options_engine import OPTIONS_RUNNER
 
-            vault = OptionsBacktrackingVault()
-            try:
-                res_obj = {
-                    "success": True,
-                    "summary": vault.get_backtracking_summary(),
-                    "trades": vault.get_recent_trades(limit=15),
-                }
-            finally:
-                vault.close()
+            res_obj = OPTIONS_RUNNER.get_status()
             out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/intraday/options/detect":
+            from us_intraday_options_engine import detect_live_bull_bear_signal
+
+            qs_det = parse_qs(parsed.query)
+            sym = (qs_det.get("ticker") or ["NVDA"])[0]
+            try:
+                res_obj = detect_live_bull_bear_signal(sym)
+                st_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                st_code = 400
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(st_code)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(out_bytes)))
             self.end_headers()

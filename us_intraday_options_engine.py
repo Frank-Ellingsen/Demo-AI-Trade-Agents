@@ -311,6 +311,221 @@ class USOptionsIntradayAgent:
         self.vault.close()
 
 
+def detect_live_bull_bear_signal(ticker: str, dte_days: int = 4, vol: float = 0.42) -> Dict[str, Any]:
+    """Henter live 5m intradag-barer og detekterer automatisk BULL (BUY_CALL) eller BEAR (BUY_PUT)."""
+    import requests
+    from src.analytics.advanced_cockpit import black_scholes_greeks
+
+    sym = (ticker or "NVDA").strip().upper()
+    hdr = {"User-Agent": "Mozilla/5.0"}
+    r = requests.get(
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+        params={"range": "1d", "interval": "5m"},
+        headers=hdr,
+        timeout=6,
+    )
+    if r.status_code != 200:
+        raise ValueError(f"Yahoo Finance svarte HTTP {r.status_code} for {sym}")
+    res_list = (r.json().get("chart") or {}).get("result") or []
+    if not res_list:
+        raise ValueError(f"Ingen intradag-data funnet for {sym}")
+    res0 = res_list[0]
+    q = res0.get("indicators", {}).get("quote", [{}])[0]
+    highs = [float(x) for x in (q.get("high") or []) if x is not None]
+    lows = [float(x) for x in (q.get("low") or []) if x is not None]
+    closes = [float(x) for x in (q.get("close") or []) if x is not None]
+    vols = [float(x or 0) for x in (q.get("volume") or [])]
+    if len(closes) < 3:
+        raise ValueError(f"For få 5m-barer for {sym}")
+
+    spot = float((res0.get("meta") or {}).get("regularMarketPrice") or closes[-1])
+    orb_high = max(highs[:3])
+    orb_low = min(lows[:3])
+    orb_range = max(orb_high - orb_low, spot * 0.008)
+
+    n = min(len(closes), len(vols))
+    tot_v = sum(vols[:n])
+    vwap = sum(closes[i] * vols[i] for i in range(n)) / tot_v if tot_v > 0 else spot
+    avg_v = (tot_v / n) if n > 0 else 1.0
+    vol_ratio = (vols[n - 1] / avg_v) if avg_v > 0 else 1.0
+
+    # Auto Bull vs. Bear regime detection
+    if spot > orb_high and spot >= vwap:
+        regime, side, opt_type, strat = "BULL_BREAKOUT", "BUY_CALL", "call", "15M_ORB_BREAKOUT"
+        reason = f"Kurs (${spot:.2f}) brøt OVER 15m ORB High (${orb_high:.2f}) og VWAP (${vwap:.2f}) · Volum {vol_ratio:.1f}x."
+    elif spot < orb_low and spot <= vwap:
+        regime, side, opt_type, strat = "BEAR_BREAKDOWN", "BUY_PUT", "put", "15M_ORB_BREAKDOWN"
+        reason = f"Kurs (${spot:.2f}) brøt UNDER 15m ORB Low (${orb_low:.2f}) og VWAP (${vwap:.2f}) · Volum {vol_ratio:.1f}x."
+    elif spot >= vwap:
+        regime, side, opt_type, strat = "BULL_VWAP_BIAS", "BUY_CALL", "call", "VWAP_PULLBACK_CALL"
+        reason = f"Kurs (${spot:.2f}) handler OVER intradag VWAP (${vwap:.2f}) — velger automatisk BULL (BUY CALL)."
+    else:
+        regime, side, opt_type, strat = "BEAR_VWAP_BIAS", "BUY_PUT", "put", "VWAP_REJECTION_PUT"
+        reason = f"Kurs (${spot:.2f}) handler UNDER intradag VWAP (${vwap:.2f}) — velger automatisk BEAR (BUY PUT)."
+
+    step = 1.0 if spot < 200 else 2.5
+    if opt_type == "call":
+        strike = round(math.floor(spot / step) * step, 2)
+        u_stop = round(min(spot - orb_range * 0.65, orb_low), 2)
+        risk = max(spot - u_stop, spot * 0.008)
+        u_target = round(spot + risk * 2.45, 2)
+    else:
+        strike = round(math.ceil(spot / step) * step, 2)
+        u_stop = round(max(spot + orb_range * 0.65, orb_high), 2)
+        risk = max(u_stop - spot, spot * 0.008)
+        u_target = round(spot - risk * 2.45, 2)
+
+    g = black_scholes_greeks(spot, strike, dte_days, vol, opt_type=opt_type)
+    mid = max(0.50, round(g["price"], 2))
+    ask = round(mid + 0.05, 2)
+    bid = round(max(0.05, mid - 0.05), 2)
+
+    return {
+        "success": True,
+        "ticker": sym,
+        "regime": regime,
+        "side": side,
+        "option_type": opt_type,
+        "strategy": strat,
+        "reason": reason,
+        "underlying_price": round(spot, 2),
+        "underlying_stop": u_stop,
+        "underlying_target": u_target,
+        "contract_strike": strike,
+        "contract_ask": ask,
+        "contract_bid": bid,
+        "delta": round(g["delta"], 2),
+        "days_to_expiry": dte_days,
+        "vwap": round(vwap, 2),
+        "orb_high": round(orb_high, 2),
+        "orb_low": round(orb_low, 2),
+        "volume_ratio": round(vol_ratio, 2),
+    }
+
+
+class AutonomousOptionsRunner:
+    """Autonom toveis Call/Put Intradag Opsjonsagent (kun Alpaca Paper + DuckDB Vault + Telegram)."""
+
+    def __init__(self) -> None:
+        self.running = False
+        self.interval_sec = 240
+        self.last_scan_at = ""
+        self.last_signals: List[Dict[str, Any]] = []
+        self._thread = None
+
+    def start(self, interval_sec: int = 240) -> Dict[str, Any]:
+        import threading
+        from us_intraday_agent import send_telegram_intraday
+
+        self.interval_sec = max(60, min(900, int(interval_sec)))
+        if not self.running:
+            self.running = True
+            self._thread = threading.Thread(target=self._loop, daemon=True)
+            self._thread.start()
+            send_telegram_intraday(
+                "⚡ <b>AUTONOM TOVEIS OPSJONSAGENT AKTIVERT (Alpaca Paper)</b>\n"
+                "• Velger automatisk <b>CALL (Bull)</b> eller <b>PUT (Bear)</b> fra 5m ORB/VWAP\n"
+                "• Hardt tak: <b>$5 000 / 3 %</b> · Hurdle: <b>R/R ≥ 2.0x</b> etter spread &amp; 37.84% skatt"
+            )
+        return self.get_status()
+
+    def stop(self) -> Dict[str, Any]:
+        from us_intraday_agent import send_telegram_intraday
+
+        was = self.running
+        self.running = False
+        if was:
+            send_telegram_intraday("⏸️ <b>AUTONOM TOVEIS OPSJONSAGENT SATT PÅ PAUSE</b>")
+        return self.get_status()
+
+    def run_single_cycle(self, stage_approved: bool = True) -> Dict[str, Any]:
+        import time as _time
+        from alpaca_execution import AlpacaClient
+        from us_intraday_agent import USIntradaySpecialist, send_telegram_intraday
+
+        win = USIntradaySpecialist().check_eod_time_window()
+        try:
+            alp = AlpacaClient().get_portfolio_snapshot()
+        except Exception:
+            alp = {"equity": 100000.0, "cash": 25000.0}
+        eq = float(alp.get("equity") or 100000.0)
+        cash = float(alp.get("cash") or 25000.0)
+
+        results = []
+        staged = []
+        eng = USOptionsIntradayAgent()
+        try:
+            for sym in ("NVDA", "AAPL", "MSFT", "TSLA", "SPY", "QQQ"):
+                try:
+                    det = detect_live_bull_bear_signal(sym)
+                    sig = OptionSignal(
+                        ticker=sym,
+                        underlying_price=det["underlying_price"],
+                        direction="BULLISH_CALL" if det["side"] == "BUY_CALL" else "BEARISH_PUT",
+                        strategy_name=det["strategy"],
+                        underlying_stop=det["underlying_stop"],
+                        underlying_target=det["underlying_target"],
+                        strike=det["contract_strike"],
+                        dte_days=det["days_to_expiry"],
+                        option_type=det["option_type"],
+                        option_market_price=(det["contract_ask"] + det["contract_bid"]) / 2.0,
+                        estimated_delta=det["delta"],
+                    )
+                    do_stage = stage_approved and win["allow_new_entries"] and det["regime"] in ("BULL_BREAKOUT", "BEAR_BREAKDOWN")
+                    ev = eng.process_live_signal(sig, eq, cash, stage_in_vault=do_stage)
+                    ev["regime"] = det["regime"]
+                    ev["reason_detect"] = det["reason"]
+                    results.append(ev)
+                    if do_stage and ev.get("trade_id"):
+                        staged.append(ev)
+                        send_telegram_intraday(
+                            f"⚡ <b>AUTONOM OPSJON ({ev['direction']}) — {sym}</b>\n"
+                            f"• {ev['contracts']} stk {ev['option_type'].upper()} K=${ev['strike']} (${ev['invested_usd']:,.2f})\n"
+                            f"• R/R: <b>{ev['risk_reward_ratio']}x</b> · Netto e. 37.84% skatt: <b>+${ev['net_profit_after_tax_usd']:.2f}</b>\n"
+                            f"• Vault Ref: <code>{ev['trade_id']}</code>"
+                        )
+                except Exception:
+                    continue
+        finally:
+            eng.close()
+
+        self.last_scan_at = _time.strftime("%H:%M:%S")
+        self.last_signals = results
+        return {"success": True, "scanned_at": self.last_scan_at, "signals": results, "staged": staged}
+
+    def _loop(self) -> None:
+        import time as _time
+
+        while self.running:
+            try:
+                self.run_single_cycle(stage_approved=True)
+            except Exception as exc:
+                logger.error(f"Feil i autonom opsjonsløkke: {exc}")
+            for _ in range(self.interval_sec):
+                if not self.running:
+                    break
+                _time.sleep(1)
+
+    def get_status(self) -> Dict[str, Any]:
+        vault = OptionsBacktrackingVault()
+        try:
+            summary = vault.get_backtracking_summary()
+            trades = vault.get_recent_trades(limit=15)
+        finally:
+            vault.close()
+        return {
+            "success": True,
+            "autonomous_running": self.running,
+            "last_scan_at": self.last_scan_at,
+            "summary": summary,
+            "trades": trades,
+            "last_signals": self.last_signals,
+        }
+
+
+OPTIONS_RUNNER = AutonomousOptionsRunner()
+
+
 if __name__ == "__main__":
     agent = USOptionsIntradayAgent()
     call_sig = OptionSignal("NVDA", 145.0, "BULLISH_CALL", "15M_ORB_BREAKOUT", 143.5, 149.0, 144.0, 4, "call", 4.20, 0.72)

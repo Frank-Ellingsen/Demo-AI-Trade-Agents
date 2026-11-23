@@ -3589,9 +3589,13 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           <div class="card-header">
             <div class="card-title-group">
               <h3>⚡ Toveis Intradag Opsjonsagent (<code>us_intraday_options_agent.py</code> &amp; <code>_engine.py</code>)</h3>
-              <p>Calls (Bullish ORB) &amp; Puts (Bearish ORB) · Hardt tak \$5 000 / 3 % · Bid/Ask spread + OCC/ORF + 37,84 % skatt + DuckDB Backtracking Vault</p>
+              <p>Velger automatisk <strong>CALL (Bull)</strong> eller <strong>PUT (Bear)</strong> fra live 5m ORB/VWAP · Hardt tak $5 000 / 3 % · 37,84 % skatt + DuckDB Vault</p>
             </div>
-            <span class="pill pill-cyan" id="optDecPill">Klar</span>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <span class="pill pill-amber" id="optAutoPill">⏸️ PAUSE</span>
+              <button class="btn btn-success btn-sm" id="btnOptAutoToggle" onclick="toggleAutonomousOptions()">▶ Kjør Autonom</button>
+              <span class="pill pill-cyan" id="optDecPill">Klar</span>
+            </div>
           </div>
           <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:10px;">
             <div>
@@ -3630,6 +3634,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             </div>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+            <button class="btn btn-primary btn-sm" onclick="autoDetectOptionBullBear()">🤖 Auto-detekter Bull/Bear (Live 5m)</button>
             <button class="btn btn-success btn-sm" onclick="evaluateIntradayOption(true)">💾 Logg i DuckDB Vault</button>
             <button class="btn btn-outline btn-sm" onclick="presetOptionSim('NVDA','BUY_CALL',145,143.2,149.5,144,4.15,4.05,0.68)">NVDA CALL</button>
             <button class="btn btn-outline btn-sm" onclick="presetOptionSim('TSLA','BUY_PUT',210,213.5,201,212.5,6.20,6.05,-0.65)">TSLA PUT</button>
@@ -7659,6 +7664,73 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         }
       } catch (e) {
         if (tb) tb.innerHTML = `<tr><td colspan="9" class="text-red">Kunne ikke nå /api/intraday/backtest: ${e}</td></tr>`;
+      }
+    }
+
+    let _optAutoRunning = false;
+
+    function _renderOptAutoState(d) {
+      if (!d) return;
+      _optAutoRunning = Boolean(d.autonomous_running);
+      const p = document.getElementById("optAutoPill");
+      const b = document.getElementById("btnOptAutoToggle");
+      if (p) {
+        p.textContent = _optAutoRunning ? "🟢 AUTONOM CALL/PUT" : "⏸️ PAUSE";
+        p.className = _optAutoRunning ? "pill pill-green" : "pill pill-amber";
+      }
+      if (b) {
+        b.textContent = _optAutoRunning ? "⏸️ Stopp Autonom" : "▶ Kjør Autonom";
+        b.className = _optAutoRunning ? "btn btn-warning btn-sm" : "btn btn-success btn-sm";
+      }
+    }
+
+    async function toggleAutonomousOptions() {
+      const out = document.getElementById("optEvalOutput");
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/options/auto-toggle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ enable: !_optAutoRunning })
+        });
+        const d = await res.json();
+        _renderOptAutoState(d);
+        if (out) {
+          out.innerHTML = d.autonomous_running
+            ? `<strong class="text-green">🤖 Autonom Toveis Opsjonsagent AKTIVERT!</strong> Skanner automatisk 5m ORB/VWAP for både <strong>CALL (Bull)</strong> og <strong>PUT (Bear)</strong> med $5 000 tak og sender varsler til Telegram.`
+            : `<strong class="text-amber">⏸️ Autonom Opsjonsagent satt på pause.</strong>`;
+        }
+      } catch (e) {
+        if (out) out.textContent = `Feil: ${e}`;
+      }
+    }
+
+    async function autoDetectOptionBullBear() {
+      const out = document.getElementById("optEvalOutput");
+      const sym = (document.getElementById("optTicker") || {}).value || "NVDA";
+      if (out) out.innerHTML = `<span class="text-cyan">🤖 Henter live 5m ORB &amp; VWAP for <strong>${sym.toUpperCase()}</strong> og velger Bull (CALL) eller Bear (PUT)...</span>`;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/options/detect?ticker=${encodeURIComponent(sym)}`);
+        const d = await res.json();
+        if (!d.success) {
+          if (out) out.innerHTML = `<span class="text-red">⚠️ ${d.error || "Kunne ikke detektere retning"}</span>`;
+          return;
+        }
+        document.getElementById("optTicker").value = d.ticker;
+        document.getElementById("optSide").value = d.side;
+        document.getElementById("optSpot").value = d.underlying_price;
+        document.getElementById("optStop").value = d.underlying_stop;
+        document.getElementById("optTarget").value = d.underlying_target;
+        document.getElementById("optStrike").value = d.contract_strike;
+        document.getElementById("optAsk").value = d.contract_ask;
+        document.getElementById("optBid").value = d.contract_bid;
+        document.getElementById("optDelta").value = d.delta;
+        await evaluateIntradayOption(false);
+        if (out) {
+          const tag = d.side === "BUY_CALL" ? `<span class="pill pill-green">AUTO BULL → CALL</span>` : `<span class="pill pill-red">AUTO BEAR → PUT</span>`;
+          out.innerHTML = `${tag} <span style="font-size:11.5px; color:var(--text-main);">${d.reason}</span><br><div style="margin-top:6px;">${out.innerHTML}</div>`;
+        }
+      } catch (e) {
+        if (out) out.textContent = `Feil ved auto-deteksjon: ${e}`;
       }
     }
 
