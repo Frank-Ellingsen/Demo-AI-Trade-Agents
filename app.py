@@ -934,6 +934,32 @@ def main() -> None:
             news_items = massive_client.get_latest_news(limit=5, allow_fallback=True)
             st.dataframe(news_items, use_container_width=True, hide_index=True)
 
+        st.divider()
+        st.subheader("5. ⚡ Autonom US Intraday Agent (`us_intraday_agent.py` · Kun Alpaca Paper)")
+        st.caption(
+            "15-min ORB Breakout & VWAP Pullback · Maks 10 % cash-allokering · SEC/FINRA + 37,84 % skatt · "
+            "Tvungen EOD-flatting kl. 15:55 EST (21:55 CET) · Løpende Telegram-rapportering av handler & realisert P/L."
+        )
+        try:
+            from us_intraday_agent import IntradaySignal, USIntradaySpecialist
+
+            id_agent = USIntradaySpecialist(max_portfolio_pct=0.10)
+            id_win = id_agent.check_eod_time_window()
+            id_sum = id_agent.get_today_summary()
+
+            c_id1, c_id2, c_id3, c_id4 = st.columns(4)
+            c_id1.metric("EOD Nedtelling (15:55 EST)", id_win["countdown_str"], id_win["ny_time"])
+            c_id2.metric("Realisert Intradag P/L", f"${id_sum['realized_pnl_today_usd']:+,.2f}", f"e. skatt: ${id_sum['after_tax_today_usd']:+,.2f}")
+            c_id3.metric("Intradag-handler i dag", f"{id_sum['open_count']} åpne / {id_sum['closed_count']} lukket")
+            if c_id4.button("📲 Send Intradag P/L til Telegram", use_container_width=True):
+                rep = id_agent.send_intraday_pnl_telegram_summary()
+                if rep.get("telegram_sent"):
+                    st.success("Intradag P/L-rapport sendt til Telegram!")
+                else:
+                    st.warning("Kunne ikke sende til Telegram (sjekk TELEGRAM_BOT_TOKEN / CHAT_ID i .env).")
+        except Exception as exc:
+            st.warning(f"Intraday Agent ikke tilgjengelig: {exc}")
+
 
 if __name__ == "__main__":
     main()

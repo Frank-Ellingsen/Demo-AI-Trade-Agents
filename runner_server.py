@@ -1242,6 +1242,63 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(out_bytes)
         elif parsed.path in (
+            "/api/intraday/toggle",
+            "/api/intraday/evaluate",
+            "/api/intraday/scan",
+            "/api/intraday/flatten",
+            "/api/intraday/report-telegram",
+        ):
+            from us_intraday_agent import INTRADAY_RUNNER, IntradaySignal
+
+            content_len = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            payload = json.loads(raw_body) if raw_body.strip() else {}
+            try:
+                if parsed.path == "/api/intraday/toggle":
+                    enable = bool(payload.get("enable", not INTRADAY_RUNNER.running))
+                    if enable:
+                        max_pct = float(payload.get("max_portfolio_pct", 10.0)) / 100.0
+                        interval = int(payload.get("interval_sec", 180))
+                        res_obj = INTRADAY_RUNNER.start(max_portfolio_pct=max_pct, interval_sec=interval)
+                    else:
+                        res_obj = INTRADAY_RUNNER.stop()
+                elif parsed.path == "/api/intraday/evaluate":
+                    alp = _fetch_alpaca_portfolio_safe()
+                    eq = float(payload.get("portfolio_value_usd") or alp.get("equity") or 100000.0)
+                    cash = float(payload.get("cash_usd") or alp.get("cash") or 0.0)
+                    sig = IntradaySignal(
+                        ticker=str(payload.get("ticker") or "NVDA").strip().upper(),
+                        strategy=str(payload.get("strategy") or "ORB_BREAKOUT_15M"),
+                        direction="BUY",
+                        current_price=float(payload.get("entry_price") or 145.0),
+                        stop_loss=float(payload.get("stop_loss") or 143.2),
+                        take_profit=float(payload.get("take_profit") or 149.5),
+                        volume_ratio_to_avg=float(payload.get("volume_ratio") or 1.8),
+                        vwap=float(payload.get("vwap") or payload.get("entry_price") or 144.5),
+                    )
+                    dec = INTRADAY_RUNNER.specialist.generate_intraday_decision(sig, eq, cash)
+                    if bool(payload.get("execute_now", False)) and dec.get("decision") == "APPROVED_FOR_EXECUTION":
+                        res_obj = INTRADAY_RUNNER.specialist.execute_autonomous_trade(dec, notify_telegram=True)
+                    else:
+                        res_obj = {"success": True, "decision": dec}
+                elif parsed.path == "/api/intraday/scan":
+                    exec_flag = bool(payload.get("execute_approved", INTRADAY_RUNNER.running))
+                    res_obj = INTRADAY_RUNNER.run_single_cycle(execute_approved=exec_flag)
+                elif parsed.path == "/api/intraday/flatten":
+                    res_obj = INTRADAY_RUNNER.specialist.flatten_intraday_positions(reason="Manuell EOD-Flatting fra Cockpit")
+                else:
+                    res_obj = INTRADAY_RUNNER.specialist.send_intraday_pnl_telegram_summary()
+                status_code = 200
+            except Exception as exc:
+                res_obj = {"success": False, "error": str(exc)}
+                status_code = 400
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(status_code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+        elif parsed.path in (
             "/api/portfolio/profit-lock",
             "/api/portfolio/close-all",
             "/api/analytics/post-mortem/run",
@@ -1441,6 +1498,18 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 "positions": [],
             }
             out_bytes = json.dumps(cached_saxo, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/intraday/status":
+            from us_intraday_agent import INTRADAY_RUNNER
+
+            res_obj = INTRADAY_RUNNER.get_status()
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(out_bytes)))
@@ -1961,6 +2030,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/clean": "AI_Trading_Terminal_-_Streamlined___Clean.html",
             "/nordquant-ai": "Bygging_av_AI-tradingagenter_i_Python.html",
             "/bygging": "Bygging_av_AI-tradingagenter_i_Python.html",
+            "/v2-intraday": "AI_Trading_Terminal_v2_-_Intraday___Multi-Broker_Suite.html",
         }
         if parsed.path in dashboard_routes:
             fname = dashboard_routes[parsed.path]

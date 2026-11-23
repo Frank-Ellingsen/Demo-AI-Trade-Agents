@@ -1052,12 +1052,16 @@
           <button class="nav-tab" data-section="cat-postmortem" onclick="switchCategory('postmortem')" data-tooltip="Lukket erfaringslæring (agent_learning_loop.py) og ukentlig A/B Shadow Tracking Audit (weekly_audit_report.py) i DuckDB.">
             <span class="tab-num">09</span>Post-Mortem <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Lessons &amp; Audit</span>
           </button>
+          <button class="nav-tab" data-section="cat-intraday" onclick="switchCategory('intraday')" data-tooltip="Autonom US Intraday Agent (kun Alpaca Paper): 15-min ORB &amp; VWAP Pullback, maks 10 % cash-allokering, EOD-flatting kl. 15:55 EST og sanntids Telegram P/L-rapportering.">
+            <span class="tab-num">10</span>US Intraday <span style="margin-left:auto; font-size:10px; color:var(--accent-green);">Autonom Paper</span>
+          </button>
         </nav>
       </div>
 
       <div>
         <div class="sidebar-group-label">Dokumentasjon</div>
         <div class="sidebar-links">
+          <a href="http://localhost:8000/v2-intraday" target="_blank" class="sidebar-link" data-tooltip="Åpner frittstående AI Trading Terminal v2 (Intraday &amp; Multi-Broker Suite) i Aurora-design."><span>⚡ Terminal v2 (Intraday)</span><span>↗</span></a>
           <a href="http://localhost:8000/rulebook" target="_blank" class="sidebar-link" data-tooltip="Operativt regelverk for Agent 1–4: hard veto ved kvartalstall (48t), ATR-stopp, sektortak og 3-trinns failover."><span>📜 Agent Rulebook</span><span>↗</span></a>
           <a href="http://localhost:8000/tax-fx" target="_blank" class="sidebar-link" data-tooltip="Deterministisk skatte-, gebyr- og valutastruktur (ASK vs. Alpaca USD-pool, All-in kostnadsmodell og Trade Hurdle Rule)."><span>💰 Skatt, Gebyr &amp; FX</span><span>↗</span></a>
           <a href="http://localhost:8000/guide" target="_blank" class="sidebar-link" data-tooltip="Komplett brukermanual for daglig drift, Alpaca Paper-oppsett, Windows Task Scheduler og feilsøking."><span>🛠️ Brukermanual</span><span>↗</span></a>
@@ -3381,6 +3385,156 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       </div>
     </section>
 
+    <!-- ===================================================================== -->
+    <!-- 10 US INTRADAY AGENT (AUTONOM ALPACA PAPER + TELEGRAM P/L RAPPORT)    -->
+    <!-- ===================================================================== -->
+    <section class="workspace-section hidden" id="sec-intraday">
+      <div class="section-header">
+        <div>
+          <h2><span class="sec-tag">10 US INTRADAY</span> Autonom AI Intraday Agent (Kun Alpaca Paper · Telegram P/L)</h2>
+          <p>Handler likvide US-aksjer autonomt med 15-min ORB &amp; VWAP Pullback, maks 10 % cash-allokering, tvungen EOD-flatting kl. 15:55 EST (21:55 CET) og løpende Telegram-rapport for handler &amp; realisert P/L</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <span class="pill pill-amber" id="intradayAutoStatusPill">PAUSE (Manuell)</span>
+          <button class="btn btn-success btn-sm" id="btnToggleIntradayAuto" onclick="toggleAutonomousIntraday()">▶ Start Autonom Agent</button>
+          <button class="btn btn-primary btn-sm" onclick="runIntradayLiveScan()">🔎 Kjør Live Skanning</button>
+          <button class="btn btn-outline btn-sm" onclick="sendIntradayPnlTelegram()">📲 Send P/L til Telegram</button>
+          <button class="btn btn-danger btn-sm" onclick="flattenIntradayNow()">⏹ EOD Flatting</button>
+          <a href="http://localhost:8000/v2-intraday" target="_blank" class="btn btn-outline btn-sm">⚡ Åpne v2 Terminal ↗</a>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-item highlight-cyan">
+          <div class="kpi-label">Nedtelling til 15:55 EST (21:55 CET)</div>
+          <div class="kpi-value" id="idKpiCountdown">--:--:--</div>
+          <div class="kpi-sub" id="idKpiClockSub">Alle intradag-posisjoner stenges automatisk før børsslutt</div>
+        </div>
+        <div class="kpi-item highlight-green">
+          <div class="kpi-label">Realisert Intradag P/L (I dag)</div>
+          <div class="kpi-value" id="idKpiRealizedPnl">$0.00</div>
+          <div class="kpi-sub" id="idKpiAfterTaxSub">Etter 37,84 % norsk kapitalskatt: $0.00</div>
+        </div>
+        <div class="kpi-item highlight-amber">
+          <div class="kpi-label">Maks 10 % Allokering &amp; Cash-Kontroll</div>
+          <div class="kpi-value" id="idKpiMaxBudget">$10,000.00</div>
+          <div class="kpi-sub" id="idKpiCashSub">Kun ledig Alpaca Paper cash · 0 USD kurtasje</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-label">Autonome Intradag-Handler (I dag)</div>
+          <div class="kpi-value" id="idKpiTradeCount">0 åpne / 0 lukket</div>
+          <div class="kpi-sub" id="idKpiLastScanSub">Sist skannet: — · Telegram varsling aktiv</div>
+        </div>
+      </div>
+
+      <div id="intradayActionBanner" style="display:none; margin-bottom:14px; padding:10px 14px; border-radius:6px; background:rgba(56,189,248,0.10); border:1px solid rgba(56,189,248,0.35); font-size:12px; color:var(--text-main);"></div>
+
+      <div class="grid-2" style="gap:16px; margin-bottom:16px;">
+        <!-- Ordrebillett-Simulator: 15-min ORB & VWAP Pullback -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>Ordrebillett-Simulator: 15-min ORB &amp; VWAP Pullback (<code>us_intraday_agent.py</code>)</h3>
+              <p>Tester maks 10 % allokering, SEC/FINRA/spread-friksjon, 37,84 % skatt og Hurdle Rate (≥ 0,40 % netto &amp; R/R ≥ 1,8x)</p>
+            </div>
+            <span class="pill pill-cyan" id="idSimDecisionPill">Klar</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Ticker (US Liquid)</label>
+              <input id="idSimTicker" type="text" value="NVDA" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:6px 8px; font-family:var(--font-mono);">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Intradag Strategi</label>
+              <select id="idSimStrategy" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:6px 8px;">
+                <option value="ORB_BREAKOUT_15M">15-min ORB Breakout</option>
+                <option value="VWAP_PULLBACK">VWAP Pullback</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Entry Kurs ($)</label>
+              <input id="idSimEntry" type="number" step="0.1" value="145.00" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:6px 8px; font-family:var(--font-mono);">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Stop-Loss ($)</label>
+              <input id="idSimStop" type="number" step="0.1" value="143.20" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:6px 8px; font-family:var(--font-mono);">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Take-Profit ($)</label>
+              <input id="idSimTp" type="number" step="0.1" value="149.50" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:6px 8px; font-family:var(--font-mono);">
+            </div>
+            <div style="display:flex; align-items:flex-end; gap:6px;">
+              <button class="btn btn-primary btn-sm" style="width:100%;" onclick="evaluateIntradaySimulator(false)">⚖️ Beregn Hurdle</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <button class="btn btn-success btn-sm" onclick="evaluateIntradaySimulator(true)">🚀 Eksekver til Alpaca Paper + Telegram</button>
+            <button class="btn btn-outline btn-sm" onclick="presetIntradaySim('NVDA','ORB_BREAKOUT_15M',145.0,143.2,149.5)">Preset: NVDA ORB (Godkjent)</button>
+            <button class="btn btn-outline btn-sm" onclick="presetIntradaySim('AAPL','VWAP_PULLBACK',225.0,224.2,225.6)">Preset: AAPL Tight (Veto)</button>
+          </div>
+          <div id="idSimResultBox" style="background:#0b1018; border:1px solid var(--border-strong); border-radius:6px; padding:10px 12px; font-size:12px; line-height:1.55; color:var(--text-muted);">
+            Klikk <strong>Beregn Hurdle</strong> for å kjøre SEC/FINRA-gebyr, 37,84 % skatt og 10 % cash-kontroll mot live Alpaca Paper.
+          </div>
+        </div>
+
+        <!-- Live Intradag Kandidater -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>Live Intradag-Kandidater (15-min ORB &amp; VWAP)</h3>
+              <p>Skanner SPY, QQQ, NVDA, AAPL, MSFT, META, AMZN, TSLA, AMD &amp; AVGO på 5m-data</p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="runIntradayLiveScan()">🔄 Skann Nå</button>
+          </div>
+          <div class="table-wrap">
+            <table class="tufte-table">
+              <thead>
+                <tr>
+                  <th>Ticker</th>
+                  <th>Strategi</th>
+                  <th class="num">Entry / VWAP</th>
+                  <th class="num">R/R</th>
+                  <th>Beslutning</th>
+                </tr>
+              </thead>
+              <tbody id="idCandidatesTbody">
+                <tr><td colspan="5" class="text-muted" style="text-align:center; padding:14px;">Klikk «Skann Nå» eller start Autonom Agent for å hente live 5m intradag-signaler.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Autonom Intradag Handelslogg & Realisert P/L -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>Intradag Handelslogg &amp; Realisert P/L (Alpaca Paper · Rapportert til Telegram)</h3>
+            <p>Alle autonome intradag-ordrer (Limit OCO Bracket DAY) lagres i <code>data/intraday_agent.db</code> og varsles fortløpende på Telegram ved åpning, lukking og EOD-flatting</p>
+          </div>
+          <span class="pill pill-green">Kun Alpaca Paper v2</span>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Ref / Tid</th>
+                <th>Ticker</th>
+                <th>Strategi</th>
+                <th class="num">Antall</th>
+                <th class="num">Entry → Exit</th>
+                <th class="num">Realisert P/L</th>
+                <th>Status / Telegram</th>
+              </tr>
+            </thead>
+            <tbody id="idTradesTbody">
+              <tr><td colspan="7" class="text-muted" style="text-align:center; padding:14px;">Ingen autonome intradag-handler registrert ennå.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
       </div>
     </div>
   </div>
@@ -4755,7 +4909,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       hedging: ["sec-hedging"],
       settings: ["sec-settings"],
       multibroker: ["sec-multibroker"],
-      postmortem: ["sec-postmortem"]
+      postmortem: ["sec-postmortem"],
+      intraday: ["sec-intraday"]
     };
 
     function switchCategory(catKey) {
@@ -6599,7 +6754,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         "http://localhost:8000/bloomberg": "ui/dashboards/Bloomberg-stil_Indeks-_og_Portef%C3%B8ljedashbord.html",
         "http://localhost:8000/terminal": "ui/dashboards/AI_Trading_Terminal___Portef%C3%B8ljedashbord.html",
         "http://localhost:8000/streamlined": "ui/dashboards/AI_Trading_Terminal_-_Streamlined___Clean.html",
-        "http://localhost:8000/nordquant-ai": "ui/dashboards/Bygging_av_AI-tradingagenter_i_Python.html"
+        "http://localhost:8000/nordquant-ai": "ui/dashboards/Bygging_av_AI-tradingagenter_i_Python.html",
+        "http://localhost:8000/v2-intraday": "ui/dashboards/AI_Trading_Terminal_v2_-_Intraday___Multi-Broker_Suite.html"
       };
       document.querySelectorAll("a[href]").forEach(a => {
         const href = a.getAttribute("href");
@@ -7121,6 +7277,219 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       navigator.clipboard?.writeText(lines.join("\n")).catch(() => {});
     }
 
+    // =========================================================================
+    // 10 US INTRADAY AGENT (AUTONOM ALPACA PAPER + TELEGRAM P/L RAPPORTERING)
+    // =========================================================================
+    let _intradayRunning = false;
+
+    function _renderIntradayStatus(d) {
+      if (!d || !d.success) return;
+      _intradayRunning = Boolean(d.autonomous_running);
+      const pill = document.getElementById("intradayAutoStatusPill");
+      const btn = document.getElementById("btnToggleIntradayAuto");
+      if (pill) {
+        pill.textContent = _intradayRunning ? "🟢 AUTONOM AKTIV (Alpaca Paper)" : "⏸️ PAUSE (Manuell)";
+        pill.className = _intradayRunning ? "pill pill-green" : "pill pill-amber";
+      }
+      if (btn) {
+        btn.textContent = _intradayRunning ? "⏸️ Stopp Autonom Agent" : "▶ Start Autonom Agent";
+        btn.className = _intradayRunning ? "btn btn-warning btn-sm" : "btn btn-success btn-sm";
+      }
+
+      const w = d.window || {};
+      const alp = d.alpaca_paper || {};
+      const sum = d.today_summary || {};
+
+      const elCd = document.getElementById("idKpiCountdown");
+      const elClk = document.getElementById("idKpiClockSub");
+      if (elCd) elCd.textContent = w.countdown_str || "--:--:--";
+      if (elClk) elClk.textContent = `${w.ny_time || ""} · Frist: ${w.eod_deadline_est || "15:55 EST"}`;
+
+      const pnl = Number(sum.realized_pnl_today_usd || 0);
+      const aft = Number(sum.after_tax_today_usd || 0);
+      const elPnl = document.getElementById("idKpiRealizedPnl");
+      const elAft = document.getElementById("idKpiAfterTaxSub");
+      if (elPnl) {
+        elPnl.textContent = `${pnl >= 0 ? "+" : "-"}$${Math.abs(pnl).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        elPnl.className = `kpi-value ${pnl > 0 ? "text-green" : (pnl < 0 ? "text-red" : "")}`;
+      }
+      if (elAft) elAft.textContent = `Etter 37,84 % norsk kapitalskatt: ${aft >= 0 ? "+" : "-"}$${Math.abs(aft).toFixed(2)}`;
+
+      const elBud = document.getElementById("idKpiMaxBudget");
+      const elCash = document.getElementById("idKpiCashSub");
+      if (elBud) elBud.textContent = `$${Number(alp.effective_budget_usd || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (elCash) elCash.textContent = `10 % tak: $${Number(alp.max_10pct_usd || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} · Ledig cash: $${Number(alp.cash_usd || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+
+      const elCnt = document.getElementById("idKpiTradeCount");
+      const elScan = document.getElementById("idKpiLastScanSub");
+      if (elCnt) elCnt.textContent = `${sum.open_count || 0} åpne / ${sum.closed_count || 0} lukket`;
+      if (elScan) elScan.textContent = `Sist skannet: ${d.last_scan_at || "—"} · Telegram P/L aktiv`;
+
+      const cTb = document.getElementById("idCandidatesTbody");
+      const cands = d.last_candidates || [];
+      if (cTb && cands.length) {
+        cTb.innerHTML = cands.map(c => {
+          const ok = c.decision === "APPROVED_FOR_EXECUTION";
+          return `
+            <tr>
+              <td><strong>${c.ticker}</strong></td>
+              <td class="text-muted">${c.strategy || "ORB/VWAP"}</td>
+              <td class="num">$${Number(c.entry_price || 0).toFixed(2)} / $${Number(c.vwap || 0).toFixed(2)}</td>
+              <td class="num">${c.risk_reward_ratio ? c.risk_reward_ratio + "x" : "—"}</td>
+              <td><span class="pill ${ok ? "pill-green" : "pill-amber"}">${c.decision}</span></td>
+            </tr>
+          `;
+        }).join("");
+      }
+
+      const tTb = document.getElementById("idTradesTbody");
+      const trades = sum.trades || [];
+      if (tTb) {
+        if (!trades.length) {
+          tTb.innerHTML = `<tr><td colspan="7" class="text-muted" style="text-align:center; padding:14px;">Ingen autonome intradag-handler registrert ennå.</td></tr>`;
+        } else {
+          tTb.innerHTML = trades.map(t => {
+            const rp = Number(t.realized_pnl_usd || 0);
+            const cls = t.status === "CLOSED" ? (rp >= 0 ? "text-green" : "text-red") : "text-muted";
+            return `
+              <tr>
+                <td class="mono">${t.trade_id}<div style="font-size:10.5px; color:var(--text-dim);">${t.opened_at || ""}</div></td>
+                <td><strong>${t.ticker}</strong></td>
+                <td class="text-muted">${t.strategy}</td>
+                <td class="num">${t.shares}</td>
+                <td class="num">$${Number(t.entry_price || 0).toFixed(2)} → ${t.exit_price ? "$" + Number(t.exit_price).toFixed(2) : "Åpen"}</td>
+                <td class="num ${cls}"><strong>${t.status === "CLOSED" ? ((rp >= 0 ? "+" : "-") + "$" + Math.abs(rp).toFixed(2)) : "Løpende"}</strong></td>
+                <td><span class="pill ${t.status === "CLOSED" ? "pill-green" : "pill-cyan"}">${t.status}</span> ${t.telegram_notified ? "📲" : ""}</td>
+              </tr>
+            `;
+          }).join("");
+        }
+      }
+    }
+
+    async function loadIntradayStatus() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/status`);
+        if (res.ok) _renderIntradayStatus(await res.json());
+      } catch (e) {}
+    }
+
+    async function toggleAutonomousIntraday() {
+      const b = document.getElementById("intradayActionBanner");
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/toggle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ enable: !_intradayRunning, max_portfolio_pct: 10.0, interval_sec: 180 })
+        });
+        const d = await res.json();
+        _renderIntradayStatus(d);
+        if (b) {
+          b.style.display = "block";
+          b.textContent = d.autonomous_running
+            ? "🤖 Autonom AI Intraday Agent er AKTIVERT på Alpaca Paper (10 % maks allokering, Telegram P/L-varsling på)."
+            : "⏸️ Autonom AI Intraday Agent er satt på pause.";
+        }
+      } catch (e) {
+        if (b) { b.style.display = "block"; b.textContent = `Feil: ${e}`; }
+      }
+    }
+
+    async function runIntradayLiveScan() {
+      const b = document.getElementById("intradayActionBanner");
+      if (b) { b.style.display = "block"; b.textContent = "🔎 Skanner 10 likvide US-aksjer (5m ORB Breakout & VWAP Pullback)..."; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/scan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ execute_approved: _intradayRunning })
+        });
+        const d = await res.json();
+        await loadIntradayStatus();
+        if (b) {
+          b.textContent = d.success
+            ? `Skanning ferdig (${d.scanned_at}): Fant ${(d.candidates || []).length} oppsett, eksekverte ${(d.executed || []).length} autonome ordrer på Alpaca Paper.`
+            : `Skann-feil: ${d.error}`;
+        }
+      } catch (e) {
+        if (b) b.textContent = `Kunne ikke skanne: ${e}`;
+      }
+    }
+
+    function presetIntradaySim(ticker, strat, entry, stop, tp) {
+      document.getElementById("idSimTicker").value = ticker;
+      document.getElementById("idSimStrategy").value = strat;
+      document.getElementById("idSimEntry").value = entry;
+      document.getElementById("idSimStop").value = stop;
+      document.getElementById("idSimTp").value = tp;
+      evaluateIntradaySimulator(false);
+    }
+
+    async function evaluateIntradaySimulator(executeNow = false) {
+      const box = document.getElementById("idSimResultBox");
+      const pill = document.getElementById("idSimDecisionPill");
+      const payload = {
+        ticker: (document.getElementById("idSimTicker") || {}).value || "NVDA",
+        strategy: (document.getElementById("idSimStrategy") || {}).value || "ORB_BREAKOUT_15M",
+        entry_price: parseFloat((document.getElementById("idSimEntry") || {}).value || "145"),
+        stop_loss: parseFloat((document.getElementById("idSimStop") || {}).value || "143.2"),
+        take_profit: parseFloat((document.getElementById("idSimTp") || {}).value || "149.5"),
+        execute_now: Boolean(executeNow)
+      };
+      if (box) box.textContent = executeNow ? "Sender Limit OCO Bracket til Alpaca Paper + Telegram..." : "Beregner Hurdle Rate, SEC/FINRA-gebyr og 37,84 % skatt...";
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        const dec = d.decision || d;
+        const ok = dec.decision === "APPROVED_FOR_EXECUTION";
+        if (pill) {
+          pill.textContent = dec.decision || "FEIL";
+          pill.className = `pill ${ok ? "pill-green" : "pill-red"}`;
+        }
+        if (ok && box) {
+          box.innerHTML =
+            `<strong class="text-green">✅ ${dec.decision}</strong> · <strong>${dec.ticker}</strong> (${dec.shares} stk @ $${dec.entry_price} = $${Number(dec.order_value_usd).toLocaleString("en-US")} · ${dec.pct_of_portfolio}% av portefølje)<br>` +
+            `R/R: <strong>${dec.risk_reward_ratio}x</strong> · Friksjon (SEC/FINRA/Spread): <strong>$${dec.friction_usd}</strong> · Netto gevinst: <strong class="text-green">+$${dec.net_profit_est_usd}</strong> · Etter 37,84 % skatt: <strong>+$${dec.after_tax_gain_usd}</strong>` +
+            (d.trade_id ? `<br><span class="text-cyan">🚀 Sendt til Alpaca Paper (Ref: ${d.trade_id}) · Telegram varslet: ${d.telegram_sent ? "JA 📲" : "Nei"}</span>` : "");
+          if (d.trade_id) { loadIntradayStatus(); refreshAlpacaPortfolio(); }
+        } else if (box) {
+          box.innerHTML = `<strong class="text-red">❌ ${dec.decision || "AVVIST"}</strong> — ${dec.reason || d.error || "Under hurdle rate"}`;
+        }
+      } catch (e) {
+        if (box) box.textContent = `Feil: ${e}`;
+      }
+    }
+
+    async function flattenIntradayNow() {
+      const b = document.getElementById("intradayActionBanner");
+      if (b) { b.style.display = "block"; b.textContent = "⏹ Kjører EOD-flatting på alle åpne intradag-posisjoner og sender Telegram P/L-rapport..."; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/flatten`, { method: "POST" });
+        const d = await res.json();
+        await loadIntradayStatus();
+        await refreshAlpacaPortfolio();
+        if (b) b.textContent = `🏁 EOD-flatting fullført (${(d.flattened_symbols || []).join(", ") || "ingen åpne intradag-posisjoner"}). Telegram-rapport: ${d.telegram_sent ? "Sendt 📲" : "Ikke sendt"}.`;
+      } catch (e) {
+        if (b) b.textContent = `Flatting-feil: ${e}`;
+      }
+    }
+
+    async function sendIntradayPnlTelegram() {
+      const b = document.getElementById("intradayActionBanner");
+      if (b) { b.style.display = "block"; b.textContent = "📲 Sender live Intradag P/L-rapport til Telegram..."; }
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/report-telegram`, { method: "POST" });
+        const d = await res.json();
+        if (b) b.textContent = d.telegram_sent ? "✅ Intradag P/L-rapport sendt til din Telegram!" : "⚠️ Kunne ikke sende til Telegram (sjekk TELEGRAM_BOT_TOKEN / CHAT_ID i .env).";
+      } catch (e) {
+        if (b) b.textContent = `Feil: ${e}`;
+      }
+    }
+
     // Initialiser ved oppstart (Vis kun 01 Overview som ren startside)
     switchCategory("overview");
     try { renderAllSections(); } catch (e) { console.error("renderAllSections:", e); }
@@ -7135,9 +7504,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     mbLoadNordnetTickets();
     mbLoadSaxoPositions();
     loadCorporateActionsOverview();
+    loadIntradayStatus();
     setInterval(checkServerConnection, 6000);
     setInterval(refreshAlpacaPortfolio, 15000);
     setInterval(loadLiveIndexTicker, 30000);
+    setInterval(loadIntradayStatus, 30000);
 
     // =========================================================================
     // ALWAYS-AVAILABLE FLOATING AI CHATBOT (PORTFOLIO + GENERAL FINANCE)
