@@ -2845,10 +2845,31 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
                 <input type="password" id="setGeminiKey" placeholder="La stå tom for å beholde">
               </div>
             </div>
-            <div class="field-group">
-              <label for="setMassiveKey">Massive / Polygon API Key (valgfritt)</label>
-              <input type="password" id="setMassiveKey" placeholder="La stå tom for å beholde">
+          </div>
+        </div>
+
+        <!-- Card 5: Massive.com Dashboard & Market Data API Key -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>📡 Massive.com Dashboard &amp; Markedsdata (SIP 100 % / OPRA)</h3>
+              <p>Henter sanntids US SIP-kurser, Level 1 BBO, markedsnyheter og OPRA-opsjonskjeder med Greker</p>
             </div>
+            <span class="pill pill-cyan" id="setMassiveHint">Sjekker...</span>
+          </div>
+          <div style="display:grid; gap:10px; margin-top:10px;">
+            <div class="field-group">
+              <label for="setMassiveKey">Massive Dashboard API Key (<code>MASSIVE_API_KEY</code>)</label>
+              <input type="password" id="setMassiveKey" placeholder="Lim inn API-nøkkel fra Massive Dashboard (la stå tom for å beholde)">
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:end;">
+              <div class="field-group">
+                <label for="setMassiveGateway">Massive REST Gateway</label>
+                <input type="text" id="setMassiveGateway" value="https://api.polygon.io" readonly style="opacity:0.85;">
+              </div>
+              <button class="btn btn-outline btn-sm" type="button" onclick="testMassiveLatency()">⚡ Test Latency</button>
+            </div>
+            <div id="setMassiveLatencyOut" style="font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono);"></div>
           </div>
         </div>
 
@@ -6534,6 +6555,12 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         if (tgHint) tgHint.textContent = (s.TELEGRAM_BOT_TOKEN && s.TELEGRAM_BOT_TOKEN.set) ? `Bot satt (${s.TELEGRAM_BOT_TOKEN.hint})` : "Mangler Bot Token";
         const smtpHint = document.getElementById("setSmtpHint");
         if (smtpHint) smtpHint.textContent = (s.SMTP_PASS && s.SMTP_PASS.set) ? "SMTP Klar" : "SMTP Ikke konfigurert";
+        const masHint = document.getElementById("setMassiveHint");
+        if (masHint) {
+          const isSet = Boolean(s.MASSIVE_API_KEY && s.MASSIVE_API_KEY.set);
+          masHint.textContent = isSet ? `Nøkkel satt (${s.MASSIVE_API_KEY.hint})` : "Mangler Massive API-nøkkel";
+          masHint.className = isSet ? "pill pill-green" : "pill pill-amber";
+        }
         const saxoHint = document.getElementById("setSaxoHint");
         if (saxoHint) saxoHint.textContent = (s.SAXO_ACCESS_TOKEN && s.SAXO_ACCESS_TOKEN.set) ? `Token satt (${s.SAXO_ACCESS_TOKEN.hint})` : "Mangler Access Token";
         const nnHint = document.getElementById("setNordnetHint");
@@ -6543,6 +6570,26 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         }
       } catch (err) {
         if (statusEl) statusEl.innerHTML = `<span class="text-amber">Kunne ikke laste innstillinger fra lokal server: ${err}</span>`;
+      }
+    }
+
+    async function testMassiveLatency() {
+      const out = document.getElementById("setMassiveLatencyOut");
+      if (out) out.textContent = "Måler responstid mot Massive.com, Alpaca Paper og DuckDB...";
+      try {
+        const res = await fetch(`${SERVER_URL}/api/latency`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        const m = d.massive || {};
+        const a = d.alpaca || {};
+        const db = d.duckdb || {};
+        if (out) {
+          out.innerHTML = `<span class="text-green">Massive:</span> ${m.status || "?"} (${m.latency_ms ?? "?"} ms) · `
+            + `<span class="text-cyan">Alpaca:</span> ${a.status || "?"} (${a.latency_ms ?? "?"} ms) · `
+            + `<span>DuckDB:</span> ${db.latency_ms ?? "?"} ms`;
+        }
+      } catch (err) {
+        if (out) out.innerHTML = `<span class="text-amber">Kunne ikke måle latency: ${err}</span>`;
       }
     }
 
