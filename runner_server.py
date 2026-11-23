@@ -1177,7 +1177,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
 
                 port_syms = {str(p.get("symbol") or "").upper() for p in pos_list}
                 corp_actions = [
-                    {"ticker": "EQNR.OL", "headline": "Utbytte / Tilbakekjøp", "days_label": "Om 12 dager", "guardrail": "OK", "in_portfolio": "EQNR.OL" in port_syms},
+                    {"ticker": "XOM", "headline": "Utbytte / Tilbakekjøp", "days_label": "Om 12 dager", "guardrail": "OK", "in_portfolio": "XOM" in port_syms},
                     {"ticker": "NVDA", "headline": "Kvartalstall (Earnings)", "days_label": "Om 28 dager", "guardrail": "OK", "in_portfolio": "NVDA" in port_syms},
                     {"ticker": "MSFT", "headline": "Utbytte ex-dato", "days_label": "Om 19 dager", "guardrail": "OK", "in_portfolio": "MSFT" in port_syms},
                     {"ticker": "PLTR", "headline": "Kvartalsrapport-overvåkning", "days_label": "Aktiv kontroll", "guardrail": "EARNINGS_SOON" if "PLTR" in port_syms else "OK", "in_portfolio": "PLTR" in port_syms},

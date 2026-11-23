@@ -326,7 +326,7 @@ def close_all_paper_positions(payload: dict[str, Any], alpaca_snap: dict[str, An
 def get_paper_drift_payload(alpaca_snap: dict[str, Any]) -> dict[str, Any]:
     pos_syms = {str(p.get("symbol") or "").upper() for p in (alpaca_snap.get("positions") or [])}
     actions = [
-        {"ticker": "EQNR.OL", "headline": "Utbytte / Tilbakekjøp", "event_date": "2026-12-04", "days_until": 12, "days_label": "Om 12 dager", "guardrail": "OK (Klar)", "in_portfolio": "EQNR.OL" in pos_syms},
+        {"ticker": "XOM", "headline": "Utbytte / Tilbakekjøp", "event_date": "2026-12-04", "days_until": 12, "days_label": "Om 12 dager", "guardrail": "OK (Klar)", "in_portfolio": "XOM" in pos_syms},
         {"ticker": "NVDA", "headline": "Kvartalstall (Earnings)", "event_date": "2026-12-18", "days_until": 26, "days_label": "Om 26 dager", "guardrail": "OK (Klar)", "in_portfolio": "NVDA" in pos_syms},
         {"ticker": "MSFT", "headline": "Utbytte ex-dato", "event_date": "2026-12-10", "days_until": 18, "days_label": "Om 18 dager", "guardrail": "OK (Klar)", "in_portfolio": "MSFT" in pos_syms},
         {"ticker": "AAPL", "headline": "Produkt- og utbyttekalender", "event_date": "2026-12-15", "days_until": 23, "days_label": "Om 23 dager", "guardrail": "OK (Klar)", "in_portfolio": "AAPL" in pos_syms},

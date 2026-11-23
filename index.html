@@ -3970,7 +3970,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         });
         if (!res.ok) return;
         const d = await res.json();
-        const actions = Array.isArray(d.corporate_actions) ? d.corporate_actions : [];
+        const actions = (Array.isArray(d.corporate_actions) ? d.corporate_actions : [])
+          .filter(ca => !/\.(OL|CO|ST|HE)$/i.test(String(ca.ticker || "")));
         if (!actions.length) {
           tb.innerHTML = `<tr><td colspan="4" class="text-muted" style="text-align:center; padding:12px;">Ingen registrerte hendelser i kalenderen.</td></tr>`;
           return;
