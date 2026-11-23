@@ -1712,6 +1712,68 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/intraday/options/chain":
+            from alpaca_paper_runner import market_data as hybrid_md
+            from us_intraday_options_engine import detect_live_bull_bear_signal
+
+            qs_ch = parse_qs(parsed.query)
+            raw_syms = (qs_ch.get("tickers") or ["NVDA,TSLA,SPY,MSFT,AAPL,QQQ"])[0]
+            syms = [s.strip().upper() for s in raw_syms.split(",") if s.strip()][:8]
+            rows = []
+            for sym in syms:
+                snap = hybrid_md.get_snapshot(sym)
+                spot = float(snap.get("price") or 0.0)
+                prev_c = float(snap.get("prev_close") or spot or 1.0)
+                chg_pct = round(((spot - prev_c) / prev_c) * 100.0, 2) if prev_c > 0 else 0.0
+                vwap = float(snap.get("vwap") or spot)
+                direction = "BUY_CALL" if spot >= vwap else "BUY_PUT"
+                strat_name = "15-min ORB / VWAP"
+                try:
+                    det = detect_live_bull_bear_signal(sym)
+                    if det.get("success"):
+                        direction = det.get("direction", direction)
+                        strat_name = det.get("strategy_name", strat_name)
+                        if det.get("spot"):
+                            spot = float(det["spot"])
+                except Exception:
+                    pass
+                target_delta = 0.68 if "CALL" in direction else -0.66
+                opt = hybrid_md.get_option_contract(sym, spot, direction, target_delta)
+                bid = float(opt.get("bid") or 0.0)
+                ask = float(opt.get("ask") or 0.0)
+                mid = float(opt.get("mid") or ((bid + ask) / 2.0))
+                spread_pct = round(((ask - bid) / mid) * 100.0, 2) if mid > 0 else 0.0
+                rows.append({
+                    "ticker": sym,
+                    "spot": round(spot, 2),
+                    "prev_close": round(prev_c, 2),
+                    "change_pct": chg_pct,
+                    "vwap": round(vwap, 2),
+                    "direction": direction,
+                    "strategy": strat_name,
+                    "option_symbol": opt.get("symbol", f"{sym}_OPT"),
+                    "strike": round(float(opt.get("strike") or spot), 2),
+                    "bid": round(bid, 2),
+                    "ask": round(ask, 2),
+                    "mid": round(mid, 2),
+                    "spread_pct": spread_pct,
+                    "delta": round(float(opt.get("delta") or target_delta), 2),
+                    "provider": opt.get("provider", snap.get("provider", "Alpaca")),
+                })
+            res_obj = {
+                "success": True,
+                "provider": hybrid_md.active_provider,
+                "updated_at": time.strftime("%H:%M:%S"),
+                "items": rows,
+            }
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/latency":
             from alpaca_paper_runner import market_data as hybrid_market_data
             res_obj = hybrid_market_data.measure_latencies()

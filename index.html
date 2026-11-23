@@ -1707,6 +1707,32 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </button>
         </div>
         <div id="stratTelegramStatus" style="font-size: 12px; color: var(--text-muted);"></div>
+        <div id="stratOptionsChainWrap" style="display:none; margin-top:12px; border-top:1px solid var(--border-strong); padding-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px; flex-wrap:wrap;">
+            <strong style="font-size:12.5px; color:var(--text-main);">⚡ Live US Opsjonskontrakter &amp; Underliggende Aksjekurs (OCC · Bid/Ask · Delta)</strong>
+            <button class="btn btn-outline btn-sm" type="button" onclick="loadLiveOptionsChain()">🔄 Oppdater kurser</button>
+          </div>
+          <div class="table-wrap">
+            <table class="tufte-table">
+              <thead>
+                <tr>
+                  <th>Underliggende</th>
+                  <th class="num">Sist Omsatt ($)</th>
+                  <th class="num">Dag %</th>
+                  <th>Opsjon Ticker (OCC)</th>
+                  <th>Retning</th>
+                  <th class="num">Strike ($)</th>
+                  <th class="num">Bid / Ask ($)</th>
+                  <th class="num">Mid ($)</th>
+                  <th class="num">Delta</th>
+                </tr>
+              </thead>
+              <tbody id="stratOptionsChainTbody">
+                <tr><td colspan="9" class="text-muted">Laster live opsjonskontrakter og underliggende aksjekurser…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- Interactive Profile & Capital Bar -->
@@ -3591,6 +3617,42 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         </div>
       </div>
 
+      <!-- Live US Opsjonskjede & Underliggende Aksjekurs -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>📊 Live US Opsjonskontrakter &amp; Underliggende Aksje (Sist Omsatt · OCC Ticker · Bid/Ask · Delta)</h3>
+            <p>Viser underliggende aksjekurs, dagsendring, VWAP og automatisk valgt ITM CALL/PUT-kontrakt fra Massive.com / Alpaca — klikk «Last inn» for å teste Hurdle</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="pill pill-cyan" id="optChainProviderPill">Laster…</span>
+            <button class="btn btn-outline btn-sm" type="button" onclick="loadLiveOptionsChain()">🔄 Oppdater Opsjonskurser</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Aksje</th>
+                <th class="num">Sist Omsatt ($)</th>
+                <th class="num">Dag %</th>
+                <th class="num">VWAP ($)</th>
+                <th>Opsjon Ticker (OCC)</th>
+                <th>Retning</th>
+                <th class="num">Strike ($)</th>
+                <th class="num">Bid / Ask ($)</th>
+                <th class="num">Spread %</th>
+                <th class="num">Delta</th>
+                <th>Handling</th>
+              </tr>
+            </thead>
+            <tbody id="intradayOptionsChainTbody">
+              <tr><td colspan="11" class="text-muted">Klikk «Oppdater Opsjonskurser» for å hente live opsjonstickere og underliggende aksjekurser.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Toveis US Intradag Opsjonsagent (Calls & Puts) + Norsk Skattejournal (DuckDB) -->
       <div class="grid-2" style="gap:16px; margin-top:16px;">
         <div class="card">
@@ -5082,6 +5144,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       } else if (catKey === "hedging") {
         loadDerivativesHedging(true);
         loadProfitLockStatus();
+      } else if (catKey === "intraday") {
+        loadLiveOptionsChain();
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -6344,6 +6408,11 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         us_intraday_stocks: "3",
         us_intraday_options: "3"
       };
+      const optWrap = document.getElementById("stratOptionsChainWrap");
+      if (optWrap) {
+        optWrap.style.display = stratKey === "us_intraday_options" ? "block" : "none";
+        if (stratKey === "us_intraday_options") loadLiveOptionsChain();
+      }
       const profEl = document.getElementById("alpProfileSelect");
       const capEl = document.getElementById("alpCapitalInput");
       if (profEl && capEl && amount >= 1000) {
@@ -6589,6 +6658,79 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         }
       } catch (err) {
         if (statusEl) statusEl.innerHTML = `<span class="text-amber">Kunne ikke laste innstillinger fra lokal server: ${err}</span>`;
+      }
+    }
+
+    let _optChainCache = [];
+
+    function applyOptionChainRowToForm(idx) {
+      const it = _optChainCache[idx];
+      if (!it) return;
+      const setV = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      setV("optTicker", it.ticker);
+      setV("optSide", it.direction);
+      setV("optStrike", it.strike);
+      setV("optAsk", it.ask);
+      setV("optBid", it.bid);
+      setV("optSpot", it.spot);
+      const isCall = String(it.direction || "").includes("CALL");
+      setV("optStop", +(it.spot * (isCall ? 0.988 : 1.012)).toFixed(2));
+      setV("optTarget", +(it.spot * (isCall ? 1.032 : 0.968)).toFixed(2));
+      setV("optDelta", Math.abs(Number(it.delta || 0.68)).toFixed(2));
+      if (typeof testOptionsHurdle === "function") testOptionsHurdle();
+    }
+
+    async function loadLiveOptionsChain() {
+      const tbMain = document.getElementById("intradayOptionsChainTbody");
+      const tbStrat = document.getElementById("stratOptionsChainTbody");
+      const pill = document.getElementById("optChainProviderPill");
+      if (pill) pill.textContent = "Henter…";
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/options/chain`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        const items = d.items || [];
+        _optChainCache = items;
+        if (pill) pill.textContent = `${d.provider || "Live"} · ${d.updated_at || ""}`;
+        if (tbMain) {
+          tbMain.innerHTML = items.length ? items.map((it, idx) => {
+            const up = Number(it.change_pct || 0) >= 0;
+            const isCall = String(it.direction || "").includes("CALL");
+            return `<tr>
+              <td><strong>${it.ticker}</strong></td>
+              <td class="num">$${Number(it.spot).toFixed(2)}</td>
+              <td class="num ${up ? "text-green" : "text-red"}">${up ? "+" : ""}${Number(it.change_pct).toFixed(2)} %</td>
+              <td class="num">$${Number(it.vwap).toFixed(2)}</td>
+              <td style="font-family:var(--font-mono); font-size:11.5px; color:var(--accent-cyan);">${it.option_symbol}</td>
+              <td><span class="pill ${isCall ? "pill-green" : "pill-red"}">${isCall ? "CALL (Bull)" : "PUT (Bear)"}</span></td>
+              <td class="num">$${Number(it.strike).toFixed(2)}</td>
+              <td class="num">$${Number(it.bid).toFixed(2)} / $${Number(it.ask).toFixed(2)}</td>
+              <td class="num">${Number(it.spread_pct).toFixed(1)} %</td>
+              <td class="num">${Number(it.delta).toFixed(2)}</td>
+              <td><button class="btn btn-outline btn-sm" type="button" onclick="applyOptionChainRowToForm(${idx})">Last inn</button></td>
+            </tr>`;
+          }).join("") : `<tr><td colspan="11" class="text-muted">Ingen opsjonskontrakter tilgjengelig.</td></tr>`;
+        }
+        if (tbStrat) {
+          tbStrat.innerHTML = items.length ? items.slice(0, 4).map(it => {
+            const up = Number(it.change_pct || 0) >= 0;
+            const isCall = String(it.direction || "").includes("CALL");
+            return `<tr>
+              <td><strong>${it.ticker}</strong></td>
+              <td class="num">$${Number(it.spot).toFixed(2)}</td>
+              <td class="num ${up ? "text-green" : "text-red"}">${up ? "+" : ""}${Number(it.change_pct).toFixed(2)} %</td>
+              <td style="font-family:var(--font-mono); font-size:11.5px; color:var(--accent-cyan);">${it.option_symbol}</td>
+              <td><span class="pill ${isCall ? "pill-green" : "pill-red"}">${isCall ? "CALL" : "PUT"}</span></td>
+              <td class="num">$${Number(it.strike).toFixed(2)}</td>
+              <td class="num">$${Number(it.bid).toFixed(2)} / $${Number(it.ask).toFixed(2)}</td>
+              <td class="num">$${Number(it.mid).toFixed(2)}</td>
+              <td class="num">${Number(it.delta).toFixed(2)}</td>
+            </tr>`;
+          }).join("") : `<tr><td colspan="9" class="text-muted">Ingen opsjonskontrakter tilgjengelig.</td></tr>`;
+        }
+      } catch (err) {
+        if (pill) pill.textContent = "Feil";
+        if (tbMain) tbMain.innerHTML = `<tr><td colspan="11" class="text-amber">Kunne ikke laste opsjonskjede: ${err}</td></tr>`;
       }
     }
 
