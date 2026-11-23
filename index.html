@@ -1969,7 +1969,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       <div class="section-header">
         <div>
           <h2><span class="sec-tag">05 MARKETS</span> US S&amp;P 500 (Top 5 Up/Down) &amp; Live Market Bridge</h2>
-          <p>Live dagsbevegelser for S&amp;P 500, fullstendig OMXN40-univers (40 selskaper), Level 1 BBO og MiFID II Guardrail</p>
+          <p>Live dagsbevegelser for S&amp;P 500, Level 1 BBO (Alpaca / Massive) og US Åpningsgap-Guardrail</p>
         </div>
         <div>
           <button class="btn btn-primary btn-sm" onclick="executeStep('step7_live_bridge')">▶ Test Live Market Bridge i Terminal</button>
@@ -2022,33 +2022,30 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </div>
         </div>
 
-        <!-- Right: Interactive Pre-Execution Guardrail & MiFID II Tick-Size Calculator -->
+        <!-- Right: Interactive Pre-Execution Guardrail & US Tick-Size Calculator -->
         <div class="card">
           <div class="card-header">
             <div class="card-title-group">
-              <h3>Interaktiv Åpningsgap-Vakt &amp; MiFID II Tick-Size Kalkulator (<code>improved_execution.py</code>)</h3>
-              <p>Kontrollerer at åpningskursen ikke har løpt fra signalet (+1.5 % maks oppsidegap) og runder av til eksakt Euronext tick-size</p>
+              <h3>Interaktiv Åpningsgap-Vakt &amp; US Tick-Size Kalkulator (<code>improved_execution.py</code>)</h3>
+              <p>Kontrollerer at åpningskursen ikke har løpt fra signalet (+1.5 % maks oppsidegap) og runder av til eksakt US $0.01 tick-size (Alpaca Paper v2)</p>
             </div>
-            <span class="pill pill-cyan">RTS 11 / MiFID II</span>
+            <span class="pill pill-cyan">SEC Reg NMS · $0.01</span>
           </div>
 
           <div class="controls-bar" style="margin-top: 10px;">
             <div class="field-group">
-              <label for="simClosePrice">Signal Sluttkurs Close(T)</label>
-              <input type="number" id="simClosePrice" value="284.15" step="0.25" style="width:120px;" oninput="runGuardrailSim()">
+              <label for="simClosePrice">Signal Sluttkurs Close(T) ($)</label>
+              <input type="number" id="simClosePrice" value="145.00" step="0.25" style="width:120px;" oninput="runGuardrailSim()">
             </div>
             <div class="field-group">
-              <label for="simOpenPrice">Åpningskurs Open(T+1)</label>
-              <input type="number" id="simOpenPrice" value="285.17" step="0.25" style="width:120px;" oninput="runGuardrailSim()">
+              <label for="simOpenPrice">Åpningskurs Open(T+1) ($)</label>
+              <input type="number" id="simOpenPrice" value="145.80" step="0.25" style="width:120px;" oninput="runGuardrailSim()">
             </div>
             <div class="field-group">
-              <label for="simBandSelect">Marked / Likviditetsbånd</label>
+              <label for="simBandSelect">Marked (Kun US)</label>
               <select id="simBandSelect" onchange="runGuardrailSim()">
-                <option value="6" selected>Oslo Børs Band 6 (Mest likvid: EQNR, DNB, MOWI)</option>
-                <option value="5">Oslo Børs Band 5 (Høy likviditet: AKRBP, ORK)</option>
-                <option value="4">Oslo Børs Band 4 (Medium likviditet: SUBC, TOM)</option>
-                <option value="3">Oslo Børs Band 3 (Lavere likviditet)</option>
-                <option value="US">US S&amp;P 500 (Alpaca $0.01 Cent Tick)</option>
+                <option value="US" selected>US S&amp;P 500 / Nasdaq (Alpaca $0.01 Tick)</option>
+                <option value="US_ETF">US Likvide ETF-er (SPY, QQQ, IWM · $0.01 Tick)</option>
               </select>
             </div>
             <div class="field-group">
@@ -2063,48 +2060,42 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           <div id="guardrailResultCard" class="card" style="background: var(--bg-input); margin-top: 8px;"></div>
 
           <div class="sub-group-title" style="margin-top: 14px;">
-            <span>Euronext Oslo Børs MiFID II Tick-Size Referansetabell (Band 6 vs. Band 5)</span>
+            <span>US Reg NMS &amp; Alpaca Paper v2 Execution Guardrails</span>
           </div>
           <div class="table-wrap">
             <table class="tufte-table">
               <thead>
                 <tr>
-                  <th>Kursintervall (NOK)</th>
-                  <th class="num">Band 6 Tick (EQNR, DNB, KOG)</th>
-                  <th class="num">Band 5 Tick (AKRBP, ORK, SALM)</th>
-                  <th class="num">US S&amp;P 500 (Alpaca)</th>
+                  <th>US Markedssegment</th>
+                  <th class="num">Tick-Size (USD)</th>
+                  <th class="num">Maks Oppsidegap</th>
+                  <th class="num">Ordretype (Alpaca)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>50.00 – 99.99</td>
-                  <td class="num">0.02 NOK</td>
-                  <td class="num">0.05 NOK</td>
+                  <td>S&amp;P 500 Mega-Cap (NVDA, AAPL, MSFT)</td>
                   <td class="num">$0.01</td>
+                  <td class="num">+1.50 %</td>
+                  <td class="num">Limit OCO Bracket</td>
                 </tr>
                 <tr>
-                  <td>100.00 – 199.99</td>
-                  <td class="num">0.05 NOK</td>
-                  <td class="num">0.10 NOK</td>
+                  <td>Indeks-ETF (SPY, QQQ, XLV, IWM)</td>
                   <td class="num">$0.01</td>
+                  <td class="num">+1.50 %</td>
+                  <td class="num">Limit OCO Bracket</td>
                 </tr>
                 <tr>
-                  <td>200.00 – 499.99</td>
-                  <td class="num">0.10 NOK</td>
-                  <td class="num">0.20 NOK</td>
+                  <td>US Intraday ORB / VWAP (5m)</td>
                   <td class="num">$0.01</td>
+                  <td class="num">Hurdle ≥ 0.40 %</td>
+                  <td class="num">DAY Bracket (EOD 15:55 EST)</td>
                 </tr>
                 <tr>
-                  <td>500.00 – 999.99</td>
-                  <td class="num">0.20 NOK</td>
-                  <td class="num">0.50 NOK</td>
-                  <td class="num">$0.01</td>
-                </tr>
-                <tr>
-                  <td>1 000.00 – 1 999.99</td>
-                  <td class="num">0.50 NOK</td>
-                  <td class="num">1.00 NOK</td>
-                  <td class="num">$0.01</td>
+                  <td>US Opsjoner (Call / Put)</td>
+                  <td class="num">$0.01 – $0.05</td>
+                  <td class="num">Spread ≤ 12 %</td>
+                  <td class="num">Limit (Paper / Vault)</td>
                 </tr>
               </tbody>
             </table>
@@ -4615,14 +4606,13 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     }
 
     function runGuardrailSim() {
-      const sigClose = parseFloat(document.getElementById("simClosePrice").value) || 284.15;
-      const openPrice = parseFloat(document.getElementById("simOpenPrice").value) || 285.17;
-      const band = document.getElementById("simBandSelect").value;
+      const sigClose = parseFloat(document.getElementById("simClosePrice").value) || 145.00;
+      const openPrice = parseFloat(document.getElementById("simOpenPrice").value) || 145.80;
       const side = document.getElementById("simSideSelect").value;
-      const currency = band === "US" ? "USD" : "NOK";
+      const currency = "USD";
 
       const slippagePct = ((openPrice - sigClose) / sigClose) * 100;
-      const tick = getMifidTickSize(openPrice, band);
+      const tick = openPrice < 1.0 ? 0.0001 : 0.01;
       const steps = side === "BUY" ? Math.floor((openPrice + 1e-9) / tick) : Math.ceil((openPrice - 1e-9) / tick);
       const roundedLimit = +(steps * tick).toFixed(4);
 
@@ -4638,12 +4628,12 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
               <span class="pill pill-green">APPROVED_FOR_EXECUTION</span>
               <strong style="margin-left:8px;">Åpningsgap innenfor sikkerhetsmargin (${slippagePct >= 0 ? "+" : ""}${slippagePct.toFixed(2)} %)</strong>
             </div>
-            <span class="text-muted" style="font-family:var(--font-mono); font-size:11.5px;">Rutes til: ${band === "US" ? "Alpaca v2 OCO Bracket" : "Saxo OpenAPI v2"}</span>
+            <span class="text-muted" style="font-family:var(--font-mono); font-size:11.5px;">Rutes til: Alpaca Paper v2 OCO Bracket</span>
           </div>
           <div class="grid-3" style="margin-top:10px; font-family:var(--font-mono); font-size:12px;">
-            <div>Tick-størrelse: <strong class="text-cyan">${tick.toFixed(2)} ${currency}</strong></div>
-            <div>Avrundet Limit-kurs: <strong class="text-green">${roundedLimit.toFixed(2)} ${currency}</strong></div>
-            <div>Beskyttende Stop (-4.5%): <strong class="text-amber">${(roundedLimit * 0.955).toFixed(2)} ${currency}</strong></div>
+            <div>Tick-størrelse: <strong class="text-cyan">$${tick.toFixed(2)} ${currency}</strong></div>
+            <div>Avrundet Limit-kurs: <strong class="text-green">$${roundedLimit.toFixed(2)} ${currency}</strong></div>
+            <div>Beskyttende Stop (-4.5%): <strong class="text-amber">$${(roundedLimit * 0.955).toFixed(2)} ${currency}</strong></div>
           </div>
         `;
       } else {
