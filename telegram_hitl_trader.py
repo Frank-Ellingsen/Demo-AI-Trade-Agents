@@ -532,31 +532,58 @@ class TelegramHITLTrader:
                             logger.info(f"Bruker GODKJENTE ordre {trade_id} ({trade['symbol']})")
 
                             try:
-                                res = self.alpaca.place_bracket_order(
-                                    symbol=trade["symbol"],
-                                    qty=trade["qty"],
-                                    side=trade["side"],
-                                    limit_price=trade["limit"],
-                                    take_profit_price=trade["tp"],
-                                    stop_loss_price=trade["sl"],
+                                import re as _re
+                                sym_str = str(trade["symbol"])
+                                is_option_order = (
+                                    str(trade_id).startswith("trd_opt_")
+                                    or bool(_re.match(r"^[A-Z]{1,5}\d{6}[CP]\d{8}$", sym_str))
+                                    or "CALL" in sym_str.upper()
+                                    or "PUT" in sym_str.upper()
                                 )
-                                order_id = str(res.get("id", "N/A"))[:8]
-                                decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
-                                status_msg = (
-                                    f"✅ ORDRE EKSEKVERT PÅ ALPACA (OCO BRACKET)\n"
-                                    f"----------------------------------------\n"
-                                    f"• Ticker: {trade['symbol']}\n"
-                                    f"• Antall: {trade['qty']} stk @ Limit ${trade['limit']:,.2f}\n"
-                                    f"• Stop-Loss: ${trade['sl']:,.2f} | Take-Profit: ${trade['tp']:,.2f}\n"
-                                    f"• Alpaca Ordre-ID: {order_id}\n"
-                                    f"• Tidspunkt: {decided_ts}\n"
-                                    f"• Status: Godkjent og innsendt innenfor kursvern (<= ${max_allowed_ask:,.2f})"
-                                )
-                                self.update_message(message_id, status_msg)
-                                self.send_confirmation(
-                                    f"✅ BEKREFTELSE ({decided_ts}): {trade['side'].upper()} {trade['qty']} {trade['symbol']} "
-                                    f"@ Limit ${trade['limit']:,.2f} er GODKJENT og registrert hos Alpaca Paper (ID: {order_id})."
-                                )
+                                if is_option_order:
+                                    decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                                    est_alloc = round(float(trade["qty"]) * float(trade["limit"]) * 100.0, 2)
+                                    status_msg = (
+                                        f"✅ OPSJON GODKJENT & LOGGET (DUCKDB VAULT · PAPER)\n"
+                                        f"----------------------------------------\n"
+                                        f"• Kontrakt: {sym_str}\n"
+                                        f"• Volum: {trade['qty']} kontrakter @ Limit ${trade['limit']:,.2f} (Totalt: ${est_alloc:,.2f})\n"
+                                        f"• Stop-Loss: ${trade['sl']:,.2f} | Take-Profit: ${trade['tp']:,.2f}\n"
+                                        f"• Ref: {trade_id}\n"
+                                        f"• Tidspunkt: {decided_ts}\n"
+                                        f"• Merknad: Alpaca OCO Bracket gjelder kun aksjer; opsjonen er registrert i Paper Vault for sporing & EOD 15:55 EST."
+                                    )
+                                    self.update_message(message_id, status_msg)
+                                    self.send_confirmation(
+                                        f"✅ BEKREFTELSE ({decided_ts}): Opsjon {trade['qty']}× {sym_str} "
+                                        f"@ Limit ${trade['limit']:,.2f} (${est_alloc:,.2f}) er GODKJENT og logget i DuckDB Vault ({trade_id})."
+                                    )
+                                else:
+                                    res = self.alpaca.place_bracket_order(
+                                        symbol=trade["symbol"],
+                                        qty=trade["qty"],
+                                        side=trade["side"],
+                                        limit_price=trade["limit"],
+                                        take_profit_price=trade["tp"],
+                                        stop_loss_price=trade["sl"],
+                                    )
+                                    order_id = str(res.get("id", "N/A"))[:8]
+                                    decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
+                                    status_msg = (
+                                        f"✅ ORDRE EKSEKVERT PÅ ALPACA (OCO BRACKET)\n"
+                                        f"----------------------------------------\n"
+                                        f"• Ticker: {trade['symbol']}\n"
+                                        f"• Antall: {trade['qty']} stk @ Limit ${trade['limit']:,.2f}\n"
+                                        f"• Stop-Loss: ${trade['sl']:,.2f} | Take-Profit: ${trade['tp']:,.2f}\n"
+                                        f"• Alpaca Ordre-ID: {order_id}\n"
+                                        f"• Tidspunkt: {decided_ts}\n"
+                                        f"• Status: Godkjent og innsendt innenfor kursvern (<= ${max_allowed_ask:,.2f})"
+                                    )
+                                    self.update_message(message_id, status_msg)
+                                    self.send_confirmation(
+                                        f"✅ BEKREFTELSE ({decided_ts}): {trade['side'].upper()} {trade['qty']} {trade['symbol']} "
+                                        f"@ Limit ${trade['limit']:,.2f} er GODKJENT og registrert hos Alpaca Paper (ID: {order_id})."
+                                    )
                             except Exception as e:
                                 logger.error(f"Feil ved eksekvering pa Alpaca: {e}")
                                 decided_ts = time.strftime("%Y-%m-%d %H:%M:%S")
