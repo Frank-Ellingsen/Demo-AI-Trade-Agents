@@ -73,7 +73,36 @@ I `backtest_us_multi_universe.py` sammenligner systemet fire strategier over 252
 
 ---
 
-## 5. Hvordan Evaluere Systemet Hver Søndag
+## 5. US Intradag-Strategier (`04 US Intraday` — Dagshandel uten Natt-Risiko)
+
+Mens **03 Trading** driver *swing trading* (posisjoner som holdes over dager eller uker), handler **04 US Intraday** kun inne i den amerikanske børsdagen (NYSE/Nasdaq `09:30–16:00 EST` / `15:30–22:00 CET`). Alle intradagsposisjoner **tvangslukkes automatisk kl. 15:55 EST (21:55 CET)** (*EOD-flatting*), slik at du aldri sitter med risiko over natten.
+
+### A. To Aksjestrategier på 5-Minutters Data (`us_intraday_agent.py`)
+Agenten skanner de mest likvide amerikanske aksjene og ETF-ene (`SPY, QQQ, NVDA, AAPL, MSFT, META, AMZN, TSLA, AMD, AVGO` m.fl.) hvert minutt med to klassiske institusjonelle oppsett:
+
+| Strategi | Hva den ser etter (Enkelt forklart) | Hvorfor den fungerer |
+| :--- | :--- | :--- |
+| **15-min ORB** (*Opening Range Breakout*) | Måler høyeste og laveste kurs de første 15 minuttene etter børsåpning (`15:30–15:45 CET`). Kjøper når kursen bryter over toppen med volum. | De første 15 minuttene samler nattens nyheter og institusjonelle ordrer. Et brudd ut av spennet viser hvem som vant kampen (kjøpere vs. selgere). |
+| **VWAP Pullback** | **VWAP** er dagens volumvektede gjennomsnittskurs. Agenten kjøper når en aksje i opptrend faller kort tilbake til VWAP og snur opp igjen. | Store fond måles ofte mot VWAP. Det gir lav inngangsrisiko fordi Stop-Loss kan plasseres tett rett under VWAP. |
+
+### B. Toveis Intradag Opsjonsagent — Både Bull & Bear (`us_intraday_options_agent.py`)
+I motsetning til vanlige aksjekjøp som bare tjener penger i oppgangsmarked, analyserer den autonome opsjonsagenten live 5m-grafer og velger retning automatisk:
+* **🟢 BUY CALL (Bullish):** Når kursen bryter *over* 15-min High og ligger over VWAP.
+* **🔴 BUY PUT (Bearish):** Når kursen bryter *under* 15-min Low og ligger under VWAP — slik at strategien kan utnytte røde dager.
+* **Streng sikkerhetsramme:** Hardt tak på **`$5 000` / 3 %** av kapitalen per handel, maks **12 % bid-ask spread**, kun likvide kortløpende opsjoner, og full logging i **DuckDB Backtracking Vault** (`options_intraday_trades.duckdb`).
+
+### C. De 4 Sikkerhetsportene som Beskytter Kapitalen (Hurdle Rate & Skatt)
+Før en intradagsagent får lov til å handle, må signalet bestå fire deterministiske tester:
+1. **Hurdle Rate (Lønnsomhetskrav):** Forventet nettogevinst **etter spread, SEC/FINRA/OCC-avgifter og 37,84 % norsk skatt** må være minst **`+0,40 %`** og **`Risk/Reward ≥ 1,8x`**. Små, dyre «støyhandler» avvises automatisk (VETO).
+2. **Maks 10 % Cash-Allokering:** Aksjeagenten bruker aldri mer enn 10 % av porteføljen på én enkelt intradagshandel, og sjekker alltid ledig cash hos Alpaca Paper først.
+3. **Breakeven-beskyttelse (`+1.0R`):** I `backtest_intraday_duckdb.py` flyttes Stop-Loss automatisk til inngangskurs når handelen har steget med 1× risikoen — da kan ikke en vinner bli til et tap.
+4. **Rolig Telegram-rapportering:** De autonome intradagsagentene sender kun melding på Telegram når en posisjon faktisk **lukkes / realiseres** (med realisert P/L før og etter 37,84 % skatt), slik at du slipper støy gjennom dagen.
+
+> **Tips for testing:** Åpne **`04 US Intraday`** i venstremenyen og klikk **▶ Kjør DuckDB ORB Backtest** for å se hvordan 15-min ORB-strategien ville gjort det over de siste handelsdagene — inkludert friksjon og 37,84 % norsk skatt!
+
+---
+
+## 6. Hvordan Evaluere Systemet Hver Søndag
 
 Et tradingsystem må overvåkes — ikke stå på autopilot uten kontroll. Hver søndag sjekker du tre nøkkeltall i **AI Trading Desk**:
 
@@ -83,7 +112,7 @@ Et tradingsystem må overvåkes — ikke stå på autopilot uten kontroll. Hver 
 
 ---
 
-## 6. Oppstartssjekkliste for Nybegynnere (5 Steg)
+## 7. Oppstartssjekkliste for Nybegynnere (5 Steg)
 
 1. **Start alltid i Paper Trading:** Systemet er hardkodet mot **Alpaca Paper** (`paper-api.alpaca.markets`) med fiktive `$100 000` USD — øv deg risikofritt i 4–6 uker.
 2. **Verifiser nøklene i `.env`:** Legg inn `ALPACA_API_KEY`, `ALPACA_SECRET_KEY` (Paper), `TELEGRAM_BOT_TOKEN` og `TELEGRAM_CHAT_ID`.
