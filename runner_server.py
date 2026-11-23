@@ -693,6 +693,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 status_code = 400
             elif strategy_key == "us_intraday_options":
                 try:
+                    from alpaca_paper_runner import market_data as hybrid_md
                     from us_intraday_options_engine import detect_live_bull_bear_signal
                     from telegram_hitl_trader import TelegramHITLTrader
 
@@ -705,7 +706,11 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         if not det.get("success"):
                             continue
                         side_dir = det.get("direction", "BUY_CALL")
-                        ask_px = float(det.get("option_ask") or 4.0)
+                        spot_px = float(det.get("spot") or 0.0)
+                        opt_c = hybrid_md.get_option_contract(sym, spot_px, side_dir, 0.68 if "CALL" in side_dir else -0.66)
+                        ask_px = float(opt_c.get("ask") or det.get("option_ask") or 4.0)
+                        strike_px = float(opt_c.get("strike") or det.get("recommended_strike") or det.get("strike") or spot_px)
+                        occ_sym = opt_c.get("symbol") or sym
                         contracts = max(1, int(total_amount // (ask_px * 100.0)))
                         est_cost = round(contracts * ask_px * 100.0, 2)
                         if est_cost > total_amount:
@@ -715,16 +720,16 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         tp_opt = round(ask_px * 1.55, 2)
                         mid = hitl.send_trade_signal(
                             trade_id=tid,
-                            symbol=f"{sym} {'CALL' if 'CALL' in side_dir else 'PUT'} K=${det.get('strike', 0)}",
+                            symbol=occ_sym,
                             qty=contracts,
                             side="buy",
                             limit_price=ask_px,
                             take_profit_price=tp_opt,
                             stop_loss_price=sl_opt,
                             reasoning=(
-                                f"Strategi: {strategy_label} ({side_dir}, {det.get('strategy_name', 'ORB')}). "
-                                f"Spot=${det.get('spot', 0):.2f}, Delta={det.get('delta', 0.65)}, "
-                                f"Allokering=${est_cost:,.0f} (maks $5k, EOD 15:55 EST)."
+                                f"Strategi: {strategy_label} ({sym} {side_dir} K=${strike_px:.1f}, {det.get('strategy_name', 'ORB')}). "
+                                f"Underliggende Spot=${spot_px:.2f}, Bid/Ask=${opt_c.get('bid', 0):.2f}/${ask_px:.2f}, "
+                                f"Delta={opt_c.get('delta', 0.68)}, Allokering=${est_cost:,.0f} (maks $5k, EOD 15:55 EST)."
                             ),
                             strategy_label=strategy_label,
                             portfolio_equity=total_amount,
@@ -734,7 +739,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                         sent_items.append({
                             "trade_id": tid,
                             "message_id": mid,
-                            "symbol": f"{sym} ({side_dir})",
+                            "symbol": f"{occ_sym} ({sym} {side_dir} K=${strike_px:.1f})",
                             "qty": contracts,
                             "limit_price": ask_px,
                             "sl_price": sl_opt,
