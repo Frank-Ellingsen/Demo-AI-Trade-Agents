@@ -318,25 +318,31 @@ def detect_live_bull_bear_signal(ticker: str, dte_days: int = 4, vol: float = 0.
 
     sym = (ticker or "NVDA").strip().upper()
     hdr = {"User-Agent": "Mozilla/5.0"}
-    r = requests.get(
-        f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
-        params={"range": "1d", "interval": "5m"},
-        headers=hdr,
-        timeout=6,
-    )
-    if r.status_code != 200:
-        raise ValueError(f"Yahoo Finance svarte HTTP {r.status_code} for {sym}")
-    res_list = (r.json().get("chart") or {}).get("result") or []
-    if not res_list:
-        raise ValueError(f"Ingen intradag-data funnet for {sym}")
-    res0 = res_list[0]
-    q = res0.get("indicators", {}).get("quote", [{}])[0]
-    highs = [float(x) for x in (q.get("high") or []) if x is not None]
-    lows = [float(x) for x in (q.get("low") or []) if x is not None]
-    closes = [float(x) for x in (q.get("close") or []) if x is not None]
-    vols = [float(x or 0) for x in (q.get("volume") or [])]
-    if len(closes) < 3:
-        raise ValueError(f"For få 5m-barer for {sym}")
+    res0 = None
+    highs, lows, closes, vols = [], [], [], []
+    for rng in ("1d", "5d"):
+        r = requests.get(
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+            params={"range": rng, "interval": "5m"},
+            headers=hdr,
+            timeout=6,
+        )
+        if r.status_code != 200:
+            continue
+        res_list = (r.json().get("chart") or {}).get("result") or []
+        if not res_list:
+            continue
+        cand = res_list[0]
+        q = cand.get("indicators", {}).get("quote", [{}])[0]
+        h_c = [float(x) for x in (q.get("high") or []) if x is not None]
+        l_c = [float(x) for x in (q.get("low") or []) if x is not None]
+        c_c = [float(x) for x in (q.get("close") or []) if x is not None]
+        v_c = [float(x or 0) for x in (q.get("volume") or [])]
+        if len(c_c) >= 3:
+            res0, highs, lows, closes, vols = cand, h_c[-78:], l_c[-78:], c_c[-78:], v_c[-78:]
+            break
+    if res0 is None or len(closes) < 3:
+        raise ValueError(f"Ingen 5m intradag-data tilgjengelig for {sym} akkurat nå")
 
     spot = float((res0.get("meta") or {}).get("regularMarketPrice") or closes[-1])
     orb_high = max(highs[:3])
