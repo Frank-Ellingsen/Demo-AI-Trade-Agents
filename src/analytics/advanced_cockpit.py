@@ -653,7 +653,7 @@ def _call_gemini_chat(system_prompt: str, history: list[dict[str, str]], user_ms
     body = json.dumps({
         "system_instruction": {"parts": [{"text": system_prompt}]},
         "contents": contents,
-        "generationConfig": {"temperature": 0.25, "maxOutputTokens": 650},
+        "generationConfig": {"temperature": 0.25, "maxOutputTokens": 2048},
     }).encode("utf-8")
     try:
         req = urllib.request.Request(
