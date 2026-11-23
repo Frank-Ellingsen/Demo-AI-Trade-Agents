@@ -1717,6 +1717,17 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/analytics/signal-audit":
+            from weekly_signal_audit import get_weekly_signal_audit_payload
+            res_obj = get_weekly_signal_audit_payload()
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path in ("/api/kb/status", "/api/kb/search"):
             from knowledge_base_indexer import get_kb_status, search_knowledge_base
             if parsed.path == "/api/kb/status":
@@ -2495,6 +2506,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/v2-intraday": "AI_Trading_Terminal_v2_-_Intraday___Multi-Broker_Suite.html",
             "/v2-skatt-opsjoner": "AI_Trading_Terminal_v2_-_Skatteavsetning___Intradag_Opsjon.html",
             "/v2-pro": "AI_Trading_Terminal_v2_-_Pro_Dashboard.html",
+            "/calm-cockpit": "Alpaca_AI_Trading_Cockpit___Portfolio_Dashboard.html",
         }
         if parsed.path in dashboard_routes:
             fname = dashboard_routes[parsed.path]

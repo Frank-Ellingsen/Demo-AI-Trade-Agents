@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="aurora">
+  <title>Alpaca Paper &amp; AI Trading Desk — Calm UI Dashbord</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+
+      /* 1. Aurora :root tokens */
+      --background: #0c1214;
+      --surface-container-low: #111a1e;
+      --surface-container: #152024;
+      --surface-container-high: #1c2a30;
+
+      --on-surface: #edf3f5;
+      --on-surface-variant: #94a8b0;
+
+      --outline: #38515c;
+      --outline-variant: #213138;
+
+      --primary: #63c7d6;
+      --on-primary: #081214;
+      --primary-container: #163840;
+      --on-primary-container: #c7f0f7;
+      --secondary: #5d7882;
+      --tertiary: #87d69b;
+      --error: #f27474;
+      --on-error: #1a0606;
+
+      --data-1: #63c7d6;
+      --data-2: #87d69b;
+      --data-3: #e8b954;
+      --data-4: #f08c70;
+      --data-context: #415861;
+
+      --font-headline: 'Instrument Sans', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-label: 'Geist Mono', monospace;
+
+      --rounded: 0.5rem;
+      --rounded-lg: 0.75rem;
+      --rounded-full: 9999px;
+
+      --hairline: 1px solid var(--outline-variant);
+      --hairline-strong: 1px solid var(--outline);
+      --panel-gradient: linear-gradient(180deg, #162226 0%, #111a1e 100%);
+      --heading-tracking: -0.025em;
+      --label-tracking: 0.06em;
+      --sage-tint: color-mix(in srgb, var(--tertiary) 13%, transparent);
+      --cyan-tint: color-mix(in srgb, var(--primary) 13%, transparent);
+
+      /* 2. Shared semantic & scale tokens */
+      --positive: var(--tertiary);
+      --warning: var(--data-3);
+      --error-tint: color-mix(in srgb, var(--error) 13%, transparent);
+      --warning-tint: color-mix(in srgb, var(--warning) 13%, transparent);
+      --neutral-tint: color-mix(in srgb, var(--secondary) 16%, transparent);
+      --row-fill-sage: color-mix(in srgb, var(--tertiary) 10%, transparent);
+      --row-fill-error: color-mix(in srgb, var(--error) 10%, transparent);
+      --scrim: rgba(6, 10, 12, 0.76);
+      --drawer-shadow: -12px 0 36px rgba(4, 8, 10, 0.55);
+      --topbar-bg: rgba(12, 18, 20, 0.92);
+
+      --focus: var(--primary);
+
+      /* Dashboard type scale */
+      --display-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing scale (4pt base) */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+      --space-3xl: 6rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+    }
+
+    /* Base reset */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--background);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    header { position: static !important; }
+
+    /* Focus rings */
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    /* Zone 1: Sticky Top Strip */
+    .sticky-top-strip {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--topbar-bg);
+      backdrop-filter: blur(10px);
+      border-bottom: var(--hairline);
+    }
+
+    .top-strip-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: var(--space-sm) var(--space-lg);
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+      gap: var(--space-md);
+      align-items: center;
+    }
+
+    .strip-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-right: var(--space-md);
+      border-right: var(--hairline);
+      min-width: 0;
+    }
+
+    .strip-metric:last-of-type {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    .strip-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .strip-val-row {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .strip-value {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--subhead-size);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: var(--heading-tracking);
+      color: var(--on-surface);
+    }
+
+    .strip-sub {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface-variant);
+    }
+
+    .strip-sub.is-pos { color: var(--positive); }
+    .strip-sub.is-neg { color: var(--error); }
+    .strip-sub.is-warn { color: var(--warning); }
+
+    .strip-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      justify-content: flex-end;
+    }
+
+    .latency-group {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      background: var(--surface-container-low);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-xs) var(--space-sm);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    .latency-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .latency-val {
+      color: var(--positive);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Main Workspace Container */
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1440px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Quiet Page Header */
+    .desk-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: var(--hairline);
+    }
+
+    .desk-title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--display-size);
+      letter-spacing: var(--heading-tracking);
+      line-height: 1.1;
+      margin: 0;
+      color: var(--on-surface);
+    }
+
+    .desk-subtitle {
+      margin: var(--space-xs) 0 0 0;
+      font-size: var(--body-size);
+      color: var(--on-surface-variant);
+      max-width: 65ch;
+    }
+
+    .desk-meta-strip {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    /* Asymmetric 60 / 40 Bento Grid */
+    .bento-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+
+    .bento-col-left,
+    .bento-col-right {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+      min-width: 0;
+    }
+
+    /* Aurora Tonal Mineral Panel */
+    .panel {
+      background: var(--panel-gradient);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .panel-title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--headline-size);
+      letter-spacing: var(--heading-tracking);
+      line-height: 1.16;
+      margin: 0;
+      color: var(--on-surface);
+    }
+
+    .panel-desc {
+      margin: var(--space-xs) 0 0 0;
+      font-size: var(--body-size);
+      color: var(--on-surface-variant);
+    }
+
+    .data-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      min-height: 44px;
+      padding: 0 var(--space-md);
+      border-radius: var(--rounded);
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--body-size);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background-color var(--dur-micro) var(--ease-out),
+                  color var(--dur-micro) var(--ease-out),
+                  box-shadow var(--dur-micro) var(--ease-out),
+                  transform var(--dur-micro) var(--ease-out);
+      white-space: nowrap;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--on-primary-container);
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border-color: var(--outline);
+      color: var(--on-surface);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--surface-container-high);
+    }
+
+    .btn-ghost-danger {
+      background-color: transparent;
+      border-color: var(--outline-variant);
+      color: var(--on-surface-variant);
+    }
+    .btn-ghost-danger:hover:not(:disabled) {
+      background-color: var(--error-tint);
+      border-color: color-mix(in srgb, var(--error) 40%, transparent);
+      color: var(--error);
+    }
+
+    .btn-sm {
+      min-height: 44px;
+      padding: 0 var(--space-md);
+      font-size: var(--label-size);
+      font-family: var(--font-label);
+    }
+
+    /* Segmented Controls */
+    .seg-group {
+      display: inline-flex;
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: 2px;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .seg-btn {
+      min-height: 40px;
+      padding: 0 var(--space-sm);
+      border: none;
+      background: transparent;
+      color: var(--on-surface-variant);
+      border-radius: calc(var(--rounded) - 2px);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      cursor: pointer;
+      transition: background-color var(--dur-micro) var(--ease-out),
+                  color var(--dur-micro) var(--ease-out);
+    }
+
+    .seg-btn:hover {
+      color: var(--on-surface);
+    }
+
+    .seg-btn.is-active {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    /* Chart Well */
+    .chart-controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 3px;
+      border-radius: var(--rounded-full);
+      display: inline-block;
+    }
+    .swatch-primary { background-color: var(--data-1); }
+    .swatch-bench { background-color: var(--data-context); }
+
+    .chart-well {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      position: relative;
+      min-height: 290px;
+      height: 300px;
+      width: 100%;
+    }
+
+    /* Open Positions Table (Tufte + Binance subtle row depth fill) */
+    .table-scroll {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    .positions-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .positions-table th {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      font-weight: 500;
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      text-align: left;
+      padding: var(--space-sm) var(--space-sm);
+      border-bottom: var(--hairline-strong);
+      white-space: nowrap;
+    }
+
+    .positions-table th.num,
+    .positions-table td.num {
+      text-align: right;
+    }
+
+    .positions-table td {
+      padding: var(--space-md) var(--space-sm);
+      border-bottom: var(--hairline);
+      vertical-align: middle;
+      font-size: var(--body-size);
+    }
+
+    .positions-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .positions-table tbody tr:hover {
+      background-color: var(--surface-container-high);
+    }
+
+    .pos-ticker-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .pos-ticker {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      color: var(--on-surface);
+    }
+
+    .pos-strat {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    /* Weight bar fill inside table cell (Binance second-dimension pattern) */
+    .cell-depth-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--rounded);
+      overflow: hidden;
+    }
+
+    .cell-depth-bar {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--cyan-tint);
+      pointer-events: none;
+    }
+
+    .cell-depth-val {
+      position: relative;
+      font-family: var(--font-label);
+      font-weight: 500;
+      color: var(--on-surface);
+    }
+
+    .cell-depth-sub {
+      position: relative;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    .mono-val {
+      font-family: var(--font-label);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .delta-pos { color: var(--positive); }
+    .delta-neg { color: var(--error); }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: var(--rounded);
+      padding: 2px var(--space-sm);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      white-space: nowrap;
+    }
+
+    .chip-sage {
+      background: var(--sage-tint);
+      color: var(--tertiary);
+      border: 1px solid color-mix(in srgb, var(--tertiary) 35%, transparent);
+    }
+
+    .chip-cyan {
+      background: var(--cyan-tint);
+      color: var(--primary);
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    }
+
+    .chip-amber {
+      background: var(--warning-tint);
+      color: var(--warning);
+      border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+    }
+
+    .chip-error {
+      background: var(--error-tint);
+      color: var(--error);
+      border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+    }
+
+    /* Norwegian Tax Vault Widget */
+    .tax-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+
+    .tax-tile {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .tax-figure {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--headline-size);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: var(--heading-tracking);
+      color: var(--on-surface);
+    }
+
+    .tax-figure.is-pos { color: var(--positive); }
+    .tax-figure.is-warn { color: var(--warning); }
+
+    .tax-note {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    .fx-control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      padding-top: var(--space-sm);
+      border-top: var(--hairline);
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .input-label {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      letter-spacing: var(--label-tracking);
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+
+    .well-input {
+      background: var(--background);
+      border: var(--hairline-strong);
+      border-radius: var(--rounded);
+      min-height: 44px;
+      padding: 0 var(--space-md);
+      color: var(--on-surface);
+      font-family: var(--font-label);
+      font-size: var(--body-size);
+      width: 100%;
+      transition: box-shadow var(--dur-micro) var(--ease-out);
+    }
+
+    .well-input:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 1px;
+    }
+
+    /* Zone 3: HITL Approval Queue */
+    .cap-banner {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    .hitl-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .hitl-card {
+      background: var(--surface-container);
+      border: var(--hairline);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+      transition: transform var(--dur-short) var(--ease-out),
+                  opacity var(--dur-short) var(--ease-out);
+    }
+
+    .hitl-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .hitl-symbol-wrap {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .hitl-symbol {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--subhead-size);
+      color: var(--on-surface);
+    }
+
+    .hitl-params-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-sm);
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .param-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .param-val {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--body-size);
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface);
+    }
+
+    .xai-box {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      font-size: var(--body-size);
+    }
+
+    .xai-row {
+      display: flex;
+      gap: var(--space-sm);
+      align-items: baseline;
+    }
+
+    .xai-tag {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--primary);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .xai-tag-warn {
+      color: var(--warning);
+    }
+
+    .xai-text {
+      color: var(--on-surface-variant);
+      font-size: var(--body-size);
+    }
+
+    .hitl-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: var(--space-sm);
+    }
+
+    .empty-state-box {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-lg);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    /* Inline Notification Feedback */
+    .inline-feedback {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .inline-feedback[hidden] {
+      display: none;
+    }
+
+    /* Knowledge Base & RAG Lookup */
+    .rag-results {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .rag-item {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .rag-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .rag-title {
+      font-family: var(--font-headline);
+      font-weight: 600;
+      font-size: var(--body-size);
+      color: var(--on-surface);
+    }
+
+    .rag-source {
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      color: var(--primary);
+    }
+
+    .rag-body {
+      margin: 0;
+      font-size: var(--body-size);
+      color: var(--on-surface-variant);
+      max-width: 65ch;
+    }
+
+    /* Zone 4: Hidden Admin Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--scrim);
+      z-index: 80;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--dur-short) var(--ease-out);
+    }
+
+    .drawer-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .admin-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(640px, 100vw);
+      background: var(--surface-container-low);
+      border-left: var(--hairline-strong);
+      box-shadow: var(--drawer-shadow);
+      z-index: 90;
+      transform: translateX(100%);
+      transition: transform var(--dur-short) var(--ease-out);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .admin-drawer.is-open {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: var(--space-lg);
+      border-bottom: var(--hairline);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
+    .drawer-tabs {
+      padding: var(--space-sm) var(--space-lg);
+      border-bottom: var(--hairline);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      background: var(--background);
+    }
+
+    .drawer-body {
+      padding: var(--space-lg);
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .drawer-footer {
+      padding: var(--space-md) var(--space-lg);
+      border-top: var(--hairline);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      background: var(--background);
+    }
+
+    .log-stream {
+      background: var(--background);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      font-family: var(--font-label);
+      font-size: var(--label-size);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr);
+      gap: var(--space-sm);
+      align-items: baseline;
+      padding-bottom: var(--space-xs);
+      border-bottom: var(--hairline);
+    }
+    .log-line:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .log-ts { color: var(--on-surface-variant); }
+    .log-src { color: var(--primary); }
+    .log-msg { color: var(--on-surface); word-break: break-word; }
+
+    .diag-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-md);
+    }
+
+    .diag-card {
+      background: var(--surface-container);
+      border: var(--hairline);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .footer-sources {
+      margin-top: var(--space-sm);
+      padding-top: var(--space-md);
+      border-top: var(--hairline);
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1120px) {
+      .top-strip-inner {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .strip-controls {
+        grid-column: 1 / -1;
+        justify-content: space-between;
+      }
+      .bento-workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-grid {
+        padding: var(--space-md);
+        gap: var(--space-md);
+      }
+      .top-strip-inner {
+        grid-template-columns: 1fr;
+        padding: var(--space-sm) var(--space-md);
+        gap: var(--space-sm);
+      }
+      .strip-metric {
+        border-right: none;
+        border-bottom: var(--hairline);
+        padding-right: 0;
+        padding-bottom: var(--space-xs);
+      }
+      .tax-grid,
+      .hitl-params-grid,
+      .diag-grid,
+      .hitl-actions {
+        grid-template-columns: 1fr;
+      }
+      .latency-group {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ZONE 1: Fast topplinje (Sticky Top Strip) -->
+  <div class="sticky-top-strip" role="region" aria-label="Sanntids portefølje- og systemlinje">
+    <div class="top-strip-inner">
+      <div class="strip-metric">
+        <span class="strip-label">Total porteføljeverdi ($100k baseline)</span>
+        <div class="strip-val-row">
+          <span class="strip-value" id="top-total-equity">$102,736.20</span>
+          <span class="strip-sub is-pos" id="top-total-delta">+$2,736.20 (+2.74 %)</span>
+        </div>
+      </div>
+
+      <div class="strip-metric">
+        <span class="strip-label">Dagens P&amp;L</span>
+        <div class="strip-val-row">
+          <span class="strip-value" id="top-today-pnl">+$262.60</span>
+          <span class="strip-sub is-pos" id="top-today-pct">+0.26 % intraday</span>
+        </div>
+      </div>
+
+      <div class="strip-metric">
+        <span class="strip-label">Ledig kjøpekraft / cashbuffer</span>
+        <div class="strip-val-row">
+          <span class="strip-value" id="top-cash-buffer">$83,906.30</span>
+          <span class="strip-sub" id="top-cash-pct">81.7 % fri kapital</span>
+        </div>
+      </div>
+
+      <div class="strip-metric">
+        <span class="strip-label">Markedsregime &amp; VIX</span>
+        <div class="strip-val-row">
+          <span class="strip-value" id="top-vix-val">VIX 16.4</span>
+          <span class="strip-sub is-pos" id="top-regime-label">Bull-regime (SPY &gt; SMA200)</span>
+        </div>
+      </div>
+
+      <div class="strip-controls">
+        <button type="button" class="latency-group" onclick="openAdminDrawer('latency')" aria-label="Åpne latensdiagnostikk og systemlogger" title="Klikk for detaljert diagnostikk">
+          <span class="latency-item">Alpaca <span class="latency-val" id="lat-alpaca">28 ms</span></span>
+          <span aria-hidden="true">·</span>
+          <span class="latency-item">SIP <span class="latency-val" id="lat-sip">14 ms</span></span>
+          <span aria-hidden="true">·</span>
+          <span class="latency-item">DuckDB <span class="latency-val" id="lat-duck">1.8 ms</span></span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openAdminDrawer('logs')">
+          System &amp; Logger
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="page-grid">
+
+    <header class="desk-header">
+      <div>
+        <h1 class="desk-title">Alpaca Paper &amp; AI Trading Desk</h1>
+        <p class="desk-subtitle">
+          Rolig beslutningsflate for systematisk 15-min Opening Range Breakout (ORB) og VWAP Pullback med menneskelig ordregodkjenning.
+        </p>
+      </div>
+      <div class="desk-meta-strip">
+        <span class="status-chip chip-cyan">Alpaca Paper v2 · Kun US-aksjer</span>
+        <span class="status-chip chip-sage">Massive.com SIP (100 % volum)</span>
+        <span class="status-chip chip-amber" id="header-cap-badge">Ordretak: maks $5 000</span>
+      </div>
+    </header>
+
+    <!-- ASYMMETRIC BENTO GRID: ~60% Left / ~40% Right -->
+    <div class="bento-workspace">
+
+      <!-- ZONE 2: Portefølje og markedsoversikt (Venstre kolonne ~60%) -->
+      <div class="bento-col-left">
+
+        <!-- 2A: Equity Curve vs SPY Benchmark -->
+        <section class="panel" aria-labelledby="sec-equity-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="sec-equity-title">Avkastningskurve mot S&amp;P 500 (SPY)</h2>
+              <p class="panel-desc">Relativ utvikling fra $100 000 baseline målt mot passiv referanseindeks.</p>
+            </div>
+            <div class="seg-group" role="group" aria-label="Tidsperiode for avkastningskurve">
+              <button type="button" class="seg-btn" data-range="1D" onclick="setChartRange('1D')">1D</button>
+              <button type="button" class="seg-btn" data-range="1U" onclick="setChartRange('1U')">1U</button>
+              <button type="button" class="seg-btn is-active" data-range="1M" onclick="setChartRange('1M')">1M</button>
+              <button type="button" class="seg-btn" data-range="YTD" onclick="setChartRange('YTD')">YTD</button>
+            </div>
+          </div>
+
+          <div class="chart-controls-row">
+            <div class="chart-legend">
+              <span class="legend-item">
+                <span class="legend-swatch swatch-primary" aria-hidden="true"></span>
+                Alpaca Paper (<span id="chart-port-ret" class="mono-val delta-pos">+2.74 %</span>)
+              </span>
+              <span class="legend-item">
+                <span class="legend-swatch swatch-bench" aria-hidden="true"></span>
+                SPY Benchmark (<span id="chart-spy-ret" class="mono-val">+1.68 %</span>)
+              </span>
+              <span class="legend-item">
+                Relativ alfa: <strong id="chart-alpha-val" class="mono-val delta-pos">+1.06 pp</strong>
+              </span>
+            </div>
+
+            <div class="seg-group" role="group" aria-label="Visningsmodus for graf">
+              <button type="button" class="seg-btn is-active" data-mode="pct" onclick="setChartMode('pct')">% Avkastning</button>
+              <button type="button" class="seg-btn" data-mode="usd" onclick="setChartMode('usd')">$ Egenkapital</button>
+            </div>
+          </div>
+
+          <div class="chart-well">
+            <canvas id="equityChart" aria-label="Avkastningskurve Alpaca Paper mot SPY"></canvas>
+          </div>
+        </section>
+
+        <!-- 2B: Åpne posisjoner-tabell -->
+        <section class="panel" aria-labelledby="sec-positions-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="sec-positions-title">Åpne posisjoner</h2>
+              <p class="panel-desc">Live Alpaca-beholdning med 14d ATR stop-loss, profit target og kapitalutnyttelse mot $5 000-taket.</p>
+            </div>
+            <span class="status-chip chip-cyan" id="open-pos-count-chip">4 åpne posisjoner</span>
+          </div>
+
+          <div class="table-scroll">
+            <table class="positions-table">
+              <thead>
+                <tr>
+                  <th>Instrument / Strategi</th>
+                  <th class="num">Antall · Snitt</th>
+                  <th class="num">Posisjonsverdi</th>
+                  <th class="num">Stop / Target (OCO)</th>
+                  <th class="num">Urealisert P&amp;L</th>
+                  <th class="num">Handling</th>
+                </tr>
+              </thead>
+              <tbody id="positions-tbody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 2C: Norsk Skattevelv-widget -->
+        <section class="panel" aria-labelledby="sec-tax-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="sec-tax-title">Norsk Skattevelv (DuckDB Tracker)</h2>
+              <p class="panel-desc">Løpende skatteavsetning i NOK etter norske regler (37,84 % aksjeskatt og 15 % W-8BEN kreditfradrag).</p>
+            </div>
+            <span class="status-chip chip-sage">tax_tracker_duckdb.py</span>
+          </div>
+
+          <div class="tax-grid">
+            <div class="tax-tile">
+              <span class="strip-label">Akkumulert realisert P&amp;L</span>
+              <span class="tax-figure is-pos" id="tax-realized-usd">+$2,415.00</span>
+              <span class="tax-note" id="tax-realized-nok">26 202,75 kr (brutto)</span>
+            </div>
+
+            <div class="tax-tile">
+              <span class="strip-label">Avsatt norsk skatt (37,84 %)</span>
+              <span class="tax-figure is-warn" id="tax-nok-reserve">10 757,69 kr</span>
+              <span class="tax-note" id="tax-nok-breakdown">22 % × 1,72 + netto utbytteskatt</span>
+            </div>
+
+            <div class="tax-tile">
+              <span class="strip-label">W-8BEN 15 % kildeskatt (IRS)</span>
+              <span class="tax-figure" id="tax-w8ben-credit">553,35 kr</span>
+              <span class="tax-note" id="tax-w8ben-note">$51.00 trukket · 100 % kreditfradrag</span>
+            </div>
+          </div>
+
+          <div class="fx-control-row">
+            <div class="input-group" style="max-width: 210px; width: 100%;">
+              <label class="input-label" for="fx-rate-input">USD / NOK transaksjonskurs</label>
+              <input type="number" id="fx-rate-input" class="well-input" min="7.00" max="15.00" step="0.05" value="10.85" oninput="updateFxRate(this.value)">
+            </div>
+            <div class="tax-note" id="tax-net-after-tax">
+              Netto realisert gevinst etter avsatt skatt: <strong style="color: var(--positive);">16 287,63 kr</strong>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ZONE 3: AI Command & HITL Godkjenningskø (Høyre kolonne ~40%) -->
+      <div class="bento-col-right">
+
+        <!-- 3A: HITL Approval Queue -->
+        <section class="panel" aria-labelledby="sec-hitl-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="sec-hitl-title">AI Command &amp; HITL-kø</h2>
+              <p class="panel-desc">Signaler krever eksplisitt menneskelig godkjenning før ordre sendes til Alpaca.</p>
+            </div>
+            <span class="status-chip chip-amber" id="hitl-queue-count">3 venter</span>
+          </div>
+
+          <div class="cap-banner">
+            <span>Deterministisk sperre: <strong>Maks $5 000 / handel</strong></span>
+            <span>OCO Bracket: <strong>Limit + 14d ATR Stop + Target</strong></span>
+          </div>
+
+          <div id="hitl-feedback" class="inline-feedback" hidden>
+            <span id="hitl-feedback-text"></span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="dismissFeedback()">Skjul</button>
+          </div>
+
+          <div class="hitl-list" id="hitl-queue-list"></div>
+        </section>
+
+        <!-- 3B: Kunnskapsbase & RAG-oppslag -->
+        <section class="panel" aria-labelledby="sec-rag-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="sec-rag-title">Kunnskapsbase &amp; RAG-oppslag</h2>
+              <p class="panel-desc">Regler, risikorammer og faglige sitater fra Finance Knowledge Base.</p>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="rag-search-input">Søk i regler, strategier og skatteberegning</label>
+            <input type="search" id="rag-search-input" class="well-input" placeholder="F.eks. ORB, VWAP, 37,84 %, ATR, SIP..." oninput="filterKnowledgeBase(this.value)">
+          </div>
+
+          <div class="seg-group" role="group" aria-label="Filtrer kunnskapsbase etter kategori">
+            <button type="button" class="seg-btn is-active" data-kb-cat="alle" onclick="setKbCategory('alle')">Alle</button>
+            <button type="button" class="seg-btn" data-kb-cat="strategi" onclick="setKbCategory('strategi')">ORB &amp; VWAP</button>
+            <button type="button" class="seg-btn" data-kb-cat="risiko" onclick="setKbCategory('risiko')">HITL &amp; Risiko</button>
+            <button type="button" class="seg-btn" data-kb-cat="skatt" onclick="setKbCategory('skatt')">Skatt &amp; Infra</button>
+          </div>
+
+          <div class="rag-results" id="rag-results-list"></div>
+        </section>
+
+      </div>
+    </div>
+
+    <footer class="footer-sources">
+      <span>Grunnlag: Alpaca Markets Paper v2 · Massive.com SIP (CTA/UTP) · DuckDB Tax Tracker · Skatteloven § 10-20 / § 10-70</span>
+      <span>Designprinsipper: Calm UI Bento Grid · Human-in-the-Loop AI · 7 Trading Dashboard Design Examples</span>
+    </footer>
+  </main>
+
+  <!-- ZONE 4: Skjult administrasjonsskuff (Drawer) -->
+  <div class="drawer-backdrop" id="drawer-backdrop" onclick="closeAdminDrawer()"></div>
+  <aside class="admin-drawer" id="admin-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
+    <div class="drawer-header">
+      <div>
+        <span class="data-label">Skjult drift &amp; revisjon</span>
+        <h2 class="panel-title" id="drawer-title">Systemadministrasjon &amp; Logger</h2>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="closeAdminDrawer()">Lukk (Esc)</button>
+    </div>
+
+    <div class="drawer-tabs">
+      <div class="seg-group" role="tablist" aria-label="Administrasjonsfaner">
+        <button type="button" class="seg-btn is-active" data-drawer-tab="logs" onclick="switchDrawerTab('logs')">Terminal-logger</button>
+        <button type="button" class="seg-btn" data-drawer-tab="history" onclick="switchDrawerTab('history')">Eksekveringshistorikk</button>
+        <button type="button" class="seg-btn" data-drawer-tab="latency" onclick="switchDrawerTab('latency')">Latens &amp; Regime</button>
+      </div>
+    </div>
+
+    <div class="drawer-body" id="drawer-body"></div>
+
+    <div class="drawer-footer">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="exportAuditCsv()">Eksporter CSV-logg</button>
+      <button type="button" class="btn btn-ghost-danger btn-sm" id="reset-state-btn" onclick="handleResetDemo(this)">Tilbakestill demo-tilstand</button>
+    </div>
+  </aside>
+
+  <api-shim></api-shim>
+  <script>
+    // ---------- INITIAL DATA & CONSTANTS ----------
+    const BASELINE_CAPITAL = 100000;
+    const HARD_TRADE_CAP = 5000;
+
+    const DEFAULT_POSITIONS = [
+      {
+        id: `pos-nvda`,
+        ticker: `NVDA`,
+        strategy: `15m ORB`,
+        qty: 34,
+        entryPrice: 138.20,
+        currentPrice: 143.60,
+        stopPrice: 134.80,
+        targetPrice: 147.20,
+        todayPnl: 142.80
+      },
+      {
+        id: `pos-msft`,
+        ticker: `MSFT`,
+        strategy: `VWAP Pullback`,
+        qty: 11,
+        entryPrice: 418.50,
+        currentPrice: 425.10,
+        stopPrice: 411.20,
+        targetPrice: 434.80,
+        todayPnl: 59.40
+      },
+      {
+        id: `pos-avgo`,
+        ticker: `AVGO`,
+        strategy: `15m ORB`,
+        qty: 26,
+        entryPrice: 176.40,
+        currentPrice: 181.90,
+        stopPrice: 171.50,
+        targetPrice: 188.40,
+        todayPnl: 114.40
+      },
+      {
+        id: `pos-amd`,
+        ticker: `AMD`,
+        strategy: `VWAP Pullback`,
+        qty: 30,
+        entryPrice: 154.00,
+        currentPrice: 151.40,
+        stopPrice: 148.90,
+        targetPrice: 164.50,
+        todayPnl: -54.00
+      }
+    ];
+
+    const DEFAULT_HITL_QUEUE = [
+      {
+        id: `hitl-meta`,
+        ticker: `META`,
+        direction: `LONG`,
+        strategy: `VWAP Pullback`,
+        qty: 8,
+        entryLimit: 586.40,
+        stopPrice: 575.10,
+        targetPrice: 609.00,
+        rvol: `2.1x`,
+        vwapContext: `+0.28 % over session VWAP`,
+        regimeSupport: `VIX 16.4 · SPY > SMA200`,
+        devilAdvocate: `Nærmer seg intradag-motstand ved $592; høy korrelasjon mot eksisterende tech-beholdning.`
+      },
+      {
+        id: `hitl-jpm`,
+        ticker: `JPM`,
+        direction: `LONG`,
+        strategy: `15m ORB`,
+        qty: 20,
+        entryLimit: 241.80,
+        stopPrice: 237.40,
+        targetPrice: 251.50,
+        rvol: `2.6x`,
+        vwapContext: `Rent brudd over 15m ORB ($241.10)`,
+        regimeSupport: `Sektorspredning (Finans) · Ingen tall < 48t`,
+        devilAdvocate: `Finansindeksen XLF viser moderat bredde siste 30 min; pass på spread ved limit-fylling.`
+      },
+      {
+        id: `hitl-xom`,
+        ticker: `XOM`,
+        direction: `LONG`,
+        strategy: `15m ORB`,
+        qty: 41,
+        entryLimit: 118.40,
+        stopPrice: 115.60,
+        targetPrice: 124.60,
+        rvol: `1.9x`,
+        vwapContext: `Brudd over 15m ORB ($117.95) · +0.42 % over VWAP`,
+        regimeSupport: `Brent +1.4 % · Lav beta mot Nasdaq`,
+        devilAdvocate: `Energisektoren er sensitiv for plutselige råvarenyheter; krev stram 14d ATR-stopp.`
+      }
+    ];
+
+    const REFILL_CANDIDATES = [
+      {
+        id: `hitl-googl`,
+        ticker: `GOOGL`,
+        direction: `LONG`,
+        strategy: `VWAP Pullback`,
+        qty: 27,
+        entryLimit: 179.20,
+        stopPrice: 175.60,
+        targetPrice: 187.10,
+        rvol: `1.8x`,
+        vwapContext: `Testet session VWAP ($178.95) på avtakende salgsvolum`,
+        regimeSupport: `Bull-regime · Massive SIP bekreftet`,
+        devilAdvocate: `Kommende antitrust-høring neste uke kan øke implisitt volatilitet.`
+      },
+      {
+        id: `hitl-gs`,
+        ticker: `GS`,
+        direction: `LONG`,
+        strategy: `15m ORB`,
+        qty: 8,
+        entryLimit: 588.00,
+        stopPrice: 576.50,
+        targetPrice: 613.30,
+        rvol: `2.3x`,
+        vwapContext: `Brudd over åpningsintervall ($585.80) med positiv kumulativ delta`,
+        regimeSupport: `VIX < 18 · Finans-momentum`,
+        devilAdvocate: `Høy stykkpris gir grovere posisjonering (8 aksjer = $4,704); lavere fleksibilitet på delsalg.`
+      }
+    ];
+
+    const DEFAULT_HISTORY = [
+      { ts: `2026-11-21 15:52`, ticker: `AAPL`, strategy: `15m ORB`, action: `LUKKET (Target)`, qty: 21, price: 229.40, pnl: 640.00, slippageBps: `1.2` },
+      { ts: `2026-11-20 19:14`, ticker: `NVDA`, strategy: `VWAP Pullback`, action: `LUKKET (Target)`, qty: 35, price: 141.80, pnl: 920.00, slippageBps: `0.9` },
+      { ts: `2026-11-19 16:08`, ticker: `MSFT`, strategy: `15m ORB`, action: `LUKKET (ATR Stop)`, qty: 11, price: 412.10, pnl: -215.00, slippageBps: `1.8` },
+      { ts: `2026-11-18 17:41`, ticker: `AMZN`, strategy: `VWAP Pullback`, action: `LUKKET (Target)`, qty: 23, price: 211.60, pnl: 485.00, slippageBps: `1.1` },
+      { ts: `2026-11-15 16:29`, ticker: `GOOGL`, strategy: `15m ORB`, action: `LUKKET (Target)`, qty: 26, price: 178.90, pnl: 710.00, slippageBps: `0.8` },
+      { ts: `2026-11-14 15:47`, ticker: `META`, strategy: `VWAP Pullback`, action: `LUKKET (ATR Stop)`, qty: 8, price: 579.30, pnl: -125.00, slippageBps: `1.5` }
+    ];
+
+    const DEFAULT_LOGS = [
+      { ts: `15:46:12`, src: `MASSIVE_SIP`, msg: `CTA/UTP stream aktiv (19 børser). 100 % US-volum synkronisert.` },
+      { ts: `15:46:15`, src: `AGENT_QUANT`, msg: `15m ORB ferdigberegnet for US-univers. 2 nye utbrudd over RVOL 1.8x.` },
+      { ts: `15:46:16`, src: `AGENT_XAI`, msg: `Genererte begrunnelser og Djevelens advokat for META, JPM, XOM.` },
+      { ts: `15:46:17`, src: `HITL_GATE`, msg: `3 ordreforslag parkert i menneskelig godkjenningskø (< $5 000 tak).` },
+      { ts: `15:46:18`, src: `DUCKDB_TAX`, msg: `tax_tracker_duckdb.py oppdatert: 37,84 % skatteavsetning + W-8BEN 15 % kredit.` }
+    ];
+
+    const KNOWLEDGE_BASE = [
+      {
+        id: `kb-orb`,
+        cat: `strategi`,
+        title: `15-min Opening Range Breakout (ORB)`,
+        source: `Opening Range Breakout Guide · LiteFinance`,
+        body: `Åpningsintervallet de første 15 minuttene filtrerer bort åpningsstøy samtidig som retning etableres. Kjøp/salg utløses ved brudd over høy/lav med bekreftet relativt volum (RVOL), og helst retest for bedre risk-reward.`
+      },
+      {
+        id: `kb-vwap`,
+        cat: `strategi`,
+        title: `VWAP Pullback & Kumulativ Delta`,
+        source: `Order Flow Trading Guide · Day Trading Strategies`,
+        body: `VWAP viser volumvektet gjennomsnittspris gjennom handelsdagen. Ved tilbakefall mot VWAP i en etablert trend bekrefter positiv kumulativ delta og lange nedre veker at kjøperne absorberer tilbudet.`
+      },
+      {
+        id: `kb-cap`,
+        cat: `risiko`,
+        title: `Hardt ordretak ($5 000) & 14d ATR Stop-Loss`,
+        source: `Agent Rulebook · Risk Architecture`,
+        body: `Hver enkeltordre er deterministisk begrenset til maks $5 000 i eksponering og sendes som OCO Bracket (Entry Limit + 14d ATR Stop-Loss + Profit Target) slik at tap kuttes automatisk uten nøling.`
+      },
+      {
+        id: `kb-hitl`,
+        cat: `risiko`,
+        title: `Human-in-the-Loop & Djevelens advokat`,
+        source: `HITL AI · NBIM Strategi & Teknisk rammeverk`,
+        body: `AI-modeller genererer analyse og forslag, men har ikke autonom ordreutførelse. Hvert kort tvinger frem et motargument («Djevelens advokat») for å motvirke automation bias og ren «rubber stamping».`
+      },
+      {
+        id: `kb-tax`,
+        cat: `skatt`,
+        title: `Norsk aksjeskatt (37,84 %) & W-8BEN kreditfradrag`,
+        source: `Skatteloven § 10-70 / § 10-20 · tax_tracker_duckdb.py`,
+        body: `Realisert gevinst og tap omregnes til NOK på transaksjonsdagen og beskattes med 37,84 % (22 % × 1,72 oppjusteringsfaktor). 15 % amerikansk kildeskatt på utbytte via Alpaca føres som krone-for-krone kreditfradrag.`
+      },
+      {
+        id: `kb-sip`,
+        cat: `skatt`,
+        title: `Massive.com SIP (100 % volum) vs. IEX-feed`,
+        source: `Capital Markets Infrastructure Comparative Analysis`,
+        body: `Gratis IEX-feeds dekker kun ~2,5 % av totalt US-volum og kan gi skjeve backtester. Konsolidert SIP via Massive.com og Alpaca Algo Trader Plus dekker 100 % av markedsvolumet på tvers av NYSE, Nasdaq, CBOE og dark pools.`
+      },
+      {
+        id: `kb-calmui`,
+        cat: `risiko`,
+        title: `Calm UI & Fargedisiplin i trading`,
+        source: `7 Trading Dashboard Design Examples · Calm UI Philosophy`,
+        body: `Grønn/sage og rød reserveres utelukkende for retning og P&L. Blinkende animasjoner fjernes for å redusere kognitiv tretthet. Andre datadimensjoner (som posisjonsvekt) legges som diskret bakgrunnsfyll i tabellceller.`
+      }
+    ];
+
+    const CHART_DATASETS = {
+      '1D': {
+        labels: [`15:30`, `16:00`, `16:30`, `17:00`, `17:30`, `18:00`, `18:30`, `19:00`],
+        portPct: [0.00, 0.08, 0.04, 0.12, 0.19, 0.15, 0.22, 0.26],
+        spyPct:  [0.00, 0.03, -0.02, 0.05, 0.09, 0.07, 0.11, 0.14]
+      },
+      '1U': {
+        labels: [`Man`, `Tir`, `Ons`, `Tor`, `Fre`],
+        portPct: [0.00, 0.42, 0.28, 0.91, 1.18],
+        spyPct:  [0.00, 0.19, 0.12, 0.54, 0.68]
+      },
+      '1M': {
+        labels: [`24. okt`, `28. okt`, `1. nov`, `5. nov`, `8. nov`, `12. nov`, `15. nov`, `19. nov`, `23. nov`],
+        portPct: [0.00, 0.45, 0.31, 0.96, 1.42, 1.18, 1.89, 2.38, 2.74],
+        spyPct:  [0.00, 0.22, 0.11, 0.52, 0.88, 0.74, 1.15, 1.44, 1.68]
+      },
+      'YTD': {
+        labels: [`Jan`, `Feb`, `Mar`, `Apr`, `Mai`, `Jun`, `Jul`, `Aug`, `Sep`, `Okt`, `Nov`],
+        portPct: [0.00, 1.40, 2.85, 2.10, 4.30, 5.90, 7.15, 6.40, 8.20, 9.65, 11.40],
+        spyPct:  [0.00, 1.10, 2.20, 1.30, 3.10, 4.40, 5.30, 4.60, 6.10, 7.20, 8.45]
+      }
+    };
+
+    const REGIME_PROFILES = {
+      bull: { vix: `16.4`, label: `Bull-regime (SPY > SMA200)`, cls: `is-pos`, alpacaMs: `28 ms`, sipMs: `14 ms`, duckMs: `1.8 ms`, llmMs: `410 ms` },
+      neutral: { vix: `21.2`, label: `Nøytralt regime (Økt selektivitet)`, cls: `is-warn`, alpacaMs: `34 ms`, sipMs: `18 ms`, duckMs: `1.9 ms`, llmMs: `440 ms` },
+      high: { vix: `27.8`, label: `Høy uro (VIX ≥ 25 · Kjøp begrenset)`, cls: `is-neg`, alpacaMs: `46 ms`, sipMs: `24 ms`, duckMs: `2.1 ms`, llmMs: `495 ms` }
+    };
+
+    // ---------- MUTABLE STATE ----------
+    let appState = {
+      positions: JSON.parse(JSON.stringify(DEFAULT_POSITIONS)),
+      hitlQueue: JSON.parse(JSON.stringify(DEFAULT_HITL_QUEUE)),
+      history: JSON.parse(JSON.stringify(DEFAULT_HISTORY)),
+      logs: JSON.parse(JSON.stringify(DEFAULT_LOGS)),
+      realizedUsd: 2415.00,
+      dividendsUsd: 340.00,
+      fxRate: 10.85,
+      chartRange: `1M`,
+      chartMode: `pct`,
+      kbQuery: ``,
+      kbCat: `alle`,
+      regime: `bull`,
+      drawerTab: `logs`,
+      logFilter: `alle`
+    };
+
+    let equityChartInstance = null;
+
+    // ---------- HELPERS ----------
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
+
+    function fmtUsd(val, signed) {
+      const abs = Math.abs(val).toLocaleString(`en-US`, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (signed) {
+        return (val >= 0 ? `+$` : `-$`) + abs;
+      }
+      return `$` + abs;
+    }
+
+    function fmtNok(val) {
+      const abs = Math.abs(val).toLocaleString(`nb-NO`, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return (val < 0 ? `-` : ``) + abs + ` kr`;
+    }
+
+    function nowClock() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, `0`);
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function nowDateTime() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, `0`);
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function computeMetrics() {
+      let openCost = 0;
+      let openMarket = 0;
+      let unrealizedUsd = 0;
+      let todayPnl = 0;
+
+      for (const p of appState.positions) {
+        const cost = p.qty * p.entryPrice;
+        const mkt = p.qty * p.currentPrice;
+        openCost += cost;
+        openMarket += mkt;
+        unrealizedUsd += (mkt - cost);
+        todayPnl += p.todayPnl;
+      }
+
+      const cashBuffer = BASELINE_CAPITAL + appState.realizedUsd - openCost;
+      const totalEquity = cashBuffer + openMarket;
+      const totalDeltaUsd = totalEquity - BASELINE_CAPITAL;
+      const totalDeltaPct = (totalDeltaUsd / BASELINE_CAPITAL) * 100;
+      const prevEquity = totalEquity - todayPnl;
+      const todayPct = prevEquity > 0 ? (todayPnl / prevEquity) * 100 : 0;
+      const cashPct = totalEquity > 0 ? (cashBuffer / totalEquity) * 100 : 0;
+
+      return {
+        openCost,
+        openMarket,
+        unrealizedUsd,
+        todayPnl,
+        todayPct,
+        cashBuffer,
+        cashPct,
+        totalEquity,
+        totalDeltaUsd,
+        totalDeltaPct
+      };
+    }
+
+    async function persistState() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === `function`) {
+        try {
+          await window.notebookAppApi.setAppState(appState);
+        } catch (err) {
+          // Ignore persistence errors safely in offline previews
+        }
+      }
+    }
+
+    function addLog(src, msg) {
+      appState.logs.unshift({ ts: nowClock(), src, msg });
+      if (appState.logs.length > 40) appState.logs.length = 40;
+    }
+
+    function showFeedback(text) {
+      const box = document.getElementById(`hitl-feedback`);
+      const span = document.getElementById(`hitl-feedback-text`);
+      if (box && span) {
+        span.textContent = text;
+        box.hidden = false;
+      }
+    }
+
+    function dismissFeedback() {
+      const box = document.getElementById(`hitl-feedback`);
+      if (box) box.hidden = true;
+    }
+
+    // ---------- RENDER FUNCTIONS ----------
+    function renderTopStrip() {
+      const m = computeMetrics();
+      const reg = REGIME_PROFILES[appState.regime] || REGIME_PROFILES.bull;
+
+      const elEq = document.getElementById(`top-total-equity`);
+      const elEqDelta = document.getElementById(`top-total-delta`);
+      const elToday = document.getElementById(`top-today-pnl`);
+      const elTodayPct = document.getElementById(`top-today-pct`);
+      const elCash = document.getElementById(`top-cash-buffer`);
+      const elCashPct = document.getElementById(`top-cash-pct`);
+      const elVix = document.getElementById(`top-vix-val`);
+      const elReg = document.getElementById(`top-regime-label`);
+      const elLatAlpaca = document.getElementById(`lat-alpaca`);
+      const elLatSip = document.getElementById(`lat-sip`);
+      const elLatDuck = document.getElementById(`lat-duck`);
+
+      if (elEq) elEq.textContent = fmtUsd(m.totalEquity, false);
+      if (elEqDelta) {
+        elEqDelta.textContent = `${fmtUsd(m.totalDeltaUsd, true)} (${m.totalDeltaPct >= 0 ? `+` : ``}${m.totalDeltaPct.toFixed(2)} %)`;
+        elEqDelta.className = `strip-sub ${m.totalDeltaUsd >= 0 ? `is-pos` : `is-neg`}`;
+      }
+      if (elToday) elToday.textContent = fmtUsd(m.todayPnl, true);
+      if (elTodayPct) {
+        elTodayPct.textContent = `${m.todayPct >= 0 ? `+` : ``}${m.todayPct.toFixed(2)} % intraday`;
+        elTodayPct.className = `strip-sub ${m.todayPnl >= 0 ? `is-pos` : `is-neg`}`;
+      }
+      if (elCash) elCash.textContent = fmtUsd(m.cashBuffer, false);
+      if (elCashPct) elCashPct.textContent = `${m.cashPct.toFixed(1)} % fri kapital`;
+
+      if (elVix) elVix.textContent = `VIX ${reg.vix}`;
+      if (elReg) {
+        elReg.textContent = reg.label;
+        elReg.className = `strip-sub ${reg.cls}`;
+      }
+
+      if (elLatAlpaca) elLatAlpaca.textContent = reg.alpacaMs;
+      if (elLatSip) elLatSip.textContent = reg.sipMs;
+      if (elLatDuck) elLatDuck.textContent = reg.duckMs;
+    }
+
+    function renderEquityChart() {
+      const m = computeMetrics();
+      const ds = CHART_DATASETS[appState.chartRange] || CHART_DATASETS[`1M`];
+      const livePct = m.totalDeltaPct;
+      const portSeriesPct = ds.portPct.slice(0, -1).concat([Number(livePct.toFixed(2))]);
+      const spySeriesPct = ds.spyPct;
+
+      const latestPortPct = portSeriesPct[portSeriesPct.length - 1];
+      const latestSpyPct = spySeriesPct[spySeriesPct.length - 1];
+      const alphaPp = latestPortPct - latestSpyPct;
+
+      const elPortRet = document.getElementById(`chart-port-ret`);
+      const elSpyRet = document.getElementById(`chart-spy-ret`);
+      const elAlpha = document.getElementById(`chart-alpha-val`);
+
+      if (elPortRet) {
+        elPortRet.textContent = `${latestPortPct >= 0 ? `+` : ``}${latestPortPct.toFixed(2)} %`;
+        elPortRet.className = `mono-val ${latestPortPct >= 0 ? `delta-pos` : `delta-neg`}`;
+      }
+      if (elSpyRet) {
+        elSpyRet.textContent = `${latestSpyPct >= 0 ? `+` : ``}${latestSpyPct.toFixed(2)} %`;
+      }
+      if (elAlpha) {
+        elAlpha.textContent = `${alphaPp >= 0 ? `+` : ``}${alphaPp.toFixed(2)} pp`;
+        elAlpha.className = `mono-val ${alphaPp >= 0 ? `delta-pos` : `delta-neg`}`;
+      }
+
+      document.querySelectorAll(`[data-range]`).forEach(btn => {
+        btn.classList.toggle(`is-active`, btn.dataset.range === appState.chartRange);
+      });
+      document.querySelectorAll(`[data-mode]`).forEach(btn => {
+        btn.classList.toggle(`is-active`, btn.dataset.mode === appState.chartMode);
+      });
+
+      const canvas = document.getElementById(`equityChart`);
+      if (!canvas || typeof Chart === `undefined`) return;
+
+      const isUsd = appState.chartMode === `usd`;
+      const portData = isUsd ? portSeriesPct.map(p => Number((BASELINE_CAPITAL * (1 + p / 100)).toFixed(2))) : portSeriesPct;
+      const spyData = isUsd ? spySeriesPct.map(p => Number((BASELINE_CAPITAL * (1 + p / 100)).toFixed(2))) : spySeriesPct;
+
+      const cPrimary = cssVar(`--data-1`);
+      const cFill = cssVar(`--cyan-tint`);
+      const cBench = cssVar(`--data-context`);
+      const cGrid = cssVar(`--outline-variant`);
+      const cText = cssVar(`--on-surface-variant`);
+      const cSurface = cssVar(`--surface-container-high`);
+      const cOnSurface = cssVar(`--on-surface`);
+      const fontMono = cssVar(`--font-label`);
+
+      if (equityChartInstance) {
+        equityChartInstance.destroy();
+      }
+
+      equityChartInstance = new Chart(canvas.getContext(`2d`), {
+        type: `line`,
+        data: {
+          labels: ds.labels,
+          datasets: [
+            {
+              label: `Alpaca Paper`,
+              data: portData,
+              borderColor: cPrimary,
+              backgroundColor: cFill,
+              borderWidth: 2.2,
+              fill: true,
+              tension: 0.25,
+              pointRadius: 2.5,
+              pointHoverRadius: 5
+            },
+            {
+              label: `SPY Benchmark`,
+              data: spyData,
+              borderColor: cBench,
+              backgroundColor: `transparent`,
+              borderWidth: 1.75,
+              borderDash: [5, 4],
+              fill: false,
+              tension: 0.25,
+              pointRadius: 0,
+              pointHoverRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 220 },
+          interaction: { mode: `index`, intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: cSurface,
+              titleColor: cOnSurface,
+              bodyColor: cOnSurface,
+              borderColor: cGrid,
+              borderWidth: 1,
+              titleFont: { family: fontMono, size: 12 },
+              bodyFont: { family: fontMono, size: 12 },
+              callbacks: {
+                label: function(ctx) {
+                  const val = ctx.parsed.y;
+                  if (isUsd) {
+                    return `${ctx.dataset.label}: ${fmtUsd(val, false)}`;
+                  }
+                  return `${ctx.dataset.label}: ${val >= 0 ? `+` : ``}${val.toFixed(2)} %`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: cText, font: { family: fontMono, size: 11 } }
+            },
+            y: {
+              grid: { color: cGrid },
+              ticks: {
+                color: cText,
+                font: { family: fontMono, size: 11 },
+                callback: function(value) {
+                  if (isUsd) return `$${Math.round(value / 1000)}k`;
+                  return `${value >= 0 ? `+` : ``}${Number(value).toFixed(1)} %`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderPositionsTable() {
+      const tbody = document.getElementById(`positions-tbody`);
+      const countChip = document.getElementById(`open-pos-count-chip`);
+      if (!tbody) return;
+
+      if (countChip) {
+        countChip.textContent = `${appState.positions.length} åpne posisjoner`;
+      }
+
+      if (appState.positions.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6">
+              <div class="empty-state-box">
+                <span class="data-label">Ingen åpne posisjoner</span>
+                <span style="color: var(--on-surface-variant);">All kapital ligger i kontantbuffer. Godkjenn et AI-forslag til høyre for å åpne en ny posisjon.</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = appState.positions.map(p => {
+        const mktVal = p.qty * p.currentPrice;
+        const costVal = p.qty * p.entryPrice;
+        const unreal = mktVal - costVal;
+        const unrealPct = costVal > 0 ? (unreal / costVal) * 100 : 0;
+        const capShare = Math.min(100, (mktVal / HARD_TRADE_CAP) * 100);
+        const cls = unreal >= 0 ? `delta-pos` : `delta-neg`;
+
+        return `
+          <tr>
+            <td>
+              <div class="pos-ticker-cell">
+                <span class="pos-ticker">${p.ticker}</span>
+                <span class="pos-strat">${p.strategy}</span>
+              </div>
+            </td>
+            <td class="num mono-val">
+              <div>${p.qty} stk</div>
+              <div class="pos-strat">${fmtUsd(p.entryPrice, false)}</div>
+            </td>
+            <td class="num">
+              <div class="cell-depth-wrap">
+                <span class="cell-depth-bar" style="width: ${capShare.toFixed(0)}%;"></span>
+                <span class="cell-depth-val">${fmtUsd(mktVal, false)}</span>
+                <span class="cell-depth-sub">${capShare.toFixed(0)} % av $5k tak</span>
+              </div>
+            </td>
+            <td class="num mono-val">
+              <div class="delta-neg">${fmtUsd(p.stopPrice, false)}</div>
+              <div class="delta-pos">${fmtUsd(p.targetPrice, false)}</div>
+            </td>
+            <td class="num mono-val ${cls}">
+              <div>${fmtUsd(unreal, true)}</div>
+              <div class="pos-strat ${cls}">${unrealPct >= 0 ? `+` : ``}${unrealPct.toFixed(2)} %</div>
+            </td>
+            <td class="num">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="closePosition('${p.id}', this)">Lukk</button>
+            </td>
+          </tr>
+        `;
+      }).join(``);
+    }
+
+    function renderTaxVault() {
+      const fx = appState.fxRate > 0 ? appState.fxRate : 10.85;
+      const realUsd = appState.realizedUsd;
+      const realNok = realUsd * fx;
+
+      // 37.84% effective Norwegian equity tax (22% * 1.72) on positive realized gains
+      const capGainTaxNok = realNok > 0 ? realNok * 0.3784 : 0;
+
+      // US Dividends W-8BEN 15% withholding & credit against 37.84% Norwegian dividend tax
+      const divGrossNok = appState.dividendsUsd * fx;
+      const w8benUsd = appState.dividendsUsd * 0.15;
+      const w8benNok = w8benUsd * fx;
+      const norDivTaxGross = divGrossNok * 0.3784;
+      const remainingDivTaxNok = Math.max(0, norDivTaxGross - w8benNok);
+
+      const totalTaxReserveNok = capGainTaxNok + remainingDivTaxNok;
+      const netRealizedNok = realNok - capGainTaxNok;
+
+      const elRealUsd = document.getElementById(`tax-realized-usd`);
+      const elRealNok = document.getElementById(`tax-realized-nok`);
+      const elReserve = document.getElementById(`tax-nok-reserve`);
+      const elBreakdown = document.getElementById(`tax-nok-breakdown`);
+      const elW8Credit = document.getElementById(`tax-w8ben-credit`);
+      const elW8Note = document.getElementById(`tax-w8ben-note`);
+      const elNetAfter = document.getElementById(`tax-net-after-tax`);
+
+      if (elRealUsd) {
+        elRealUsd.textContent = fmtUsd(realUsd, true);
+        elRealUsd.className = `tax-figure ${realUsd >= 0 ? `is-pos` : `delta-neg`}`;
+      }
+      if (elRealNok) {
+        elRealNok.textContent = `${fmtNok(realNok)} (brutto)`;
+      }
+      if (elReserve) {
+        elReserve.textContent = fmtNok(totalTaxReserveNok);
+      }
+      if (elBreakdown) {
+        elBreakdown.textContent = realNok > 0
+          ? `Gevinstskatt ${fmtNok(capGainTaxNok)} + netto utbytte ${fmtNok(remainingDivTaxNok)}`
+          : `Tap gir 37,84 % fradragsgrunnlag · utbytteskatt ${fmtNok(remainingDivTaxNok)}`;
+      }
+      if (elW8Credit) elW8Credit.textContent = fmtNok(w8benNok);
+      if (elW8Note) elW8Note.textContent = `${fmtUsd(w8benUsd, false)} trukket · 100 % kreditfradrag`;
+      if (elNetAfter) {
+        elNetAfter.innerHTML = `Netto realisert resultat etter avsatt gevinstskatt: <strong style="color: ${netRealizedNok >= 0 ? `var(--positive)` : `var(--error)`};">${fmtNok(netRealizedNok)}</strong>`;
+      }
+    }
+
+    function renderHitlQueue() {
+      const list = document.getElementById(`hitl-queue-list`);
+      const countBadge = document.getElementById(`hitl-queue-count`);
+      if (!list) return;
+
+      if (countBadge) {
+        countBadge.textContent = `${appState.hitlQueue.length} venter`;
+        countBadge.className = `status-chip ${appState.hitlQueue.length > 0 ? `chip-amber` : `chip-sage`}`;
+      }
+
+      if (appState.hitlQueue.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state-box">
+            <span class="data-label">Godkjenningskøen er tom</span>
+            <p style="margin: 0; color: var(--on-surface-variant); max-width: 42ch;">
+              Alle ventende AI-signaler er behandlet. Du kan kjøre en ny skanning for å hente oppdaterte 15m ORB- og VWAP-oppsett.
+            </p>
+            <button type="button" class="btn btn-primary btn-sm" onclick="scanForNewSignals()">
+              Skann etter nye 15m ORB / VWAP-signaler
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = appState.hitlQueue.map(item => {
+        const orderTotal = item.qty * item.entryLimit;
+        const riskUsd = Math.abs((item.entryLimit - item.stopPrice) * item.qty);
+        const rewardUsd = Math.abs((item.targetPrice - item.entryLimit) * item.qty);
+        const rrRatio = riskUsd > 0 ? (rewardUsd / riskUsd).toFixed(1) : `2.0`;
+        const exceedsCap = orderTotal > HARD_TRADE_CAP;
+        const dirChip = item.direction === `LONG` ? `chip-sage` : `chip-error`;
+
+        return `
+          <article class="hitl-card" aria-label="Ordreforslag ${item.ticker}">
+            <div class="hitl-card-head">
+              <div class="hitl-symbol-wrap">
+                <span class="hitl-symbol">${item.ticker}</span>
+                <span class="status-chip ${dirChip}">${item.direction}</span>
+                <span class="status-chip chip-cyan">${item.strategy}</span>
+              </div>
+              <span class="mono-val" style="color: ${exceedsCap ? `var(--error)` : `var(--on-surface)`}; font-weight: 600;">
+                ${item.qty} stk · ${fmtUsd(orderTotal, false)}
+              </span>
+            </div>
+
+            <div class="hitl-params-grid">
+              <div class="param-cell">
+                <span class="data-label">Entry Limit</span>
+                <span class="param-val">${fmtUsd(item.entryLimit, false)}</span>
+              </div>
+              <div class="param-cell">
+                <span class="data-label">14d ATR Stop</span>
+                <span class="param-val delta-neg">${fmtUsd(item.stopPrice, false)}</span>
+              </div>
+              <div class="param-cell">
+                <span class="data-label">Target (${rrRatio}R)</span>
+                <span class="param-val delta-pos">${fmtUsd(item.targetPrice, false)}</span>
+              </div>
+            </div>
+
+            <div class="xai-box">
+              <div class="xai-row">
+                <span class="xai-tag">XAI-støtte</span>
+                <span class="xai-text">RVOL ${item.rvol} · ${item.vwapContext} · ${item.regimeSupport}</span>
+              </div>
+              <div class="xai-row">
+                <span class="xai-tag xai-tag-warn">Motargument</span>
+                <span class="xai-text">${item.devilAdvocate}</span>
+              </div>
+            </div>
+
+            <div class="hitl-actions">
+              <button type="button" class="btn btn-primary btn-sm" ${exceedsCap ? `disabled` : ``} onclick="approveHitlOrder('${item.id}')">
+                Godkjenn OCO Bracket
+              </button>
+              <button type="button" class="btn btn-ghost-danger btn-sm" onclick="rejectHitlOrder('${item.id}')">
+                Avvis
+              </button>
+            </div>
+          </article>
+        `;
+      }).join(``);
+    }
+
+    function renderKnowledgeBase() {
+      const container = document.getElementById(`rag-results-list`);
+      if (!container) return;
+
+      const q = appState.kbQuery.trim().toLowerCase();
+      const cat = appState.kbCat;
+
+      document.querySelectorAll(`[data-kb-cat]`).forEach(btn => {
+        btn.classList.toggle(`is-active`, btn.dataset.kbCat === cat);
+      });
+
+      const matches = KNOWLEDGE_BASE.filter(item => {
+        const catMatch = cat === `alle` || item.cat === cat;
+        if (!catMatch) return false;
+        if (!q) return true;
+        return (
+          item.title.toLowerCase().includes(q) ||
+          item.body.toLowerCase().includes(q) ||
+          item.source.toLowerCase().includes(q)
+        );
+      });
+
+      if (matches.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state-box">
+            <span class="data-label">Ingen treff i kunnskapsbasen</span>
+            <span style="color: var(--on-surface-variant);">Prøv et annet søkeord (f.eks. ORB, VWAP, 37,84 % eller SIP).</span>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = matches.map(item => `
+        <article class="rag-item">
+          <div class="rag-item-head">
+            <span class="rag-title">${item.title}</span>
+            <span class="rag-source">${item.source}</span>
+          </div>
+          <p class="rag-body">${item.body}</p>
+        </article>
+      `).join(``);
+    }
+
+    function renderDrawerContent() {
+      const body = document.getElementById(`drawer-body`);
+      if (!body) return;
+
+      document.querySelectorAll(`[data-drawer-tab]`).forEach(btn => {
+        btn.classList.toggle(`is-active`, btn.dataset.drawerTab === appState.drawerTab);
+      });
+
+      if (appState.drawerTab === `logs`) {
+        const filtered = appState.logs.filter(l => {
+          if (appState.logFilter === `alle`) return true;
+          if (appState.logFilter === `ordre`) return l.src.includes(`HITL`) || l.src.includes(`ALPACA`);
+          if (appState.logFilter === `data`) return l.src.includes(`SIP`) || l.src.includes(`DUCKDB`);
+          return true;
+        });
+
+        body.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--space-sm);">
+            <span class="data-label">Sanntids revisjonslogg (${filtered.length} linjer)</span>
+            <div class="seg-group" role="group" aria-label="Filtrer logger">
+              <button type="button" class="seg-btn ${appState.logFilter === `alle` ? `is-active` : ``}" onclick="setLogFilter('alle')">Alle</button>
+              <button type="button" class="seg-btn ${appState.logFilter === `ordre` ? `is-active` : ``}" onclick="setLogFilter('ordre')">Ordre / HITL</button>
+              <button type="button" class="seg-btn ${appState.logFilter === `data` ? `is-active` : ``}" onclick="setLogFilter('data')">SIP / DuckDB</button>
+            </div>
+          </div>
+          <div class="log-stream">
+            ${filtered.map(l => `
+              <div class="log-line">
+                <span class="log-ts">${l.ts}</span>
+                <span class="log-src">[${l.src}]</span>
+                <span class="log-msg">${l.msg}</span>
+              </div>
+            `).join(``)}
+          </div>
+        `;
+      } else if (appState.drawerTab === `history`) {
+        body.innerHTML = `
+          <span class="data-label">Eksekveringshistorikk &amp; HITL-revisjon</span>
+          <div class="table-scroll">
+            <table class="positions-table">
+              <thead>
+                <tr>
+                  <th>Tid</th>
+                  <th>Ticker</th>
+                  <th>Status</th>
+                  <th class="num">Ant · Pris</th>
+                  <th class="num">Slip (bps)</th>
+                  <th class="num">Realisert</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${appState.history.map(h => {
+                  const pnlText = h.pnl === null ? `—` : fmtUsd(h.pnl, true);
+                  const pnlCls = h.pnl === null ? `` : (h.pnl >= 0 ? `delta-pos` : `delta-neg`);
+                  return `
+                    <tr>
+                      <td class="mono-val" style="font-size: var(--label-size); color: var(--on-surface-variant);">${h.ts}</td>
+                      <td>
+                        <div class="pos-ticker-cell">
+                          <span class="pos-ticker">${h.ticker}</span>
+                          <span class="pos-strat">${h.strategy}</span>
+                        </div>
+                      </td>
+                      <td><span class="status-chip ${h.action.includes(`AVVIST`) ? `chip-error` : (h.action.includes(`SENDT`) ? `chip-cyan` : `chip-sage`)}">${h.action}</span></td>
+                      <td class="num mono-val">${h.qty} · ${fmtUsd(h.price, false)}</td>
+                      <td class="num mono-val">${h.slippageBps}</td>
+                      <td class="num mono-val ${pnlCls}">${pnlText}</td>
+                    </tr>
+                  `;
+                }).join(``)}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        const reg = REGIME_PROFILES[appState.regime] || REGIME_PROFILES.bull;
+        body.innerHTML = `
+          <span class="data-label">Forsinkelsesdiagnostikk &amp; Infrastruktur</span>
+          <div class="diag-grid">
+            <div class="diag-card">
+              <span class="data-label">Alpaca Paper OMS (v2)</span>
+              <span class="tax-figure is-pos">${reg.alpacaMs}</span>
+              <span class="tax-note">REST + WebSocket · OCO Bracket ruting</span>
+            </div>
+            <div class="diag-card">
+              <span class="data-label">Massive.com SIP Feed</span>
+              <span class="tax-figure is-pos">${reg.sipMs}</span>
+              <span class="tax-note">CTA/UTP konsolidert (100 % US-volum)</span>
+            </div>
+            <div class="diag-card">
+              <span class="data-label">DuckDB Lokal Motor</span>
+              <span class="tax-figure is-pos">${reg.duckMs}</span>
+              <span class="tax-note">tax_tracker_duckdb.py · In-process SQL</span>
+            </div>
+            <div class="diag-card">
+              <span class="data-label">AI XAI-Evaluering</span>
+              <span class="tax-figure">${reg.llmMs}</span>
+              <span class="tax-note">Frakoblet fra ordreløkke · Kun før HITL</span>
+            </div>
+          </div>
+
+          <div class="diag-card" style="margin-top: var(--space-sm);">
+            <span class="data-label">Simuler markedsregime (VIX-terskler)</span>
+            <p class="panel-desc" style="margin-bottom: var(--space-sm);">
+              Test hvordan porteføljens topplinje og risikofilter reagerer ved endring i VIX.
+            </p>
+            <div class="seg-group" role="group" aria-label="Velg markedsregime">
+              <button type="button" class="seg-btn ${appState.regime === `bull` ? `is-active` : ``}" onclick="setMarketRegime('bull')">Bull · VIX 16.4</button>
+              <button type="button" class="seg-btn ${appState.regime === `neutral` ? `is-active` : ``}" onclick="setMarketRegime('neutral')">Nøytral · VIX 21.2</button>
+              <button type="button" class="seg-btn ${appState.regime === `high` ? `is-active` : ``}" onclick="setMarketRegime('high')">Høy uro · VIX 27.8</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function renderAll() {
+      renderTopStrip();
+      renderEquityChart();
+      renderPositionsTable();
+      renderTaxVault();
+      renderHitlQueue();
+      renderKnowledgeBase();
+      renderDrawerContent();
+    }
+
+    // ---------- EVENT HANDLERS (HOISTED FUNCTIONS) ----------
+    function setChartRange(range) {
+      appState.chartRange = range;
+      renderEquityChart();
+      persistState();
+    }
+
+    function setChartMode(mode) {
+      appState.chartMode = mode;
+      renderEquityChart();
+      persistState();
+    }
+
+    function updateFxRate(val) {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed) && parsed >= 5 && parsed <= 20) {
+        appState.fxRate = parsed;
+        renderTaxVault();
+        persistState();
+      }
+    }
+
+    function approveHitlOrder(id) {
+      const idx = appState.hitlQueue.findIndex(item => item.id === id);
+      if (idx === -1) return;
+      const item = appState.hitlQueue[idx];
+      const orderValue = item.qty * item.entryLimit;
+
+      if (orderValue > HARD_TRADE_CAP) {
+        showFeedback(`Blokkert: Ordreverdi (${fmtUsd(orderValue, false)}) overstiger hardt tak på $5 000.`);
+        return;
+      }
+
+      const m = computeMetrics();
+      if (orderValue > m.cashBuffer) {
+        showFeedback(`Blokkert: Utilstrekkelig kontantbuffer for ${item.ticker}.`);
+        return;
+      }
+
+      appState.hitlQueue.splice(idx, 1);
+
+      appState.positions.unshift({
+        id: `pos-${item.ticker.toLowerCase()}-${Date.now()}`,
+        ticker: item.ticker,
+        strategy: item.strategy,
+        qty: item.qty,
+        entryPrice: item.entryLimit,
+        currentPrice: Number((item.entryLimit * 1.003).toFixed(2)),
+        stopPrice: item.stopPrice,
+        targetPrice: item.targetPrice,
+        todayPnl: Number((item.qty * item.entryLimit * 0.003).toFixed(2))
+      });
+
+      appState.history.unshift({
+        ts: nowDateTime(),
+        ticker: item.ticker,
+        strategy: item.strategy,
+        action: `OCO SENDT`,
+        qty: item.qty,
+        price: item.entryLimit,
+        pnl: null,
+        slippageBps: `0.9`
+      });
+
+      addLog(`ALPACA_OMS`, `Godkjent OCO Bracket for ${item.ticker} (${item.qty} stk @ ${fmtUsd(item.entryLimit, false)}, Stop ${fmtUsd(item.stopPrice, false)}, Target ${fmtUsd(item.targetPrice, false)}).`);
+      showFeedback(`OCO Bracket godkjent for ${item.ticker} (${fmtUsd(orderValue, false)}) og lagt til i åpne posisjoner.`);
+      renderAll();
+      persistState();
+    }
+
+    function rejectHitlOrder(id) {
+      const idx = appState.hitlQueue.findIndex(item => item.id === id);
+      if (idx === -1) return;
+      const item = appState.hitlQueue[idx];
+      appState.hitlQueue.splice(idx, 1);
+
+      appState.history.unshift({
+        ts: nowDateTime(),
+        ticker: item.ticker,
+        strategy: item.strategy,
+        action: `AVVIST (HITL)`,
+        qty: item.qty,
+        price: item.entryLimit,
+        pnl: null,
+        slippageBps: `—`
+      });
+
+      addLog(`HITL_GATE`, `Avvist ordreforslag for ${item.ticker} (${item.strategy}) av menneskelig operatør.`);
+      showFeedback(`Avviste ${item.ticker} (${item.strategy}). Beslutningen er logget i revisjonshistorikken.`);
+      renderAll();
+      persistState();
+    }
+
+    function closePosition(id, btn) {
+      if (btn && btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.textContent = `Bekreft lukking`;
+        btn.classList.remove(`btn-secondary`);
+        btn.classList.add(`btn-primary`);
+        return;
+      }
+      const idx = appState.positions.findIndex(p => p.id === id);
+      if (idx === -1) return;
+      const pos = appState.positions[idx];
+      const pnl = (pos.currentPrice - pos.entryPrice) * pos.qty;
+
+      appState.positions.splice(idx, 1);
+      appState.realizedUsd = Number((appState.realizedUsd + pnl).toFixed(2));
+
+      appState.history.unshift({
+        ts: nowDateTime(),
+        ticker: pos.ticker,
+        strategy: pos.strategy,
+        action: `LUKKET (Manuell)`,
+        qty: pos.qty,
+        price: pos.currentPrice,
+        pnl: Number(pnl.toFixed(2)),
+        slippageBps: `1.0`
+      });
+
+      addLog(`DUCKDB_TAX`, `Realisert ${pos.ticker}: ${fmtUsd(pnl, true)}. Norsk skattevelv (37,84 %) oppdatert.`);
+      showFeedback(`Lukket ${pos.ticker} med realisert resultat ${fmtUsd(pnl, true)}. Skattevelvet er oppdatert.`);
+      renderAll();
+      persistState();
+    }
+
+    function scanForNewSignals() {
+      const existingTickers = new Set(appState.positions.map(p => p.ticker));
+      const fresh = REFILL_CANDIDATES.filter(c => !existingTickers.has(c.ticker)).map(c => ({
+        ...c,
+        id: `${c.id}-${Date.now()}`
+      }));
+
+      if (fresh.length === 0) {
+        appState.hitlQueue = JSON.parse(JSON.stringify(DEFAULT_HITL_QUEUE));
+      } else {
+        appState.hitlQueue = fresh;
+      }
+      addLog(`AGENT_QUANT`, `Ny EOD/intradag-skanning fullført via Massive.com SIP. ${appState.hitlQueue.length} forslag lagt i HITL-kø.`);
+      showFeedback(`Skanning fullført: ${appState.hitlQueue.length} nye signaler klar for gjennomgang.`);
+      renderAll();
+      persistState();
+    }
+
+    function filterKnowledgeBase(val) {
+      appState.kbQuery = val;
+      renderKnowledgeBase();
+    }
+
+    function setKbCategory(cat) {
+      appState.kbCat = cat;
+      renderKnowledgeBase();
+    }
+
+    function openAdminDrawer(tab) {
+      if (tab) appState.drawerTab = tab;
+      const drawer = document.getElementById(`admin-drawer`);
+      const backdrop = document.getElementById(`drawer-backdrop`);
+      if (drawer) {
+        drawer.classList.add(`is-open`);
+        drawer.setAttribute(`aria-hidden`, `false`);
+      }
+      if (backdrop) backdrop.classList.add(`is-open`);
+      renderDrawerContent();
+    }
+
+    function closeAdminDrawer() {
+      const drawer = document.getElementById(`admin-drawer`);
+      const backdrop = document.getElementById(`drawer-backdrop`);
+      if (drawer) {
+        drawer.classList.remove(`is-open`);
+        drawer.setAttribute(`aria-hidden`, `true`);
+      }
+      if (backdrop) backdrop.classList.remove(`is-open`);
+    }
+
+    function switchDrawerTab(tab) {
+      appState.drawerTab = tab;
+      renderDrawerContent();
+    }
+
+    function setLogFilter(filter) {
+      appState.logFilter = filter;
+      renderDrawerContent();
+    }
+
+    function setMarketRegime(regime) {
+      appState.regime = regime;
+      const reg = REGIME_PROFILES[regime];
+      addLog(`REGIME_MONITOR`, `Markedsregime oppdatert til ${reg.label} (VIX ${reg.vix}).`);
+      renderTopStrip();
+      renderDrawerContent();
+      persistState();
+    }
+
+    function exportAuditCsv() {
+      const headers = [`Tidspunkt`, `Ticker`, `Strategi`, `Handling`, `Antall`, `Pris`, `Realisert_USD`, `Slippage_bps`];
+      const rows = appState.history.map(h => [
+        h.ts,
+        h.ticker,
+        h.strategy,
+        h.action,
+        h.qty,
+        h.price,
+        h.pnl === null ? `` : h.pnl,
+        h.slippageBps
+      ].join(`,`));
+      const csv = [headers.join(`,`), ...rows].join(`\n`);
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: csv,
+          contentType: `text/csv`,
+          encoding: `UTF-8`,
+          filename: `alpaca_paper_eksekveringslogg.csv`
+        });
+      }
+      addLog(`EXPORT`, `Eksekveringshistorikk eksportert som CSV.`);
+      renderDrawerContent();
+    }
+
+    function handleResetDemo(btn) {
+      if (btn && btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.textContent = `Klikk igjen for å nullstille`;
+        return;
+      }
+      if (btn) {
+        btn.dataset.armed = `false`;
+        btn.textContent = `Tilbakestill demo-tilstand`;
+      }
+
+      appState = {
+        positions: JSON.parse(JSON.stringify(DEFAULT_POSITIONS)),
+        hitlQueue: JSON.parse(JSON.stringify(DEFAULT_HITL_QUEUE)),
+        history: JSON.parse(JSON.stringify(DEFAULT_HISTORY)),
+        logs: JSON.parse(JSON.stringify(DEFAULT_LOGS)),
+        realizedUsd: 2415.00,
+        dividendsUsd: 340.00,
+        fxRate: 10.85,
+        chartRange: `1M`,
+        chartMode: `pct`,
+        kbQuery: ``,
+        kbCat: `alle`,
+        regime: `bull`,
+        drawerTab: `logs`,
+        logFilter: `alle`
+      };
+
+      const fxInput = document.getElementById(`fx-rate-input`);
+      if (fxInput) fxInput.value = `10.85`;
+      const kbInput = document.getElementById(`rag-search-input`);
+      if (kbInput) kbInput.value = ``;
+
+      dismissFeedback();
+      renderAll();
+      persistState();
+    }
+
+    // ---------- KEYBOARD & BOOTSTRAP ----------
+    document.addEventListener(`keydown`, function(e) {
+      if (e.key === `Escape`) {
+        closeAdminDrawer();
+      }
+    });
+
+    async function initDashboard() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+        try {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved && Array.isArray(saved.positions) && Array.isArray(saved.hitlQueue)) {
+            appState = { ...appState, ...saved };
+          }
+        } catch (err) {
+          // Proceed with default state
+        }
+      }
+
+      const fxInput = document.getElementById(`fx-rate-input`);
+      if (fxInput) fxInput.value = String(appState.fxRate);
+      const kbInput = document.getElementById(`rag-search-input`);
+      if (kbInput) kbInput.value = appState.kbQuery;
+
+      renderAll();
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    initDashboard();
+  </script>
+</body>
+</html>
