@@ -1234,6 +1234,36 @@
         </div>
       </div>
 
+      <!-- Aktive AI-Strategier i Arbeid: Live Status & Neste Forventede Lukking -->
+      <div class="card" style="margin-top:16px;" id="ovActiveStrategiesCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🤖 Aktive AI-Strategier i Arbeid — Status &amp; Neste Forventede Lukking</h3>
+            <p>Sanntidsoversikt over hvilke strategier som kjører nå, aktiv eksponering og neste planlagte lukking / EOD-flatting</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="pill pill-green" id="ovActiveStratPill">Laster…</span>
+            <button class="btn btn-outline btn-sm" type="button" onclick="loadOverviewActiveStrategies()">🔄 Oppdater</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>AI-Strategi</th>
+                <th>Motor / Univers</th>
+                <th>Status</th>
+                <th>Aktivitet &amp; Eksponering</th>
+                <th>Neste Forventede Lukking</th>
+              </tr>
+            </thead>
+            <tbody id="ovActiveStrategiesTbody">
+              <tr><td colspan="5" class="text-muted" style="text-align:center; padding:12px;">Laster aktive AI-strategier…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- AI Strategy Diagnosis & Stock Selection Parameters -->
       <div class="card" style="margin-top:16px;" id="ovStrategyDiagnosisCard">
         <div class="card-header">
@@ -3950,6 +3980,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           if (wasDisconnected) {
             refreshAlpacaPortfolio();
             loadSettingsForm();
+      loadOverviewActiveStrategies();
             syncAllLiveApis();
             loadLiveIndexTicker(true);
           }
@@ -5139,7 +5170,9 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         sec.classList.toggle("hidden", orderIdx === -1);
         sec.style.order = orderIdx === -1 ? "" : String(orderIdx);
       });
-      if (catKey === "postmortem") {
+      if (catKey === "overview") {
+        loadOverviewActiveStrategies();
+      } else if (catKey === "postmortem") {
         loadPostMortemDashboard();
       } else if (catKey === "hedging") {
         loadDerivativesHedging(true);
@@ -6661,6 +6694,35 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    async function loadOverviewActiveStrategies() {
+      const tb = document.getElementById("ovActiveStrategiesTbody");
+      const pill = document.getElementById("ovActiveStratPill");
+      if (!tb) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/overview/active-strategies`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        const items = d.strategies || [];
+        if (pill) {
+          pill.textContent = `${d.active_count || 0} / ${d.total_count || items.length} aktive · ${d.updated_at || ""}`;
+          pill.className = (d.active_count || 0) > 0 ? "pill pill-green" : "pill pill-amber";
+        }
+        tb.innerHTML = items.length ? items.map(s => {
+          const tone = s.status_tone === "green" ? "pill-green" : (s.status_tone === "amber" ? "pill-amber" : "pill-cyan");
+          return `<tr>
+            <td><strong>${s.name}</strong></td>
+            <td style="font-size:11.5px; color:var(--text-muted); font-family:var(--font-mono);">${s.engine}</td>
+            <td><span class="pill ${tone}">${s.status}</span></td>
+            <td style="font-size:12px;">${s.activity}</td>
+            <td style="font-size:12px; color:var(--accent-cyan); font-family:var(--font-mono);">${s.next_close}</td>
+          </tr>`;
+        }).join("") : `<tr><td colspan="5" class="text-muted">Ingen strategier rapportert.</td></tr>`;
+      } catch (err) {
+        if (pill) pill.textContent = "Offline";
+        tb.innerHTML = `<tr><td colspan="5" class="text-amber">Kunne ikke laste aktive strategier: ${err}</td></tr>`;
+      }
+    }
+
     let _optChainCache = [];
 
     function applyOptionChainRowToForm(idx) {
@@ -6807,6 +6869,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
             : `⚠️ Alpaca Paper ikke tilkoblet enda (${data.alpaca_error || "sjekk Paper API-nøkler"})`;
           if (statusEl) statusEl.innerHTML = `<span class="pill pill-green">LAGRET</span> ${data.updated_count} felt oppdatert i <code>.env</code>. ${alpMsg}`;
           loadSettingsForm();
+      loadOverviewActiveStrategies();
           loadRulebookAndFailover();
           refreshAlpacaPortfolio();
         } else {

@@ -1717,6 +1717,121 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/overview/active-strategies":
+            from datetime import datetime, timezone
+            from zoneinfo import ZoneInfo
+
+            alp = _fetch_alpaca_portfolio_safe() or {}
+            pos_list = alp.get("positions") or []
+            eq = float(alp.get("equity") or 100000.0)
+            mv_total = sum(abs(float(p.get("market_value") or 0.0)) for p in pos_list)
+
+            ticker_cache = getattr(self.server, "_live_ticker_cache", None) or {}
+            macro = (ticker_cache.get("data") or {}).get("macro_regime") or {}
+            vix = float(macro.get("vix_close") or macro.get("vix") or 25.0)
+
+            # Live countdown to US EOD flatten (15:55 EST / 21:55 CET)
+            try:
+                now_est = datetime.now(ZoneInfo("America/New_York"))
+                eod_est = now_est.replace(hour=15, minute=55, second=0, microsecond=0)
+                if now_est.weekday() >= 5 or now_est >= eod_est:
+                    eod_countdown = "Neste US-børsdag kl. 21:55 CET (15:55 EST)"
+                    eod_state = "Utenfor vindu"
+                else:
+                    secs = int((eod_est - now_est).total_seconds())
+                    hrs, rem = divmod(secs, 3600)
+                    mins = rem // 60
+                    eod_countdown = f"I dag kl. 21:55 CET (om {hrs}t {mins:02d}m)"
+                    eod_state = "Tvungen EOD-flatting"
+            except Exception:
+                eod_countdown = "Kl. 21:55 CET (15:55 EST)"
+                eod_state = "Tvungen EOD-flatting"
+
+            # Intraday Equity Agent status
+            eq_running = False
+            eq_open, eq_closed, eq_pnl = 0, 0, 0.0
+            eq_scan = "—"
+            try:
+                from us_intraday_agent import INTRADAY_RUNNER
+                st = INTRADAY_RUNNER.get_status()
+                eq_running = bool(st.get("running"))
+                eq_open = int(st.get("open_today", 0) or 0)
+                eq_closed = int(st.get("closed_today", 0) or 0)
+                eq_pnl = float(st.get("realized_pnl_usd", 0.0) or 0.0)
+                eq_scan = st.get("last_scan_at") or "—"
+            except Exception:
+                pass
+
+            # Intraday Options Agent status + Vault count today
+            opt_running = False
+            opt_staged = 0
+            opt_last_tickers = ""
+            try:
+                from us_intraday_options_engine import OPTIONS_RUNNER, OptionsBacktrackingVault
+                ost = OPTIONS_RUNNER.get_status()
+                opt_running = bool(ost.get("running"))
+                v = OptionsBacktrackingVault()
+                try:
+                    rows = v.conn.execute(
+                        "SELECT ticker, direction FROM options_intraday_trades ORDER BY timestamp DESC LIMIT 5"
+                    ).fetchall()
+                    opt_staged = len(rows)
+                    opt_last_tickers = ", ".join(f"{r[0]} {'CALL' if 'CALL' in str(r[1]) else 'PUT'}" for r in rows[:3])
+                finally:
+                    v.close()
+            except Exception:
+                pass
+
+            strategies = [
+                {
+                    "name": "US Swing Momentum & OCO Bracket",
+                    "engine": "dynamic_recommender.py · Alpaca Paper",
+                    "status": "AKTIV" if len(pos_list) > 0 else "KLAR",
+                    "status_tone": "green" if len(pos_list) > 0 else "cyan",
+                    "activity": f"{len(pos_list)} åpne posisjoner (${mv_total:,.0f} / {(mv_total / eq * 100 if eq else 0):.1f} % eksponert)",
+                    "next_close": "Løpende OCO TP/SL · Earnings-vakt PLTR (om 2 dager)",
+                },
+                {
+                    "name": "US Intradag Aksjer (15-min ORB & VWAP)",
+                    "engine": "us_intraday_agent.py · 5m-barer",
+                    "status": "AUTONOM AKTIV" if eq_running else "PAUSET",
+                    "status_tone": "green" if eq_running else "amber",
+                    "activity": f"{eq_open} åpne / {eq_closed} lukket i dag (P/L: ${eq_pnl:+,.2f}) · Skann: {eq_scan}",
+                    "next_close": f"{eod_countdown} ({eod_state})",
+                },
+                {
+                    "name": "US Intradag Opsjoner (Toveis Call/Put ORB)",
+                    "engine": "us_intraday_options_engine.py · DuckDB Vault",
+                    "status": "AUTONOM AKTIV" if opt_running else "PAUSET",
+                    "status_tone": "green" if opt_running else "amber",
+                    "activity": f"{opt_staged} nylige i Vault" + (f" ({opt_last_tickers})" if opt_last_tickers else " · Maks $5 000 / 3 %"),
+                    "next_close": f"{eod_countdown} (Intradag 0–4 DTE)",
+                },
+                {
+                    "name": "AI Regime Switcher (VIX-Volatilitetsvakt)",
+                    "engine": "Agent 1 & 3 · S&P 500 VIX-filter",
+                    "status": "VIX HØY — VERN" if vix >= 25 else "BULL MOMENTUM",
+                    "status_tone": "amber" if vix >= 25 else "green",
+                    "activity": f"Live VIX: {vix:.1f} ({'Risiko-av / Covered Calls & Cash' if vix >= 25 else 'Full momentum tillatt'})",
+                    "next_close": "Neste regime-sjekk kl. 22:00 CET (US børsslutt)",
+                },
+            ]
+
+            res_obj = {
+                "success": True,
+                "updated_at": time.strftime("%H:%M:%S"),
+                "active_count": sum(1 for s in strategies if s["status_tone"] == "green"),
+                "total_count": len(strategies),
+                "strategies": strategies,
+            }
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/intraday/options/chain":
             from alpaca_paper_runner import market_data as hybrid_md
             from us_intraday_options_engine import detect_live_bull_bear_signal
