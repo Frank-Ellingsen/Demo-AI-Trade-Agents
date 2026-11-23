@@ -1005,7 +1005,7 @@
       <div class="sidebar-brand">
         <h1>AI Trading Desk</h1>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          <span class="badge-live">5-Agent Desk</span>
+          <span class="badge-live">US Alpaca Desk</span>
           <span class="badge-mode">Paper-Only</span>
         </div>
       </div>
@@ -1025,35 +1025,32 @@
       <div>
         <div class="sidebar-group-label">Hovedmeny</div>
         <nav class="sidebar-nav" aria-label="Hovednavigasjon">
-          <button class="nav-tab active" data-section="cat-overview" onclick="switchCategory('overview')" data-tooltip="Sammendrag av Alpaca Paper egenkapital, tilgjengelig cash, daglig P&amp;L og faktisk porteføljeutvikling mot benchmark.">
+          <button class="nav-tab active" data-section="cat-overview" onclick="switchCategory('overview')" data-tooltip="Sammendrag av Alpaca Paper egenkapital, tilgjengelig cash, daglig P&amp;L og faktisk porteføljeutvikling mot S&amp;P 500.">
             <span class="tab-num">01</span>Overview <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Sammendrag</span>
           </button>
-          <button class="nav-tab" data-section="cat-portfolio" onclick="switchCategory('portfolio')" data-tooltip="Live synkronisert oversikt over åpne posisjoner, Realised &amp; Urealisert P&amp;L, siste ordrer og kontantbuffer fra Alpaca Paper.">
+          <button class="nav-tab" data-section="cat-portfolio" onclick="switchCategory('portfolio')" data-tooltip="Live synkronisert oversikt over åpne US-posisjoner, realisert &amp; urealisert P&amp;L, siste ordrer og kontantbuffer fra Alpaca Paper.">
             <span class="tab-num">02</span>Portfolio <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Hvordan går det?</span>
           </button>
-          <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')" data-tooltip="Velg strategi + USD-beløp for Telegram-godkjenning, eller legg inn manuell OCO Bracket-ordre mot Alpaca Paper.">
+          <button class="nav-tab" data-section="cat-trading" onclick="switchCategory('trading')" data-tooltip="Velg US-strategi + USD-beløp for Telegram-godkjenning, eller legg inn manuell OCO Bracket-ordre mot Alpaca Paper.">
             <span class="tab-num">03</span>Trading <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Kjøp / Salg / HITL</span>
           </button>
-          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live S&amp;P 500 Top 5 Up/Down, Norden (OMXN40 — 40 selskaper), Norge (OBX 15) og ventende HITL-ordrer.">
-            <span class="tab-num">04</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">S&amp;P 500 · OMXN40 · OBX 15</span>
+          <button class="nav-tab" data-section="cat-intraday" onclick="switchCategory('intraday')" data-tooltip="Autonom US Intraday Agent (kun Alpaca Paper): 15-min ORB &amp; VWAP Pullback, toveis Call/Put-opsjoner, EOD-flatting kl. 15:55 EST og Telegram P/L ved lukking.">
+            <span class="tab-num">04</span>US Intraday <span style="margin-left:auto; font-size:10px; color:var(--accent-green);">Autonom Paper</span>
           </button>
-          <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="Multi-Univers backtest, AI Strategi-rådgiver, Agent Rulebook, 3-trinns failover og deterministisk Skatt/Gebyr/FX-motor.">
-            <span class="tab-num">05</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Risiko &amp; Skatt/FX</span>
+          <button class="nav-tab" data-section="cat-markets" onclick="switchCategory('markets')" data-tooltip="Live S&amp;P 500 Top 5 Up/Down, Nasdaq og pre-execution BBO-sjekk (Alpaca Paper).">
+            <span class="tab-num">05</span>Markets <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">S&amp;P 500 · US BBO</span>
+          </button>
+          <button class="nav-tab" data-section="cat-analytics" onclick="switchCategory('analytics')" data-tooltip="US Multi-Universe backtest, AI Strategi-rådgiver, Agent Rulebook og 37,84 % skatt/FX-oversikt.">
+            <span class="tab-num">06</span>Analytics <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">US Backtest &amp; Skatt</span>
           </button>
           <button class="nav-tab" data-section="cat-hedging" onclick="switchCategory('hedging')" data-tooltip="Interaktiv payoff-kalkulator med dynamiske hockey-stick grafer, Black-Scholes Greeks (Put, Call, Collar) og AI Hedging Advisor.">
-            <span class="tab-num">06</span>Sikring &amp; Derivater <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Hockey-Stick</span>
+            <span class="tab-num">07</span>Sikring &amp; Derivater <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Hockey-Stick</span>
           </button>
-          <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater alle nøkler og innstillinger lokalt i .env (demo-maskert for skjermdeling).">
-            <span class="tab-num">07</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
+          <button class="nav-tab" data-section="cat-postmortem" onclick="switchCategory('postmortem')" data-tooltip="Lukket erfaringslæring (agent_learning_loop.py) og ukentlig A/B Shadow Tracking Audit i DuckDB.">
+            <span class="tab-num">08</span>Post-Mortem <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Lessons &amp; Audit</span>
           </button>
-          <button class="nav-tab" data-section="cat-multibroker" onclick="switchCategory('multibroker')" data-tooltip="Multi-Broker Desk: Nordnet ASK billetter &amp; CSV-avstemming, Saxo OpenAPI posisjonssynk, deterministisk skatt/gebyr-ruting og Streamlit Kontrolltårn (:8501).">
-            <span class="tab-num">08</span>Multi-Broker <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nordnet · Saxo · ST</span>
-          </button>
-          <button class="nav-tab" data-section="cat-postmortem" onclick="switchCategory('postmortem')" data-tooltip="Lukket erfaringslæring (agent_learning_loop.py) og ukentlig A/B Shadow Tracking Audit (weekly_audit_report.py) i DuckDB.">
-            <span class="tab-num">09</span>Post-Mortem <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Lessons &amp; Audit</span>
-          </button>
-          <button class="nav-tab" data-section="cat-intraday" onclick="switchCategory('intraday')" data-tooltip="Autonom US Intraday Agent (kun Alpaca Paper): 15-min ORB &amp; VWAP Pullback, maks 10 % cash-allokering, EOD-flatting kl. 15:55 EST og sanntids Telegram P/L-rapportering.">
-            <span class="tab-num">10</span>US Intraday <span style="margin-left:auto; font-size:10px; color:var(--accent-green);">Autonom Paper</span>
+          <button class="nav-tab" data-section="cat-settings" onclick="switchCategory('settings')" data-tooltip="Legg inn og oppdater Alpaca Paper-, Telegram-, AI- og e-postnøkler lokalt i .env (demo-maskert for skjermdeling).">
+            <span class="tab-num">09</span>Settings <span style="margin-left:auto; font-size:10px; color:var(--text-dim);">Nøkler &amp; E-post</span>
           </button>
         </nav>
       </div>
@@ -1080,10 +1077,10 @@
     <!-- Main Right Workspace -->
     <div class="main-workspace">
 
-      <!-- Permanent Live Index Ticker Bar (OSLO, OLJE, NASDAQ, S&P 500, USD) -->
-      <div class="live-index-bar" aria-label="Live Indekser">
+      <!-- Permanent Live Index Ticker Bar (NASDAQ, S&P 500, USD/NOK) -->
+      <div class="live-index-bar" aria-label="Live US Indekser">
         <div class="live-index-items" id="liveIndexTickerItems">
-          <span class="text-muted" style="font-size:12px;">Laster live indekser (OSLO, OLJE, NASDAQ, S&amp;P 500, USD)...</span>
+          <span class="text-muted" style="font-size:12px;">Laster live US indekser (NASDAQ, S&amp;P 500, USD/NOK)...</span>
         </div>
         <span id="liveIndexUpdatedAt" style="font-size:11px; color:var(--text-dim); font-family:var(--font-mono);"></span>
       </div>
@@ -1092,14 +1089,14 @@
       <div class="global-topbar">
         <div class="global-search-wrap" style="position: relative;">
           <span class="global-search-icon">🔍</span>
-          <input type="text" id="globalStockSearch" placeholder="Søk på ticker eller selskap (f.eks. ANT, Anthropic, NVDA, EQNR.OL) — trykk Enter..." oninput="handleGlobalSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault(); searchLiveTicker(this.value);}">
+          <input type="text" id="globalStockSearch" placeholder="Søk på US ticker eller selskap (f.eks. NVDA, AAPL, MSFT, SPY) — trykk Enter..." oninput="handleGlobalSearch(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault(); searchLiveTicker(this.value);}">
           <div id="globalTickerPopup" style="display:none; position:absolute; top:calc(100% + 6px); left:0; right:0; min-width:380px; z-index:120; background:#111927; border:1px solid var(--border-strong); border-radius:8px; padding:12px 14px; box-shadow:0 12px 28px rgba(0,0,0,0.45);"></div>
         </div>
         <div class="topbar-actions">
           <button class="btn btn-outline btn-sm" id="btnAiPortfolioBrief" onclick="openAiPortfolioBrief(false)" data-tooltip="Åpner dynamisk KI pop-up vurdering av Paper-porteføljen, redegjørelse av strategi, markedsutsikter og forslag til modell-/agentjustering basert på DuckDB drift-historikk.">
             🧠 KI Vurdering
           </button>
-          <button class="btn btn-outline btn-sm" id="btnUpdateAllJobs" onclick="runAllUpdateJobs()" data-tooltip="Kjører alle oppdateringsjobber i appen: sluttkurser, HITL-utløpssjekk, EOD-skanning, portefølje/drift-views, Paper-snapshot, Saxo-sync, UI-eksport, live indekser og Alpaca Paper.">
+          <button class="btn btn-outline btn-sm" id="btnUpdateAllJobs" onclick="runAllUpdateJobs()" data-tooltip="Kjører alle oppdateringsjobber i appen: US-kurser, HITL-utløpssjekk, portefølje/drift-views, Paper-snapshot, live indekser og Alpaca Paper.">
             🔄 Oppdater Alt
           </button>
           <button class="notif-btn" onclick="openHitlAlerts()" title="Åpne ventende HITL-ordrer og varsler">
@@ -1121,9 +1118,9 @@
           </span>
         </div>
         <div class="macro-pills">
-          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="SMA200 er 200-dagers glidende snitt (~1 børsår) for Oslo Børs (OSEBX). Kurs over SMA200 = BULL (langsiktig oppgangstrend, kjøpssignaler tillatt). Kurs under SMA200 = BEAR (nedgangstrend, nye kjøp blokkeres).">OBX vs. SMA200: <strong id="macroObx">2 068,8 / 2 012,0 (BULL)</strong></span>
-          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="VIX («fryktindeksen») måler forventet 30-dagers volatilitet på S&amp;P 500 — ikke et direkte short-signal. VIX < 18: Full Momentum | 18–24: Covered Calls | ≥ 25: Høy uro (Risiko-av / kontantbuffer).">VIX: <strong id="macroVix">25.7 (≥ 25 HØY)</strong></span>
-          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="2-dagers prosentendring i Brent Crude oljepris (BZ=F). Brukes som makrofilter for energisektoren i OBX 15.">Brent 2d: <strong id="macroBrent">-3.26 %</strong></span>
+          <span style="display:none;"><strong id="macroObx"></strong></span>
+          <span style="cursor: help; border-bottom: 1px dotted rgba(148,163,184,0.45);" data-tooltip="VIX («fryktindeksen») måler forventet 30-dagers volatilitet på S&amp;P 500 — ikke et direkte short-signal. VIX &lt; 18: Full Momentum | 18–24: Covered Calls | ≥ 25: Høy uro (Risiko-av / kontantbuffer).">VIX (S&amp;P 500): <strong id="macroVix">25.7 (≥ 25 HØY)</strong></span>
+          <span style="display:none;"><strong id="macroBrent"></strong></span>
           <span>Aktiv Megler: <strong>Alpaca Paper v2 (Kun US Paper)</strong></span>
         </div>
       </div>
@@ -1177,8 +1174,8 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title-group">
-              <h3>Porteføljeutvikling (<span id="perfRangeLabel">YTD</span>) vs. Benchmark</h3>
-              <p id="perfBenchSubtitle">Sammenligner aktiv AI-styrt portefølje mot S&amp;P 500, OMX &amp; OBX (ankret fra første kjøp)</p>
+              <h3>Porteføljeutvikling (<span id="perfRangeLabel">YTD</span>) vs. S&amp;P 500</h3>
+              <p id="perfBenchSubtitle">Sammenligner aktiv AI-styrt portefølje mot S&amp;P 500 (ankret fra første kjøp)</p>
             </div>
             <span class="pill pill-green" id="perfRangeReturnPill">+8.42 % YTD</span>
           </div>
@@ -1870,16 +1867,15 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <section class="workspace-section hidden" id="sec-backtest">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">SEKSJON 03</span> Multi-Univers Kvantitativ Backtesting (US vs. Norden &amp; 6-Case)</h2>
-          <p>Sammenligner avkastning, friksjon (spread/FX/kurtasje), Max Drawdown og Sortino på tvers av USA, Norden og OBX 15</p>
+          <h2><span class="sec-tag">06 ANALYTICS</span> US Multi-Universe Kvantitativ Backtesting (Alpaca Paper)</h2>
+          <p>Sammenligner avkastning, VIX-regimeskifte, Max Drawdown og Sortino for amerikanske aksjer og ETF-er</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-primary btn-sm" onclick="executeStep('step5_us_backtest')">▶ Kjør US Backtest i Terminal</button>
-          <button class="btn btn-primary btn-sm" onclick="executeStep('step6_nordic_backtest')">▶ Kjør Nordisk Backtest i Terminal</button>
         </div>
       </div>
 
-      <div class="grid-2">
+      <div>
         <!-- US Multi-Universe Card -->
         <div class="card">
           <div class="card-header">
@@ -1908,8 +1904,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </div>
         </div>
 
-        <!-- Nordic Multi-Universe Card -->
-        <div class="card">
+        <!-- Nordic Multi-Universe Card (hidden in US Alpaca Paper-only mode) -->
+        <div class="card" style="display:none;">
           <div class="card-header">
             <div class="card-title-group">
               <h3>🇳🇴🇩🇰🇸🇪🇫🇮 Norden (OMXN40) &amp; Norge (OBX 15) Backtest (1 År / 100 000 NOK)</h3>
@@ -1972,7 +1968,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <section class="workspace-section hidden" id="sec-bridge">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">04 MARKETS</span> US S&amp;P 500 (Top 5 Up/Down), Norden (OMXN40) &amp; Live Market Bridge</h2>
+          <h2><span class="sec-tag">05 MARKETS</span> US S&amp;P 500 (Top 5 Up/Down) &amp; Live Market Bridge</h2>
           <p>Live dagsbevegelser for S&amp;P 500, fullstendig OMXN40-univers (40 selskaper), Level 1 BBO og MiFID II Guardrail</p>
         </div>
         <div>
@@ -2154,8 +2150,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         </div>
       </div>
 
-      <!-- Norden: OMX Nordic 40 (OMXN40) Universe Card -->
-      <div class="card" style="margin-top: 16px;">
+      <!-- Norden: OMX Nordic 40 (OMXN40) Universe Card (hidden in US Alpaca Paper-only mode) -->
+      <div class="card" style="display:none; margin-top: 16px;">
         <div class="card-header">
           <div class="card-title-group">
             <h3>🇩🇰🇸🇪🇫🇮 Norden (OMXN40 — 40 Selskaper)</h3>
@@ -2323,7 +2319,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <section class="workspace-section hidden" id="sec-hedging">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">06 SIKRING &amp; DERIVATER</span> Interaktiv Payoff-kalkulator &amp; Hockey-Stick Grafer</h2>
+          <h2><span class="sec-tag">07 SIKRING &amp; DERIVATER</span> Interaktiv Payoff-kalkulator &amp; Hockey-Stick Grafer</h2>
           <p>Deterministisk Black-Scholes opsjonsprising, Greeks og porteføljesikring (<code>derivatives_hedging_engine.py</code>) koblet mot live VIX og dine åpne Alpaca Paper-posisjoner</p>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -2531,14 +2527,14 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <section class="workspace-section hidden" id="sec-docs">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">SEKSJON 06</span> Norsk ASK Risikoprofil-Kalkulator, Brukermanual &amp; Eksterne Dashboards</h2>
-          <p>Fra <code>ai-trading-strategi-for-dummies.md</code> og <code>USER_GUIDE.md</code> — direkte tilgang til alle spesialiserte visninger</p>
+          <h2><span class="sec-tag">06 ANALYTICS</span> AI Strategi-Rådgiver, Rulebook &amp; Eksterne Dashboards</h2>
+          <p>Direkte tilgang til US Alpaca strategi-rådgiver, regelverk og spesialiserte visninger</p>
         </div>
       </div>
 
-      <div class="grid-2">
-        <!-- Left: Norwegian ASK Risk Profile Calculator -->
-        <div class="card">
+      <div>
+        <!-- Left: Norwegian ASK Risk Profile Calculator (hidden in US Alpaca Paper-only mode) -->
+        <div class="card" style="display:none;">
           <div class="card-header">
             <div class="card-title-group">
               <h3>Norsk Aksjesparekonto (ASK) Risikoprofil-Velger (100 000 NOK)</h3>
@@ -2640,7 +2636,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('momentum usa', false)">🚀 US Momentum (S&amp;P 500)</button>
           <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('opsjoner', false)">🛡️ Dekkede Opsjoner</button>
           <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('otc', false)">⚠️ OTC Risikovarsel</button>
-          <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('obx', false)">🇳🇴 OBX 15 (Brent-filter)</button>
+          <button class="btn btn-outline btn-sm" style="display:none;" onclick="askStrategyAdvisor('obx', false)">🇳🇴 OBX 15 (Brent-filter)</button>
           <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('anbefal 2', false)">💼 Anbefalt Portefølje ($100k)</button>
           <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('rulebook', false)">📜 Rulebook &amp; Veto</button>
           <button class="btn btn-outline btn-sm" onclick="askStrategyAdvisor('risiko', false)">⚖️ Risikoregler &amp; ATR</button>
@@ -2867,8 +2863,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </div>
         </div>
 
-        <!-- Card 5: Saxo Bank OpenAPI Credentials -->
-        <div class="card">
+        <!-- Card 5: Saxo Bank OpenAPI Credentials (hidden in US Alpaca Paper-only mode) -->
+        <div class="card" style="display:none;">
           <div class="card-header">
             <div class="card-title-group">
               <h3>🏦 Saxo Bank OpenAPI (Simulering / Live)</h3>
@@ -2911,8 +2907,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </div>
         </div>
 
-        <!-- Card 6: Nordnet ASK Credentials & Desk Settings -->
-        <div class="card">
+        <!-- Card 6: Nordnet ASK Credentials & Desk Settings (hidden in US Alpaca Paper-only mode) -->
+        <div class="card" style="display:none;">
           <div class="card-header">
             <div class="card-title-group">
               <h3>🇳🇴 Nordnet ASK (Manuell Desk &amp; CSV-Avstemming)</h3>
@@ -3392,7 +3388,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <section class="workspace-section hidden" id="sec-intraday">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">10 US INTRADAY</span> Autonom AI Intraday Agent (Kun Alpaca Paper · Telegram P/L)</h2>
+          <h2><span class="sec-tag">04 US INTRADAY</span> Autonom AI Intraday Agent (Kun Alpaca Paper · Telegram P/L)</h2>
           <p>Handler likvide US-aksjer autonomt med 15-min ORB &amp; VWAP Pullback, maks 10 % cash-allokering, tvungen EOD-flatting kl. 15:55 EST (21:55 CET) og løpende Telegram-rapport for handler &amp; realisert P/L</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
