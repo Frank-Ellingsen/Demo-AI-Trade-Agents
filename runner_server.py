@@ -1247,6 +1247,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/api/intraday/scan",
             "/api/intraday/flatten",
             "/api/intraday/report-telegram",
+            "/api/intraday/backtest",
         ):
             from us_intraday_agent import INTRADAY_RUNNER, IntradaySignal
 
@@ -1254,7 +1255,19 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
             payload = json.loads(raw_body) if raw_body.strip() else {}
             try:
-                if parsed.path == "/api/intraday/toggle":
+                if parsed.path == "/api/intraday/backtest":
+                    from backtest_intraday_duckdb import run_intraday_backtest_api
+
+                    alp = _fetch_alpaca_portfolio_safe()
+                    default_cap = round(float(alp.get("equity") or 100000.0) * 0.10, 2)
+                    res_obj = run_intraday_backtest_api(
+                        tickers=payload.get("tickers") or ["NVDA", "AAPL", "SPY", "QQQ", "MSFT"],
+                        days=int(payload.get("days", 20)),
+                        target_rr=float(payload.get("target_rr", 2.0)),
+                        friction_bps=float(payload.get("friction_bps", 3.0)),
+                        capital_per_trade=float(payload.get("capital_per_trade") or default_cap),
+                    )
+                elif parsed.path == "/api/intraday/toggle":
                     enable = bool(payload.get("enable", not INTRADAY_RUNNER.running))
                     if enable:
                         max_pct = float(payload.get("max_portfolio_pct", 10.0)) / 100.0
