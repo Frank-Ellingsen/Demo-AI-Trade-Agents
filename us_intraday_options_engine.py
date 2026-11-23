@@ -12,6 +12,7 @@ og integrert DuckDB Backtracking & Performance Analytics Engine.
 from __future__ import annotations
 
 import logging
+import math
 import os
 import uuid
 from dataclasses import dataclass
