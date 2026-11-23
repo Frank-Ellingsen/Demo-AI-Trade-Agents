@@ -5835,6 +5835,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
     function renderOverviewStrategyDiagnosis() {
       const tb = document.getElementById("ovSelectionParamsTbody");
+      const fmtUsd = (v) => "$" + Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const pill = document.getElementById("ovDiagStatusPill");
       const headEl = document.getElementById("ovDiagHeadwind");
       const tailEl = document.getElementById("ovDiagTailwind");
@@ -6091,7 +6092,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         }
       }
 
-      renderOverviewStrategyDiagnosis();
+      try { renderOverviewStrategyDiagnosis(); } catch (e) { console.error("renderOverviewStrategyDiagnosis:", e); }
 
       const holdTb = document.getElementById("holdingsTbody");
       if (holdTb) {
