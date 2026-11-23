@@ -563,6 +563,28 @@ manager = ConnectionManager()
 # -------------------------------------------------------------------------
 # REST ENDEPUNKTER
 # -------------------------------------------------------------------------
+@app.get("/api/kb/status")
+async def kb_status():
+    """Returnerer status for DuckDB Finance Knowledge Base."""
+    from knowledge_base_indexer import get_kb_status
+    return get_kb_status()
+
+
+@app.get("/api/kb/search")
+async def kb_search(q: str = "", top_k: int = 5):
+    """Søker i indekserte PDF-er og dokumenter (Skatte-ABC, US-NO TAX, strategier)."""
+    from knowledge_base_indexer import search_knowledge_base
+    return {"query": q, "results": search_knowledge_base(q, top_k=top_k)}
+
+
+@app.post("/api/kb/scan")
+async def kb_scan():
+    """Utløser inkrementell indeksering av Finance Knowledge Base."""
+    from knowledge_base_indexer import scan_knowledge_base, get_kb_status
+    updated = scan_knowledge_base()
+    return {"updated_files": updated, **get_kb_status()}
+
+
 @app.get("/api/latency")
 async def get_latency_benchmark():
     """Måler sanntids latency (ping i ms) mot Alpaca, Massive.com og lokal DuckDB."""

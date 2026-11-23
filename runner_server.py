@@ -1717,6 +1717,23 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path in ("/api/kb/status", "/api/kb/search"):
+            from knowledge_base_indexer import get_kb_status, search_knowledge_base
+            if parsed.path == "/api/kb/status":
+                res_obj = {"success": True, **get_kb_status()}
+            else:
+                qs_kb = parse_qs(parsed.query)
+                q_str = (qs_kb.get("q") or [""])[0]
+                top_k = int((qs_kb.get("top_k") or ["5"])[0])
+                res_obj = {"success": True, "query": q_str, "results": search_knowledge_base(q_str, top_k=top_k)}
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/overview/active-strategies":
             from datetime import datetime, timezone
             from zoneinfo import ZoneInfo

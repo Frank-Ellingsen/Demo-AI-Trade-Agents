@@ -690,6 +690,15 @@ def handle_ai_chat(payload: dict[str, Any], alpaca_snap: dict[str, Any], live_ma
 
     live_extra = _collect_live_intraday_and_tax_context()
 
+    # RAG-oppslag i Finance Knowledge Base (Skatte-ABC, US-NO TAX, trading strategies, docs)
+    kb_snippets = []
+    try:
+        from knowledge_base_indexer import search_knowledge_base
+        for hit in search_knowledge_base(msg, top_k=3):
+            kb_snippets.append(f"[{hit['filename']}] {str(hit['content'])[:450]}")
+    except Exception:
+        pass
+
     compact_positions = [
         {
             "symbol": p.get("symbol"),
@@ -730,8 +739,9 @@ def handle_ai_chat(payload: dict[str, Any], alpaca_snap: dict[str, Any], live_ma
         "eller hvorfor 15-min ORB/VWAP aksje-kandidater eventuelt ble avvist av Hurdle Rate ≥ 0,40 % / R/R ≥ 1,8x).\n"
         "4. Bruk riktig menynavn fra appen: `01 Overview`, `02 Portfolio`, `03 Trading`, `04 US Intraday`, "
         "`05 Markets`, `06 Analytics`, `07 Sikring & Derivater`, `08 Post-Mortem`, `09 Settings`.\n"
-        "5. Hold svarene korte (maks ~150–200 ord) og rett på sak.\n\n"
+        "5. Hold svarene korte (maks ~150–200 ord) og rett på sak. Hvis RELEVANT KUNNSKAPSBANK inneholder relevante fakta (f.eks. fra Skatte-ABC eller US-NO TAX), siter filnavnet kort.\n\n"
         f"LIVE TELEMETRI:\n{live_context_json}"
+        + ("\n\nRELEVANT KUNNSKAPSBANK (RAG):\n" + "\n---\n".join(kb_snippets) if kb_snippets else "")
     )
 
     # Tier 1: Lokal Ollama -> Tier 2: Gemini 2.5 Flash
