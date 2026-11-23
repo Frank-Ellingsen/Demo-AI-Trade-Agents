@@ -2153,6 +2153,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/nordquant-ai": "Bygging_av_AI-tradingagenter_i_Python.html",
             "/bygging": "Bygging_av_AI-tradingagenter_i_Python.html",
             "/v2-intraday": "AI_Trading_Terminal_v2_-_Intraday___Multi-Broker_Suite.html",
+            "/v2-skatt-opsjoner": "AI_Trading_Terminal_v2_-_Skatteavsetning___Intradag_Opsjon.html",
         }
         if parsed.path in dashboard_routes:
             fname = dashboard_routes[parsed.path]
