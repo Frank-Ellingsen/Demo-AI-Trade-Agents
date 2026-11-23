@@ -1717,6 +1717,119 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path == "/api/portfolio/statement":
+            import urllib.request as _ureq
+            from collections import deque as _deque
+
+            api_key = (os.getenv("ALPACA_API_KEY") or os.getenv("ALPACA_KEY") or os.getenv("APCA_API_KEY_ID") or "").strip()
+            api_sec = (os.getenv("ALPACA_SECRET_KEY") or os.getenv("ALPACA_SECRET") or os.getenv("APCA_API_SECRET_KEY") or "").strip()
+            base_url = (os.getenv("ALPACA_BASE_URL") or os.getenv("ALPACA_ENDPOINT") or "https://paper-api.alpaca.markets").strip().rstrip("/")
+            if "paper-api.alpaca.markets" not in base_url:
+                base_url = "https://paper-api.alpaca.markets"
+            if not base_url.endswith("/v2"):
+                base_url = f"{base_url}/v2"
+
+            filled_orders = []
+            source_label = "Alpaca Paper v2 (FIFO)"
+            if api_key and api_sec:
+                try:
+                    req = _ureq.Request(
+                        f"{base_url}/orders?status=closed&limit=200&direction=asc",
+                        headers={"APCA-API-KEY-ID": api_key, "APCA-API-SECRET-KEY": api_sec, "Accept": "application/json"},
+                    )
+                    with _ureq.urlopen(req, timeout=8) as resp:
+                        raw_orders = json.loads(resp.read().decode("utf-8"))
+                    for o in raw_orders:
+                        if str(o.get("status") or "").lower() == "filled" and float(o.get("filled_qty") or 0) > 0:
+                            filled_orders.append({
+                                "id": str(o.get("id") or "")[:10],
+                                "symbol": str(o.get("symbol") or "").upper(),
+                                "side": str(o.get("side") or "").lower(),
+                                "qty": float(o.get("filled_qty") or 0),
+                                "price": float(o.get("filled_avg_price") or 0),
+                                "filled_at": str(o.get("filled_at") or o.get("updated_at") or "")[:19].replace("T", " "),
+                            })
+                except Exception as exc:
+                    source_label = f"Alpaca API utilgjengelig ({exc})"
+
+            # Strict FIFO matching per ticker (Skatteloven § 10-36)
+            lots: dict[str, Any] = {}
+            realized_rows = []
+            for o in filled_orders:
+                sym = o["symbol"]
+                if sym not in lots:
+                    lots[sym] = _deque()
+                if o["side"] == "buy":
+                    lots[sym].append({"qty": o["qty"], "price": o["price"], "date": o["filled_at"], "id": o["id"]})
+                elif o["side"] == "sell":
+                    rem = o["qty"]
+                    sell_px = o["price"]
+                    sell_dt = o["filled_at"]
+                    while rem > 1e-9 and lots[sym]:
+                        lot = lots[sym][0]
+                        matched = min(rem, lot["qty"])
+                        cost_usd = round(matched * lot["price"], 2)
+                        proc_usd = round(matched * sell_px, 2)
+                        pnl_usd = round(proc_usd - cost_usd, 2)
+                        ret_pct = round((pnl_usd / cost_usd) * 100.0, 2) if cost_usd > 0 else 0.0
+                        tax_usd = round(pnl_usd * 0.3784, 2)
+                        net_usd = round(pnl_usd - tax_usd, 2)
+                        realized_rows.append({
+                            "ref": o["id"],
+                            "ticker": sym,
+                            "buy_date": lot["date"][:10],
+                            "sell_date": sell_dt[:10],
+                            "sell_ts": sell_dt,
+                            "qty": round(matched, 4),
+                            "buy_price": round(lot["price"], 2),
+                            "sell_price": round(sell_px, 2),
+                            "cost_usd": cost_usd,
+                            "proceeds_usd": proc_usd,
+                            "realized_pnl_usd": pnl_usd,
+                            "return_pct": ret_pct,
+                            "tax_3784_usd": tax_usd,
+                            "net_after_tax_usd": net_usd,
+                        })
+                        lot["qty"] -= matched
+                        rem -= matched
+                        if lot["qty"] <= 1e-9:
+                            lots[sym].popleft()
+
+            realized_rows.reverse()  # Nyeste lukkede posisjon øverst
+            total_pnl = round(sum(r["realized_pnl_usd"] for r in realized_rows), 2)
+            total_cost = round(sum(r["cost_usd"] for r in realized_rows), 2)
+            total_proc = round(sum(r["proceeds_usd"] for r in realized_rows), 2)
+            est_tax = round(max(0.0, total_pnl) * 0.3784, 2)
+            net_after_tax = round(total_pnl - est_tax, 2)
+            wins = sum(1 for r in realized_rows if r["realized_pnl_usd"] > 0)
+            win_rate = round((wins / len(realized_rows)) * 100.0, 1) if realized_rows else 0.0
+
+            res_obj = {
+                "success": True,
+                "source": source_label,
+                "updated_at": time.strftime("%H:%M:%S"),
+                "filled_orders_count": len(filled_orders),
+                "summary": {
+                    "closed_trades": len(realized_rows),
+                    "wins": wins,
+                    "losses": len(realized_rows) - wins,
+                    "win_rate_pct": win_rate,
+                    "total_cost_usd": total_cost,
+                    "total_proceeds_usd": total_proc,
+                    "total_realized_pnl_usd": total_pnl,
+                    "est_tax_3784_usd": est_tax,
+                    "net_after_tax_usd": net_after_tax,
+                },
+                "rows": realized_rows,
+            }
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/analytics/signal-audit":
             from weekly_signal_audit import get_weekly_signal_audit_payload
             res_obj = get_weekly_signal_audit_payload()

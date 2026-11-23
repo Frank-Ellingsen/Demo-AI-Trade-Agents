@@ -1418,6 +1418,66 @@
         </div>
       </div>
 
+      <!-- Kontoutskrift: Realiserte Posisjoner & Lukkede Handler (FIFO · Alpaca Paper) -->
+      <div class="card" style="margin-top:16px;" id="portfolioStatementCard">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h3>🧾 Kontoutskrift — Realiserte Posisjoner (FIFO · Alpaca Paper)</h3>
+            <p>Fullstendig oversikt over alle lukkede handler matchet etter norsk <strong>FIFO-prinsipp</strong> (Skatteloven § 10-36) med estimert 37,84 % skatt</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <span class="pill pill-cyan" id="stmtStatusPill">Laster…</span>
+            <button class="btn btn-outline btn-sm" type="button" onclick="loadPortfolioStatement()">🔄 Oppdater</button>
+            <button class="btn btn-outline btn-sm" type="button" onclick="exportPortfolioStatementCsv()">📥 Eksporter CSV</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" style="margin:10px 0 12px 0;">
+          <div class="kpi-item highlight-green" style="padding:10px 12px;">
+            <div class="kpi-label">Realisert Brutto (FIFO)</div>
+            <div class="kpi-value" id="stmtTotalPnl" style="font-size:18px;">$0.00</div>
+            <div class="kpi-sub" id="stmtTradesSub">0 lukkede posisjoner</div>
+          </div>
+          <div class="kpi-item highlight-amber" style="padding:10px 12px;">
+            <div class="kpi-label">Estimert Skatt (37,84 %)</div>
+            <div class="kpi-value" id="stmtEstTax" style="font-size:18px;">$0.00</div>
+            <div class="kpi-sub">Norsk kapitalskatt på nettogevinst</div>
+          </div>
+          <div class="kpi-item highlight-cyan" style="padding:10px 12px;">
+            <div class="kpi-label">Netto etter 37,84 % Skatt</div>
+            <div class="kpi-value" id="stmtNetAfterTax" style="font-size:18px;">$0.00</div>
+            <div class="kpi-sub" id="stmtWinRateSub">Vinnrate: 0.0 %</div>
+          </div>
+          <div class="kpi-item" style="padding:10px 12px;">
+            <div class="kpi-label">Totalt Solgt Volum</div>
+            <div class="kpi-value" id="stmtTotalProceeds" style="font-size:18px;">$0.00</div>
+            <div class="kpi-sub" id="stmtTotalCostSub">Kostpris: $0.00</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="tufte-table">
+            <thead>
+              <tr>
+                <th>Lukket</th>
+                <th>Ticker</th>
+                <th class="num">Antall</th>
+                <th class="num">Kjøp ($)</th>
+                <th class="num">Salg ($)</th>
+                <th class="num">Kostpris ($)</th>
+                <th class="num">Salgsbeløp ($)</th>
+                <th class="num">Realisert P&amp;L ($)</th>
+                <th class="num">Avk. %</th>
+                <th class="num">Netto e. 37,84 %</th>
+              </tr>
+            </thead>
+            <tbody id="portfolioStatementTbody">
+              <tr><td colspan="10" class="text-muted" style="text-align:center; padding:12px;">Laster kontoutskrift fra Alpaca Paper…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- Executive KPI Strip (Hidden in clean portfolio demo mode) -->
@@ -5250,6 +5310,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       });
       if (catKey === "overview") {
         loadOverviewActiveStrategies();
+      } else if (catKey === "portfolio") {
+        loadPortfolioStatement();
       } else if (catKey === "analytics") {
         loadKbStatus();
       } else if (catKey === "postmortem") {
@@ -6773,6 +6835,72 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       } catch (err) {
         if (statusEl) statusEl.innerHTML = `<span class="text-amber">Kunne ikke laste innstillinger fra lokal server: ${err}</span>`;
       }
+    }
+
+    let _statementRowsCache = [];
+
+    async function loadPortfolioStatement() {
+      const tb = document.getElementById("portfolioStatementTbody");
+      const pill = document.getElementById("stmtStatusPill");
+      if (!tb) return;
+      try {
+        const res = await fetch(`${SERVER_URL}/api/portfolio/statement`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const d = await res.json();
+        const s = d.summary || {};
+        const rows = d.rows || [];
+        _statementRowsCache = rows;
+        const fmt = (v) => `$${Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const fmtSigned = (v) => `${Number(v || 0) >= 0 ? "+" : "-"}$${Math.abs(Number(v || 0)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        const setTxt = (id, t, cls) => { const el = document.getElementById(id); if (el) { el.textContent = t; if (cls) el.className = cls; } };
+        setTxt("stmtTotalPnl", fmtSigned(s.total_realized_pnl_usd), `kpi-value ${(s.total_realized_pnl_usd || 0) >= 0 ? "text-green" : "text-red"}`);
+        setTxt("stmtTradesSub", `${s.closed_trades || 0} lukkede posisjoner (${s.wins || 0} vinn / ${s.losses || 0} tap)`);
+        setTxt("stmtEstTax", fmt(s.est_tax_3784_usd));
+        setTxt("stmtNetAfterTax", fmtSigned(s.net_after_tax_usd), `kpi-value ${(s.net_after_tax_usd || 0) >= 0 ? "text-green" : "text-red"}`);
+        setTxt("stmtWinRateSub", `Vinnrate: ${Number(s.win_rate_pct || 0).toFixed(1)} % · ${d.filled_orders_count || 0} utførte ordrer`);
+        setTxt("stmtTotalProceeds", fmt(s.total_proceeds_usd));
+        setTxt("stmtTotalCostSub", `Kostpris: ${fmt(s.total_cost_usd)}`);
+        if (pill) pill.textContent = `${d.source || "Alpaca FIFO"} · ${d.updated_at || ""}`;
+
+        if (!rows.length) {
+          tb.innerHTML = `<tr><td colspan="10" class="text-muted" style="text-align:center; padding:14px;">Ingen realiserte (lukkede) posisjoner på Alpaca Paper ennå (${d.filled_orders_count || 0} utførte kjøpsordrer registrert). Så snart en posisjon selges, dukker FIFO-linjen opp her automatisk.</td></tr>`;
+          return;
+        }
+        tb.innerHTML = rows.map(r => {
+          const pos = Number(r.realized_pnl_usd || 0) >= 0;
+          return `<tr>
+            <td style="font-family:var(--font-mono); font-size:11.5px;">${r.sell_date}<span style="color:var(--text-dim); font-size:10px; display:block;">Kjøpt ${r.buy_date}</span></td>
+            <td><strong>${r.ticker}</strong></td>
+            <td class="num">${Number(r.qty).toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
+            <td class="num">${fmt(r.buy_price)}</td>
+            <td class="num">${fmt(r.sell_price)}</td>
+            <td class="num">${fmt(r.cost_usd)}</td>
+            <td class="num">${fmt(r.proceeds_usd)}</td>
+            <td class="num ${pos ? "text-green" : "text-red"}"><strong>${fmtSigned(r.realized_pnl_usd)}</strong></td>
+            <td class="num ${pos ? "text-green" : "text-red"}">${r.return_pct >= 0 ? "+" : ""}${Number(r.return_pct).toFixed(2)} %</td>
+            <td class="num ${pos ? "text-green" : "text-red"}">${fmtSigned(r.net_after_tax_usd)}</td>
+          </tr>`;
+        }).join("");
+      } catch (err) {
+        if (pill) pill.textContent = "Feil";
+        tb.innerHTML = `<tr><td colspan="10" class="text-amber">Kunne ikke laste kontoutskrift: ${err}</td></tr>`;
+      }
+    }
+
+    function exportPortfolioStatementCsv() {
+      const headers = ["Lukkedato", "Kjøpsdato", "Ticker", "Antall", "Kjøpskurs_USD", "Salgskurs_USD", "Kostpris_USD", "Salgsbeløp_USD", "Realisert_PnL_USD", "Avkastning_Pct", "Skatt_3784_USD", "Netto_Etter_Skatt_USD"];
+      const lines = [headers.join(";")];
+      (_statementRowsCache || []).forEach(r => {
+        lines.push([r.sell_date, r.buy_date, r.ticker, r.qty, r.buy_price, r.sell_price, r.cost_usd, r.proceeds_usd, r.realized_pnl_usd, r.return_pct, r.tax_3784_usd, r.net_after_tax_usd].join(";"));
+      });
+      const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `alpaca_kontoutskrift_fifo_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     async function loadKbStatus() {
