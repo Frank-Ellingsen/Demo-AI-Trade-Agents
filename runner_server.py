@@ -1638,6 +1638,44 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             self.wfile.write(out_bytes)
             return
 
+        if parsed.path in ("/api/status", "/api/positions", "/api/alpaca/account", "/api/alpaca/positions", "/api/alpaca/orders"):
+            alp = _fetch_alpaca_portfolio_safe() or {}
+            ticker_cache = getattr(self.server, "_live_ticker_cache", None) or {}
+            macro = (ticker_cache.get("data") or {}).get("macro_regime") or {}
+            if parsed.path == "/api/status":
+                res_obj = {
+                    "connected": bool(alp.get("connected", False)),
+                    "broker": "Alpaca Paper v2",
+                    "equity": float(alp.get("equity", 100000.0) or 100000.0),
+                    "cash": float(alp.get("cash", 100000.0) or 100000.0),
+                    "buying_power": float(alp.get("buying_power", 0.0) or 0.0),
+                    "vix": float(macro.get("vix", 20.0) or 20.0),
+                    "brent_2d": float(macro.get("brent_2d_pct", 0.0) or 0.0),
+                    "obx": float(macro.get("obx_close", 0.0) or 0.0),
+                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                }
+            elif parsed.path in ("/api/positions", "/api/alpaca/positions"):
+                res_obj = alp.get("positions", [])
+            elif parsed.path == "/api/alpaca/account":
+                res_obj = {
+                    "connected": bool(alp.get("connected", False)),
+                    "account_number": alp.get("account_number", "PAPER"),
+                    "equity": float(alp.get("equity", 100000.0) or 100000.0),
+                    "cash": float(alp.get("cash", 100000.0) or 100000.0),
+                    "buying_power": float(alp.get("buying_power", 0.0) or 0.0),
+                    "currency": "USD",
+                    "status": alp.get("status", "ACTIVE"),
+                }
+            else:
+                res_obj = alp.get("recent_orders", [])
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
         if parsed.path == "/api/tax/summary":
             from tax_tracker_duckdb import NorwegianTaxTracker
 
@@ -2171,6 +2209,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/bygging": "Bygging_av_AI-tradingagenter_i_Python.html",
             "/v2-intraday": "AI_Trading_Terminal_v2_-_Intraday___Multi-Broker_Suite.html",
             "/v2-skatt-opsjoner": "AI_Trading_Terminal_v2_-_Skatteavsetning___Intradag_Opsjon.html",
+            "/v2-pro": "AI_Trading_Terminal_v2_-_Pro_Dashboard.html",
         }
         if parsed.path in dashboard_routes:
             fname = dashboard_routes[parsed.path]
