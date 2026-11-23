@@ -661,6 +661,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                 "conservative_core": ("1", "2. Konservativ Index Core (ETF)"),
                 "aggressive_ai_tech": ("3", "3. Aggressiv AI & Tech Momentum"),
                 "ai_regime_switcher": ("2", "4. AI Regime Switcher (VIX-styrt)"),
+                "us_intraday_stocks": ("3", "5. US Intraday Aksjer (15-min ORB & VWAP)"),
+                "us_intraday_options": ("3", "6. US Intraday Opsjoner (Toveis Call/Put ORB)"),
             }
             profile_key, strategy_label = strategy_to_profile.get(
                 strategy_key, ("2", "1. Liquid S&P Momentum")
@@ -672,6 +674,13 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             if total_amount < 1000.0:
                 res_obj = {"success": False, "error": "Minimumsbeløp for strategiordre er $1,000 USD."}
                 status_code = 400
+            elif strategy_key == "us_intraday_options" and total_amount > 5000.0:
+                res_obj = {
+                    "success": False,
+                    "error": "Opsjonstak: Maks $5,000 USD per intradags-opsjonsstrategi.",
+                    "available_cash": avail_cash,
+                }
+                status_code = 400
             elif total_amount > avail_cash:
                 res_obj = {
                     "success": False,
@@ -682,6 +691,71 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
                     "available_cash": avail_cash,
                 }
                 status_code = 400
+            elif strategy_key == "us_intraday_options":
+                try:
+                    from us_intraday_options_engine import detect_live_bull_bear_signal
+                    from telegram_hitl_trader import TelegramHITLTrader
+
+                    hitl = TelegramHITLTrader()
+                    sent_items = []
+                    base_ts = int(time.time())
+                    allocated = 0.0
+                    for idx, sym in enumerate(["NVDA", "TSLA", "SPY", "MSFT"]):
+                        det = detect_live_bull_bear_signal(sym)
+                        if not det.get("success"):
+                            continue
+                        side_dir = det.get("direction", "BUY_CALL")
+                        ask_px = float(det.get("option_ask") or 4.0)
+                        contracts = max(1, int(total_amount // (ask_px * 100.0)))
+                        est_cost = round(contracts * ask_px * 100.0, 2)
+                        if est_cost > total_amount:
+                            continue
+                        tid = f"trd_opt_{base_ts}_{idx}"
+                        sl_opt = round(ask_px * 0.72, 2)
+                        tp_opt = round(ask_px * 1.55, 2)
+                        mid = hitl.send_trade_signal(
+                            trade_id=tid,
+                            symbol=f"{sym} {'CALL' if 'CALL' in side_dir else 'PUT'} K=${det.get('strike', 0)}",
+                            qty=contracts,
+                            side="buy",
+                            limit_price=ask_px,
+                            take_profit_price=tp_opt,
+                            stop_loss_price=sl_opt,
+                            reasoning=(
+                                f"Strategi: {strategy_label} ({side_dir}, {det.get('strategy_name', 'ORB')}). "
+                                f"Spot=${det.get('spot', 0):.2f}, Delta={det.get('delta', 0.65)}, "
+                                f"Allokering=${est_cost:,.0f} (maks $5k, EOD 15:55 EST)."
+                            ),
+                            strategy_label=strategy_label,
+                            portfolio_equity=total_amount,
+                            cash_reserve_pct=0.0,
+                        )
+                        allocated += est_cost
+                        sent_items.append({
+                            "trade_id": tid,
+                            "message_id": mid,
+                            "symbol": f"{sym} ({side_dir})",
+                            "qty": contracts,
+                            "limit_price": ask_px,
+                            "sl_price": sl_opt,
+                            "tp_price": tp_opt,
+                        })
+                        if len(sent_items) >= 2:
+                            break
+                    res_obj = {
+                        "success": True,
+                        "strategy_label": strategy_label,
+                        "total_amount_usd": total_amount,
+                        "available_cash_before": avail_cash,
+                        "allocated_total": round(allocated, 2),
+                        "remaining_cash_after": round(avail_cash - allocated, 2),
+                        "sent_count": len(sent_items),
+                        "sent_items": sent_items,
+                    }
+                    status_code = 200
+                except Exception as exc:
+                    res_obj = {"success": False, "error": f"Serverfeil ved intradag opsjonsforslag: {exc}"}
+                    status_code = 500
             else:
                 try:
                     from dynamic_recommender import DynamicRecommender

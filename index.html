@@ -1694,6 +1694,8 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
               <option value="conservative_core">2. Konservativ Index Core (SPY, QQQ, XLV, IWM)</option>
               <option value="aggressive_ai_tech">3. Aggressiv AI &amp; Tech (NVDA, AVGO, TSLA, META, PLTR, AMZN)</option>
               <option value="ai_regime_switcher">4. AI Regime Switcher (VIX-styrt S&amp;P 500)</option>
+              <option value="us_intraday_stocks">5. US Intraday Aksjer — 15-min ORB &amp; VWAP (SPY, QQQ, NVDA, TSLA, AMD)</option>
+              <option value="us_intraday_options">6. US Intraday Opsjoner — Toveis Call/Put ORB (NVDA, TSLA, SPY, MSFT · Maks $5k)</option>
             </select>
           </div>
           <div class="field-group">
@@ -4080,7 +4082,17 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       ai_regime_switcher: {
         profile: "2",
         title: "4. AI Regime Switcher (VIX-styrt S&P 500)",
-        desc: "Dynamisk VIX-rotasjon: Liquid Momentum ved VIX < 18 (aktivt regime nå: VIX 16.4), Covered Calls ved VIX 18–24, T-Bills ved VIX > 24."
+        desc: "Dynamisk VIX-rotasjon: Liquid Momentum ved VIX < 18, Covered Calls ved VIX 18–24, kontantbuffer ved VIX ≥ 25."
+      },
+      us_intraday_stocks: {
+        profile: "3",
+        title: "5. US Intraday Aksjer (15-min ORB & VWAP Pullback)",
+        desc: "Dagshandel i likvide US-aksjer (SPY, QQQ, NVDA, TSLA, AMD) med Hurdle Rate ≥ 0,40 % etter 37,84 % skatt og tvungen EOD-flatting kl. 15:55 EST."
+      },
+      us_intraday_options: {
+        profile: "3",
+        title: "6. US Intraday Opsjoner (Toveis Call/Put ORB · Maks $5 000)",
+        desc: "Velger automatisk CALL (Bull) eller PUT (Bear) fra live 5m ORB/VWAP med hardt tak $5 000, maks 12 % spread og 37,84 % norsk skatt."
       }
     };
 
@@ -6309,6 +6321,10 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           badge.className = "pill pill-amber";
           badge.textContent = "Minimumsbeløp er $1,000 USD";
           if (btn) btn.disabled = true;
+        } else if (stratKey === "us_intraday_options" && amount > 5000) {
+          badge.className = "pill pill-amber";
+          badge.textContent = "Opsjonstak: Maks $5,000 USD per intradags-opsjonsstrategi";
+          if (btn) btn.disabled = true;
         } else if (amount > availCash) {
           badge.className = "pill pill-red";
           badge.textContent = `Cash-sperre: Mangler $${(amount - availCash).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -6324,7 +6340,9 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         liquid_sp_momentum: "2",
         conservative_core: "1",
         aggressive_ai_tech: "3",
-        ai_regime_switcher: "2"
+        ai_regime_switcher: "2",
+        us_intraday_stocks: "3",
+        us_intraday_options: "3"
       };
       const profEl = document.getElementById("alpProfileSelect");
       const capEl = document.getElementById("alpCapitalInput");
