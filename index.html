@@ -2718,7 +2718,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     <section class="workspace-section hidden" id="sec-settings">
       <div class="section-header">
         <div>
-          <h2><span class="sec-tag">06 SETTINGS</span> Systeminnstillinger, API-nøkler &amp; Backup E-post (<code>.env</code>) <span class="pill pill-cyan" style="margin-left:6px;">🎭 Demo-maskert</span></h2>
+          <h2><span class="sec-tag">09 SETTINGS</span> Systeminnstillinger, API-nøkler &amp; Backup E-post (<code>.env</code>) <span class="pill pill-cyan" style="margin-left:6px;">🎭 Demo-maskert</span></h2>
           <p>Personlige ID-er, e-postadresser og API-nøkler vises kamuflert (<code>xxxx••••</code>) for sikker demo/skjermdeling. Skriv inn ny verdi for å oppdatere lokalt i <code>.env</code>.</p>
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -5043,13 +5043,12 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       overview: ["sec-overview"],
       portfolio: ["sec-portfolio"],
       trading: ["sec-alpaca"],
-      markets: ["sec-obx-hitl", "sec-bridge"],
+      intraday: ["sec-intraday"],
+      markets: ["sec-bridge"],
       analytics: ["sec-backtest", "sec-docs"],
       hedging: ["sec-hedging"],
-      settings: ["sec-settings"],
-      multibroker: ["sec-multibroker"],
       postmortem: ["sec-postmortem"],
-      intraday: ["sec-intraday"]
+      settings: ["sec-settings"]
     };
 
     function switchCategory(catKey) {
@@ -5758,51 +5757,33 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const subEl = document.getElementById("perfBenchSubtitle");
       if (subEl) {
         subEl.textContent = useInception && inceptionDate
-          ? `Sammenligner aktiv AI-styrt portefølje mot S&P 500, OMX & OBX — ankret fra første kjøp (${inceptionDate})`
-          : `Sammenligner aktiv AI-styrt portefølje mot S&P 500, OMX & OBX (${rangeKey} markedsperiode)`;
+          ? `Sammenligner aktiv AI-styrt portefølje mot S&P 500 — ankret fra første kjøp (${inceptionDate})`
+          : `Sammenligner aktiv AI-styrt portefølje mot S&P 500 (${rangeKey} markedsperiode)`;
       }
 
       const spNorm = (spObj && Array.isArray(spObj.norm) && spObj.norm.length >= 2) ? spObj.norm : [1.0, 1.0];
-      const omxNorm = (omxObj && Array.isArray(omxObj.norm) && omxObj.norm.length >= 2) ? omxObj.norm : null;
-      const obxNorm = (obxObj && Array.isArray(obxObj.norm) && obxObj.norm.length >= 2) ? obxObj.norm : null;
       const nPts = spNorm.length;
 
       const portCurve = [];
       const spCurve = [];
-      const omxCurve = [];
-      const obxCurve = [];
       for (let i = 0; i < nPts; i++) {
         const w = nPts > 1 ? i / (nPts - 1) : 1;
         portCurve.push(Number((startEq + diff * w).toFixed(2)));
         spCurve.push(Number((startEq * spNorm[i]).toFixed(2)));
-        if (omxNorm) {
-          const mi = Math.min(omxNorm.length - 1, Math.round(w * (omxNorm.length - 1)));
-          omxCurve.push(Number((startEq * omxNorm[mi]).toFixed(2)));
-        }
-        if (obxNorm) {
-          const oi = Math.min(obxNorm.length - 1, Math.round(w * (obxNorm.length - 1)));
-          obxCurve.push(Number((startEq * obxNorm[oi]).toFixed(2)));
-        }
       }
 
       const spRet = spObj && spObj.return_pct !== undefined ? `${spObj.return_pct >= 0 ? "+" : ""}${Number(spObj.return_pct).toFixed(2)}%` : "";
-      const omxRet = omxObj && omxObj.return_pct !== undefined ? `${omxObj.return_pct >= 0 ? "+" : ""}${Number(omxObj.return_pct).toFixed(2)}%` : "";
-      const obxRet = obxObj && obxObj.return_pct !== undefined ? `${obxObj.return_pct >= 0 ? "+" : ""}${Number(obxObj.return_pct).toFixed(2)}%` : "";
       const spLabel = spRet ? `S&P 500 (${spRet})` : "S&P 500";
-      const omxLabel = omxRet ? `OMX (${omxRet})` : "OMX";
-      const obxLabel = obxRet ? `OBX (${obxRet})` : "OBX";
 
       const series = { "Portefølje": portCurve };
       series[spLabel] = spCurve;
-      if (omxCurve.length) series[omxLabel] = omxCurve;
-      if (obxCurve.length) series[obxLabel] = obxCurve;
 
       return {
         label: rangeKey,
         pct: pct,
         spLabel,
-        omxLabel,
-        obxLabel,
+        omxLabel: "",
+        obxLabel: "",
         pill: `${sign}${pct.toFixed(2)} % (${rangeKey} · Faktisk Alpaca Paper)`,
         series
       };
@@ -6761,7 +6742,10 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
         const res = await fetch(`${SERVER_URL}/api/markets/live-ticker${qs}`);
         if (!res.ok) return;
         const d = await res.json();
-        const items = d.items || [];
+        const items = (d.items || []).filter(it => {
+          const lbl = String(it.label || "").toUpperCase();
+          return lbl !== "OSLO" && lbl !== "OBX" && lbl !== "OLJE" && lbl !== "OMX";
+        });
         if (items.length) {
           box.innerHTML = items.map(it => {
             const valFmt = Number(it.price || 0).toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
