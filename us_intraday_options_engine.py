@@ -36,7 +36,9 @@ MIN_RISK_REWARD = 2.00
 DEFAULT_SPREAD_SLIPPAGE_USD = 0.10
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = str(BASE_DIR / "data" / "options_intraday_trades.duckdb")
+_RUNTIME_DIR = Path(os.getenv("LOCALAPPDATA") or str(BASE_DIR / "data")) / "ai_trader_runtime"
+_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = str(_RUNTIME_DIR / "options_intraday_trades.duckdb")
 
 
 @dataclass
@@ -142,6 +144,19 @@ class OptionsBacktrackingVault:
             """,
             [exit_premium, exit_reason, round(net_pnl, 2), round(after_tax_pnl, 2), breakeven_triggered, trade_id],
         )
+        try:
+            from us_intraday_agent import send_telegram_intraday
+
+            emoji = "🟢" if net_pnl >= 0 else "🔴"
+            send_telegram_intraday(
+                f"{emoji} <b>AI INTRADAY OPSJON — LUKKET &amp; REALISERT P/L</b>\n"
+                f"━━━━━━━━━━━━━━━━━━\n"
+                f"• <b>Ref:</b> <code>{trade_id}</code> ({contracts} kontr.)\n"
+                f"• <b>Premie:</b> ${entry_p:.2f} → <b>${exit_premium:.2f}</b> ({exit_reason})\n"
+                f"• <b>Realisert P/L (netto):</b> <b>{net_pnl:+,.2f} USD</b> (e. 37.84% skatt: {after_tax_pnl:+,.2f} USD)"
+            )
+        except Exception:
+            pass
 
     def get_recent_trades(self, limit: int = 20) -> List[Dict[str, Any]]:
         rows = self.conn.execute(
@@ -422,27 +437,18 @@ class AutonomousOptionsRunner:
 
     def start(self, interval_sec: int = 240) -> Dict[str, Any]:
         import threading
-        from us_intraday_agent import send_telegram_intraday
 
         self.interval_sec = max(60, min(900, int(interval_sec)))
         if not self.running:
             self.running = True
             self._thread = threading.Thread(target=self._loop, daemon=True)
             self._thread.start()
-            send_telegram_intraday(
-                "⚡ <b>AUTONOM TOVEIS OPSJONSAGENT AKTIVERT (Alpaca Paper)</b>\n"
-                "• Velger automatisk <b>CALL (Bull)</b> eller <b>PUT (Bear)</b> fra 5m ORB/VWAP\n"
-                "• Hardt tak: <b>$5 000 / 3 %</b> · Hurdle: <b>R/R ≥ 2.0x</b> etter spread &amp; 37.84% skatt"
-            )
+            logger.info("Autonom Toveis Opsjonsagent startet (Telegram-varsling kun ved realisering/lukking).")
         return self.get_status()
 
     def stop(self) -> Dict[str, Any]:
-        from us_intraday_agent import send_telegram_intraday
-
-        was = self.running
         self.running = False
-        if was:
-            send_telegram_intraday("⏸️ <b>AUTONOM TOVEIS OPSJONSAGENT SATT PÅ PAUSE</b>")
+        logger.info("Autonom Toveis Opsjonsagent satt på pause.")
         return self.get_status()
 
     def run_single_cycle(self, stage_approved: bool = True) -> Dict[str, Any]:
@@ -485,12 +491,7 @@ class AutonomousOptionsRunner:
                     results.append(ev)
                     if do_stage and ev.get("trade_id"):
                         staged.append(ev)
-                        send_telegram_intraday(
-                            f"⚡ <b>AUTONOM OPSJON ({ev['direction']}) — {sym}</b>\n"
-                            f"• {ev['contracts']} stk {ev['option_type'].upper()} K=${ev['strike']} (${ev['invested_usd']:,.2f})\n"
-                            f"• R/R: <b>{ev['risk_reward_ratio']}x</b> · Netto e. 37.84% skatt: <b>+${ev['net_profit_after_tax_usd']:.2f}</b>\n"
-                            f"• Vault Ref: <code>{ev['trade_id']}</code>"
-                        )
+                        logger.info(f"Autonom opsjon staged ({ev['direction']} {sym} Ref {ev['trade_id']}) — Telegram sendes kun ved realisering/lukking.")
                 except Exception:
                     continue
         finally:

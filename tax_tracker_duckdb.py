@@ -15,10 +15,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import os
 import duckdb
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "data" / "tax_tracking.duckdb"
+_RUNTIME_DIR = Path(os.getenv("LOCALAPPDATA") or str(BASE_DIR / "data")) / "ai_trader_runtime"
+_RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+DB_PATH = _RUNTIME_DIR / "tax_tracking.duckdb"
 
 
 class NorwegianTaxTracker:

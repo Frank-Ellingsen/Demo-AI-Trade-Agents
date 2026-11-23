@@ -7513,8 +7513,12 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
     async function loadIntradayStatus() {
       try {
-        const res = await fetch(`${SERVER_URL}/api/intraday/status`);
-        if (res.ok) _renderIntradayStatus(await res.json());
+        const [res1, res2] = await Promise.all([
+          fetch(`${SERVER_URL}/api/intraday/status`).catch(() => null),
+          fetch(`${SERVER_URL}/api/intraday/options/summary`).catch(() => null),
+        ]);
+        if (res1 && res1.ok) _renderIntradayStatus(await res1.json());
+        if (res2 && res2.ok) _renderOptAutoState(await res2.json());
       } catch (e) {}
     }
 

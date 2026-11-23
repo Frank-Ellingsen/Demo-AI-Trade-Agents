@@ -2439,6 +2439,15 @@ def create_runner_server(host: str = "127.0.0.1", port: int = PORT) -> Threading
 
 if __name__ == "__main__":
     SCHEDULER.start_background_loop()
+    try:
+        from us_intraday_agent import INTRADAY_RUNNER
+        from us_intraday_options_engine import OPTIONS_RUNNER
+
+        INTRADAY_RUNNER.start(max_portfolio_pct=0.10, interval_sec=180)
+        OPTIONS_RUNNER.start(interval_sec=240)
+        print("Autonome Intraday-agenter startet (Aksjer + Toveis Opsjoner · Telegram kun ved realisering/lukking).")
+    except Exception as _exc:
+        print(f"Advarsel: kunne ikke autostart intradag-agenter: {_exc}")
     print(f"Starter OBX Execution Server på http://localhost:{PORT}")
     print("Åpne http://localhost:8000/index.html i nettleseren for direkte skriptkjøring.")
     server = create_runner_server("127.0.0.1", PORT)

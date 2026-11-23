@@ -65,7 +65,10 @@ EFFECTIVE_TAX_RATE = 0.3784       # Norsk gevinstbeskatning aksjer utenfor ASK (
 MIN_NET_PROFIT_HURDLE_PCT = 0.40  # Minstekrav til netto gevinstpotensial etter friksjon
 MIN_RISK_REWARD_RATIO = 1.80
 
-INTRADAY_UNIVERSE = ["NVDA", "AAPL", "MSFT", "META", "AMZN", "TSLA", "SPY", "QQQ", "AMD", "AVGO"]
+INTRADAY_UNIVERSE = [
+    "SPY", "QQQ", "IWM", "AMD", "NFLX", "GOOGL", "CRM", "ORCL", "MU", "UBER",
+    "COIN", "NVDA", "AAPL", "MSFT", "META", "AMZN", "TSLA", "AVGO", "PLTR", "JPM",
+]
 NY_TZ = ZoneInfo("America/New_York")
 
 
@@ -361,8 +364,10 @@ class USIntradaySpecialist:
                 continue
         return candidates
 
-    def execute_autonomous_trade(self, decision: Dict[str, Any], notify_telegram: bool = True) -> Dict[str, Any]:
-        """Autonom eksekvering av godkjent intradag-ordre KUN på Alpaca Paper + Telegram-rapport."""
+    def execute_autonomous_trade(self, decision: Dict[str, Any], notify_telegram: bool = False) -> Dict[str, Any]:
+        """Autonom eksekvering av godkjent intradag-ordre KUN på Alpaca Paper.
+        Telegram-varsling sendes KUN ved realisering/lukking (ikke ved åpning).
+        """
         if decision.get("decision") != "APPROVED_FOR_EXECUTION":
             return {"success": False, "error": decision.get("reason", "Ikke godkjent")}
 
@@ -404,25 +409,8 @@ class USIntradaySpecialist:
             )
             conn.commit()
 
-        tg_sent = False
-        if notify_telegram:
-            msg = (
-                f"⚡ <b>AI INTRADAY AGENT — AUTONOM HANDEL ÅPNET (Alpaca Paper)</b>\n"
-                f"━━━━━━━━━━━━━━━━━━\n"
-                f"• <b>Ticker:</b> <code>{sym}</code> ({decision.get('strategy')})\n"
-                f"• <b>Ordre:</b> BUY {shares} stk @ <b>${entry:.2f}</b> (${decision['order_value_usd']:,.2f} · {decision['pct_of_portfolio']:.1f}%)\n"
-                f"• <b>OCO Bracket (DAY):</b> SL <code>${sl:.2f}</code> | TP <code>${tp:.2f}</code> (R/R {decision['risk_reward_ratio']}x)\n"
-                f"• <b>Est. Netto / e. skatt:</b> +${decision['net_profit_est_usd']:.2f} / +${decision['after_tax_gain_usd']:.2f}\n"
-                f"• <b>Auto EOD-flatting:</b> 15:55 EST (21:55 CET)\n"
-                f"• <b>Ref:</b> <code>{tid}</code>"
-            )
-            tg_sent = send_telegram_intraday(msg)
-            if tg_sent:
-                with sqlite3.connect(INTRADAY_DB_PATH) as conn:
-                    conn.execute("UPDATE intraday_trades SET telegram_notified=1 WHERE trade_id=?", (tid,))
-                    conn.commit()
-
-        return {"success": True, "trade_id": tid, "alpaca_order_id": alp_oid, "telegram_sent": tg_sent, "decision": decision}
+        logger.info(f"Autonom intradag-handel åpnet på Alpaca Paper: BUY {shares} {sym} @ ${entry:.2f} (Ref {tid})")
+        return {"success": True, "trade_id": tid, "alpaca_order_id": alp_oid, "telegram_sent": False, "decision": decision}
 
     def sync_closed_trades_and_report(self) -> Dict[str, Any]:
         """Sjekker åpne intradag-handler mot Alpaca Paper, beregner realisert P/L og sender Telegram ved lukking."""
@@ -589,20 +577,13 @@ class AutonomousIntradayRunner:
                 self.running = True
                 self._thread = threading.Thread(target=self._loop, daemon=True)
                 self._thread.start()
-                send_telegram_intraday(
-                    f"🤖 <b>AI INTRADAY AGENT AKTIVERT (Autonom Alpaca Paper)</b>\n"
-                    f"• Maks allokering per handel: <b>{self.specialist.max_portfolio_pct * 100:.0f}%</b> (kun ledig cash)\n"
-                    f"• Strategier: 15-min ORB Breakout &amp; VWAP Pullback\n"
-                    f"• EOD Auto-Flatting: <b>15:55 EST (21:55 CET)</b>"
-                )
+                logger.info("AI Intraday Agent startet autonomt (Telegram-varsling kun ved realisering/lukking).")
         return self.get_status()
 
     def stop(self) -> Dict[str, Any]:
         with self._lock:
-            was_running = self.running
             self.running = False
-        if was_running:
-            send_telegram_intraday("⏸️ <b>AI INTRADAY AGENT SATT PÅ PAUSE</b> (Ingen nye autonome intradag-ordrer).")
+        logger.info("AI Intraday Agent satt på pause.")
         return self.get_status()
 
     def run_single_cycle(self, execute_approved: bool = False) -> Dict[str, Any]:
