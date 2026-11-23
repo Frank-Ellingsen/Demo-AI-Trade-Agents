@@ -510,11 +510,12 @@ def _collect_live_intraday_and_tax_context() -> dict[str, Any]:
     try:
         from us_intraday_agent import INTRADAY_RUNNER
         st = INTRADAY_RUNNER.get_status()
+        tsum = st.get("today_summary") or {}
         ctx["intraday_equity"] = {
-            "running": bool(st.get("running")),
-            "open_today": int(st.get("open_today", 0) or 0),
-            "closed_today": int(st.get("closed_today", 0) or 0),
-            "realized_pnl_usd": float(st.get("realized_pnl_usd", 0.0) or 0.0),
+            "running": bool(st.get("autonomous_running") or st.get("running")),
+            "open_today": int(tsum.get("open_count", st.get("open_today", 0)) or 0),
+            "closed_today": int(tsum.get("closed_count", st.get("closed_today", 0)) or 0),
+            "realized_pnl_usd": float(tsum.get("realized_pnl_usd", st.get("realized_pnl_usd", 0.0)) or 0.0),
             "last_scan": st.get("last_scan_at"),
             "candidates_count": len(st.get("last_candidates") or []),
             "sample_candidates": [
@@ -556,7 +557,7 @@ def _collect_live_intraday_and_tax_context() -> dict[str, Any]:
             for r in rows
         ]
         ctx["intraday_options"] = {
-            "running": bool(ost.get("running")),
+            "running": bool(ost.get("autonomous_running") or ost.get("running")),
             "last_scan": ost.get("last_scan_at"),
             "staged_total_recent": len(recent),
             "recent_staged": recent[:5],

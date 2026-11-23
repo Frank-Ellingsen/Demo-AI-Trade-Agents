@@ -1754,10 +1754,11 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             try:
                 from us_intraday_agent import INTRADAY_RUNNER
                 st = INTRADAY_RUNNER.get_status()
-                eq_running = bool(st.get("running"))
-                eq_open = int(st.get("open_today", 0) or 0)
-                eq_closed = int(st.get("closed_today", 0) or 0)
-                eq_pnl = float(st.get("realized_pnl_usd", 0.0) or 0.0)
+                eq_running = bool(st.get("autonomous_running") or st.get("running"))
+                tsum = st.get("today_summary") or {}
+                eq_open = int(tsum.get("open_count", st.get("open_today", 0)) or 0)
+                eq_closed = int(tsum.get("closed_count", st.get("closed_today", 0)) or 0)
+                eq_pnl = float(tsum.get("realized_pnl_usd", st.get("realized_pnl_usd", 0.0)) or 0.0)
                 eq_scan = st.get("last_scan_at") or "—"
             except Exception:
                 pass
@@ -1769,7 +1770,7 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             try:
                 from us_intraday_options_engine import OPTIONS_RUNNER, OptionsBacktrackingVault
                 ost = OPTIONS_RUNNER.get_status()
-                opt_running = bool(ost.get("running"))
+                opt_running = bool(ost.get("autonomous_running") or ost.get("running"))
                 v = OptionsBacktrackingVault()
                 try:
                     rows = v.conn.execute(
