@@ -1248,6 +1248,8 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             "/api/intraday/flatten",
             "/api/intraday/report-telegram",
             "/api/intraday/backtest",
+            "/api/intraday/options/evaluate",
+            "/api/tax/record",
         ):
             from us_intraday_agent import INTRADAY_RUNNER, IntradaySignal
 
@@ -1255,7 +1257,76 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
             payload = json.loads(raw_body) if raw_body.strip() else {}
             try:
-                if parsed.path == "/api/intraday/backtest":
+                if parsed.path == "/api/intraday/options/evaluate":
+                    from us_intraday_options_agent import USIntradayOptionsAgent
+                    from us_intraday_options_engine import OptionSignal, USOptionsIntradayAgent
+
+                    alp = _fetch_alpaca_portfolio_safe()
+                    eq = float(payload.get("portfolio_value_usd") or alp.get("equity") or 100000.0)
+                    cash = float(payload.get("cash_usd") or alp.get("cash") or 25000.0)
+                    side = str(payload.get("side") or "BUY_CALL").upper()
+                    stage = bool(payload.get("stage_in_vault", False))
+
+                    if stage:
+                        eng = USOptionsIntradayAgent()
+                        try:
+                            sig = OptionSignal(
+                                ticker=str(payload.get("ticker") or "NVDA").upper(),
+                                underlying_price=float(payload.get("underlying_price") or 145.0),
+                                direction="BULLISH_CALL" if side == "BUY_CALL" else "BEARISH_PUT",
+                                strategy_name=str(payload.get("strategy") or "15M_ORB_BREAKOUT"),
+                                underlying_stop=float(payload.get("underlying_stop") or 143.2),
+                                underlying_target=float(payload.get("underlying_target") or 149.5),
+                                strike=float(payload.get("contract_strike") or 144.0),
+                                dte_days=int(payload.get("days_to_expiry") or 4),
+                                option_type="call" if side == "BUY_CALL" else "put",
+                                option_market_price=(float(payload.get("contract_ask") or 4.15) + float(payload.get("contract_bid") or 4.05)) / 2.0,
+                                estimated_delta=float(payload.get("delta") or (0.68 if side == "BUY_CALL" else -0.65)),
+                            )
+                            ev = eng.process_live_signal(sig, eq, cash, stage_in_vault=True)
+                            res_obj = {"success": True, "evaluation": ev, "summary": eng.vault.get_backtracking_summary()}
+                        finally:
+                            eng.close()
+                    else:
+                        opt_agent = USIntradayOptionsAgent(portfolio_value_usd=eq, available_cash_usd=cash)
+                        ev = opt_agent.evaluate_option_signal(
+                            ticker=str(payload.get("ticker") or "NVDA").upper(),
+                            side=side,
+                            underlying_price=float(payload.get("underlying_price") or 145.0),
+                            underlying_stop=float(payload.get("underlying_stop") or 143.2),
+                            underlying_target=float(payload.get("underlying_target") or 149.5),
+                            contract_strike=float(payload.get("contract_strike") or 144.0),
+                            contract_ask=float(payload.get("contract_ask") or 4.15),
+                            contract_bid=float(payload.get("contract_bid") or 4.05),
+                            delta=float(payload.get("delta") or (0.68 if side == "BUY_CALL" else -0.65)),
+                            days_to_expiry=int(payload.get("days_to_expiry") or 4),
+                        )
+                        res_obj = {"success": True, "evaluation": ev}
+                elif parsed.path == "/api/tax/record":
+                    from tax_tracker_duckdb import NorwegianTaxTracker
+
+                    tracker = NorwegianTaxTracker()
+                    try:
+                        now_iso = time.strftime("%Y-%m-%dT%H:%M:%S")
+                        rec = tracker.record_closed_trade(
+                            trade_id=str(payload.get("trade_id") or f"TR-{uuid.uuid4().hex[:6].upper()}"),
+                            broker=str(payload.get("broker") or "Alpaca"),
+                            ticker=str(payload.get("ticker") or "NVDA").upper(),
+                            asset_class=str(payload.get("asset_class") or "EQUITY"),
+                            currency=str(payload.get("currency") or "USD"),
+                            open_date=str(payload.get("open_date") or now_iso),
+                            close_date=str(payload.get("close_date") or now_iso),
+                            cost_basis_ccy=float(payload.get("cost_basis_ccy") or 0.0),
+                            proceeds_gross_ccy=float(payload.get("proceeds_gross_ccy") or 0.0),
+                            fees_commissions_ccy=float(payload.get("fees_commissions_ccy") or 0.0),
+                            fx_open=float(payload.get("fx_open") or 10.95),
+                            fx_close=float(payload.get("fx_close") or 11.00),
+                        )
+                        yr = int(str(payload.get("close_date") or now_iso)[:4])
+                        res_obj = {"success": True, "record": rec, "summary": tracker.get_annual_tax_summary(tax_year=yr)}
+                    finally:
+                        tracker.close()
+                elif parsed.path == "/api/intraday/backtest":
                     from backtest_intraday_duckdb import run_intraday_backtest_api
 
                     alp = _fetch_alpaca_portfolio_safe()
@@ -1522,6 +1593,44 @@ class CommandRunnerHandler(SimpleHTTPRequestHandler):
             from us_intraday_agent import INTRADAY_RUNNER
 
             res_obj = INTRADAY_RUNNER.get_status()
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/intraday/options/summary":
+            from us_intraday_options_engine import OptionsBacktrackingVault
+
+            vault = OptionsBacktrackingVault()
+            try:
+                res_obj = {
+                    "success": True,
+                    "summary": vault.get_backtracking_summary(),
+                    "trades": vault.get_recent_trades(limit=15),
+                }
+            finally:
+                vault.close()
+            out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(out_bytes)))
+            self.end_headers()
+            self.wfile.write(out_bytes)
+            return
+
+        if parsed.path == "/api/tax/summary":
+            from tax_tracker_duckdb import NorwegianTaxTracker
+
+            qs_tax = parse_qs(parsed.query)
+            yr = int((qs_tax.get("year") or ["2026"])[0])
+            tracker = NorwegianTaxTracker()
+            try:
+                res_obj = {"success": True, **tracker.get_annual_tax_summary(tax_year=yr)}
+            finally:
+                tracker.close()
             out_bytes = json.dumps(res_obj, ensure_ascii=False).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")

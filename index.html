@@ -3581,6 +3581,95 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
           </table>
         </div>
       </div>
+
+      <!-- Toveis US Intradag Opsjonsagent (Calls & Puts) + Norsk Skattejournal (DuckDB) -->
+      <div class="grid-2" style="gap:16px; margin-top:16px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>⚡ Toveis Intradag Opsjonsagent (<code>us_intraday_options_agent.py</code> &amp; <code>_engine.py</code>)</h3>
+              <p>Calls (Bullish ORB) &amp; Puts (Bearish ORB) · Hardt tak \$5 000 / 3 % · Bid/Ask spread + OCC/ORF + 37,84 % skatt + DuckDB Backtracking Vault</p>
+            </div>
+            <span class="pill pill-cyan" id="optDecPill">Klar</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Ticker</label>
+              <input id="optTicker" type="text" value="NVDA" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 8px; font-family:var(--font-mono);">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Retning</label>
+              <select id="optSide" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 8px;">
+                <option value="BUY_CALL">BUY CALL (Bullish)</option>
+                <option value="BUY_PUT">BUY PUT (Bearish)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Strike / Ask / Bid ($)</label>
+              <div style="display:flex; gap:4px;">
+                <input id="optStrike" type="number" step="0.5" value="144" style="width:34%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 4px; font-family:var(--font-mono);">
+                <input id="optAsk" type="number" step="0.05" value="4.15" style="width:33%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 4px; font-family:var(--font-mono);">
+                <input id="optBid" type="number" step="0.05" value="4.05" style="width:33%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 4px; font-family:var(--font-mono);">
+              </div>
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Spot / Stop / Target ($)</label>
+              <div style="display:flex; gap:4px;">
+                <input id="optSpot" type="number" step="0.5" value="145" style="width:33%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 4px; font-family:var(--font-mono);">
+                <input id="optStop" type="number" step="0.5" value="143.2" style="width:33%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 4px; font-family:var(--font-mono);">
+                <input id="optTarget" type="number" step="0.5" value="149.5" style="width:34%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 4px; font-family:var(--font-mono);">
+              </div>
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-muted);">Delta</label>
+              <input id="optDelta" type="number" step="0.01" value="0.68" style="width:100%; background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 8px; font-family:var(--font-mono);">
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+              <button class="btn btn-primary btn-sm" style="width:100%;" onclick="evaluateIntradayOption(false)">⚖️ Test Hurdle</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+            <button class="btn btn-success btn-sm" onclick="evaluateIntradayOption(true)">💾 Logg i DuckDB Vault</button>
+            <button class="btn btn-outline btn-sm" onclick="presetOptionSim('NVDA','BUY_CALL',145,143.2,149.5,144,4.15,4.05,0.68)">NVDA CALL</button>
+            <button class="btn btn-outline btn-sm" onclick="presetOptionSim('TSLA','BUY_PUT',210,213.5,201,212.5,6.20,6.05,-0.65)">TSLA PUT</button>
+            <button class="btn btn-outline btn-sm" onclick="presetOptionSim('SPY','BUY_CALL',590,589.2,590.8,590,2.10,1.95,0.50)">SPY Veto</button>
+          </div>
+          <div id="optEvalOutput" style="background:#0b1018; border:1px solid var(--border-strong); border-radius:6px; padding:10px 12px; font-size:12px; line-height:1.5; color:var(--text-muted);">
+            Test toveis Call/Put-signaler mot opsjonsspread, OCC/ORF-avgifter og 37,84 % norsk skatt.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3>🧾 Norsk Skattejournal &amp; Avsetning (<code>tax_tracker_duckdb.py</code>)</h3>
+              <p>37,84 % skatt på realisert gevinst inkl. USD/NOK valutakursendring (<code>fx_open</code> vs <code>fx_close</code>) i DuckDB</p>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="loadTaxTrackerSummary()">🔄 Oppdater</button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:10px;">
+            <div class="kpi-item" style="padding:8px 10px;">
+              <div class="kpi-label">Skattepliktig Gevinst</div>
+              <div class="kpi-value" id="taxGainNok" style="font-size:15px;">0 NOK</div>
+            </div>
+            <div class="kpi-item highlight-amber" style="padding:8px 10px;">
+              <div class="kpi-label">Skattekrav (37,84 %)</div>
+              <div class="kpi-value" id="taxDueNok" style="font-size:15px;">0 NOK</div>
+            </div>
+            <div class="kpi-item highlight-cyan" style="padding:8px 10px;">
+              <div class="kpi-label">Anbefalt Avsetning</div>
+              <div class="kpi-value" id="taxReserveNok" style="font-size:15px;">0 NOK</div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:8px;">
+            <input id="taxInTicker" type="text" value="NVDA" placeholder="Ticker" style="background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 7px; font-family:var(--font-mono); font-size:12px;">
+            <input id="taxInCost" type="number" value="4620" placeholder="Kost ($)" style="background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 7px; font-family:var(--font-mono); font-size:12px;">
+            <input id="taxInProc" type="number" value="5508" placeholder="Salg ($)" style="background:#0b1018; border:1px solid var(--border-strong); color:var(--text-main); border-radius:6px; padding:5px 7px; font-family:var(--font-mono); font-size:12px;">
+            <button class="btn btn-primary btn-sm" onclick="recordTaxTrackerTrade()">+ Logg Handel</button>
+          </div>
+          <div id="taxSummaryNote" style="font-size:11.5px; color:var(--text-muted);">Laster 2026 skattejournal fra DuckDB...</div>
+        </div>
+      </div>
     </section>
 
       </div>
@@ -7571,6 +7660,98 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       }
     }
 
+    function presetOptionSim(t, side, spot, stop, target, strike, ask, bid, delta) {
+      document.getElementById("optTicker").value = t;
+      document.getElementById("optSide").value = side;
+      document.getElementById("optSpot").value = spot;
+      document.getElementById("optStop").value = stop;
+      document.getElementById("optTarget").value = target;
+      document.getElementById("optStrike").value = strike;
+      document.getElementById("optAsk").value = ask;
+      document.getElementById("optBid").value = bid;
+      document.getElementById("optDelta").value = delta;
+      evaluateIntradayOption(false);
+    }
+
+    async function evaluateIntradayOption(stageInVault = false) {
+      const out = document.getElementById("optEvalOutput");
+      const pill = document.getElementById("optDecPill");
+      const payload = {
+        ticker: (document.getElementById("optTicker") || {}).value || "NVDA",
+        side: (document.getElementById("optSide") || {}).value || "BUY_CALL",
+        underlying_price: parseFloat((document.getElementById("optSpot") || {}).value || "145"),
+        underlying_stop: parseFloat((document.getElementById("optStop") || {}).value || "143.2"),
+        underlying_target: parseFloat((document.getElementById("optTarget") || {}).value || "149.5"),
+        contract_strike: parseFloat((document.getElementById("optStrike") || {}).value || "144"),
+        contract_ask: parseFloat((document.getElementById("optAsk") || {}).value || "4.15"),
+        contract_bid: parseFloat((document.getElementById("optBid") || {}).value || "4.05"),
+        delta: parseFloat((document.getElementById("optDelta") || {}).value || "0.68"),
+        stage_in_vault: Boolean(stageInVault)
+      };
+      try {
+        const res = await fetch(`${SERVER_URL}/api/intraday/options/evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        const ev = d.evaluation || {};
+        const ok = ev.decision === "APPROVED_FOR_EXECUTION";
+        if (pill) {
+          pill.textContent = ev.decision || "FEIL";
+          pill.className = `pill ${ok ? "pill-green" : "pill-red"}`;
+        }
+        if (ok && out) {
+          const cap = ev.total_capital_committed_usd ?? ev.invested_usd ?? 0;
+          const cnt = ev.num_contracts ?? ev.contracts ?? 1;
+          const net = ev.net_profit_after_tax_usd ?? 0;
+          const retPct = ev.net_return_after_tax_pct ?? ev.net_return_pct ?? 0;
+          out.innerHTML =
+            `<strong class="text-green">✅ ${ev.decision}</strong> · <strong>${ev.instrument || (ev.ticker + " " + (ev.option_type || "").toUpperCase())}</strong> (${cnt} kontr. · $${Number(cap).toLocaleString("en-US")})<br>` +
+            `R/R: <strong>${ev.risk_reward_ratio}x</strong> · Netto etter 37,84 % skatt: <strong class="text-green">+$${Number(net).toFixed(2)} (+${retPct}%)</strong>` +
+            (ev.trade_id ? `<br><span class="text-cyan">💾 Lagret i DuckDB Backtracking Vault: <code>${ev.trade_id}</code></span>` : "");
+        } else if (out) {
+          out.innerHTML = `<strong class="text-red">❌ ${ev.decision || "VETO"}</strong> — ${ev.reason || "Overlever ikke spread, avgifter eller R/R ≥ 2.0x."}`;
+        }
+      } catch (e) {
+        if (out) out.textContent = `Feil: ${e}`;
+      }
+    }
+
+    async function loadTaxTrackerSummary() {
+      try {
+        const res = await fetch(`${SERVER_URL}/api/tax/summary?year=2026`);
+        if (!res.ok) return;
+        const d = await res.json();
+        const fmtNok = (v) => `${Number(v || 0).toLocaleString("nb-NO", { maximumFractionDigits: 0 })} NOK`;
+        const gEl = document.getElementById("taxGainNok");
+        const tEl = document.getElementById("taxDueNok");
+        const rEl = document.getElementById("taxReserveNok");
+        const nEl = document.getElementById("taxSummaryNote");
+        if (gEl) gEl.textContent = fmtNok(d.net_taxable_gain_nok);
+        if (tEl) tEl.textContent = fmtNok(d.accumulated_tax_liability_nok);
+        if (rEl) rEl.textContent = fmtNok(d.recommended_cash_reserve_nok);
+        if (nEl) {
+          const brokers = (d.breakdown_by_broker || []).map(b => `${b.broker}: ${fmtNok(b.tax_nok)}`).join(" · ") || "Ingen lukkede handler logget i 2026 ennå";
+          nEl.textContent = `2026: ${d.total_trades || 0} handler (${d.win_trades || 0} vinn / ${d.loss_trades || 0} tap) · ${brokers}`;
+        }
+      } catch (e) {}
+    }
+
+    async function recordTaxTrackerTrade() {
+      const ticker = (document.getElementById("taxInTicker") || {}).value || "NVDA";
+      const cost = parseFloat((document.getElementById("taxInCost") || {}).value || "0");
+      const proc = parseFloat((document.getElementById("taxInProc") || {}).value || "0");
+      try {
+        const res = await fetch(`${SERVER_URL}/api/tax/record`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+          body: JSON.stringify({ broker: "Alpaca", ticker, asset_class: "EQUITY", currency: "USD", cost_basis_ccy: cost, proceeds_gross_ccy: proc, fees_commissions_ccy: 1.5, fx_open: 10.95, fx_close: 11.00 })
+        });
+        if (res.ok) loadTaxTrackerSummary();
+      } catch (e) {}
+    }
+
     async function sendIntradayPnlTelegram() {
       const b = document.getElementById("intradayActionBanner");
       if (b) { b.style.display = "block"; b.textContent = "📲 Sender live Intradag P/L-rapport til Telegram..."; }
@@ -7598,6 +7779,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
     mbLoadSaxoPositions();
     loadCorporateActionsOverview();
     loadIntradayStatus();
+    loadTaxTrackerSummary();
     setInterval(checkServerConnection, 6000);
     setInterval(refreshAlpacaPortfolio, 15000);
     setInterval(loadLiveIndexTicker, 30000);
