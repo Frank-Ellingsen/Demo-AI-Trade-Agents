@@ -500,8 +500,184 @@ def evaluate_hybrid_agent(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _collect_live_intraday_and_tax_context() -> dict[str, Any]:
+    """Henter live status fra US Intraday-agenten, Toveis Opsjonsagent (DuckDB Vault) og Skattejournal."""
+    ctx: dict[str, Any] = {
+        "intraday_equity": {"running": False, "open_today": 0, "closed_today": 0, "realized_pnl_usd": 0.0, "last_scan": None, "candidates_count": 0},
+        "intraday_options": {"running": False, "staged_today": 0, "recent_staged": [], "execution_mode": "Paper/DuckDB Vault (simulerte/stagede opsjoner logges i DuckDB; Alpaca Paper opsjonsruting er ikke aktivert for live-utførelse)"},
+        "tax_2026": {"total_trades": 0, "pnl_net_nok": 0.0, "tax_due_nok": 0.0},
+    }
+    try:
+        from us_intraday_agent import INTRADAY_RUNNER
+        st = INTRADAY_RUNNER.get_status()
+        ctx["intraday_equity"] = {
+            "running": bool(st.get("running")),
+            "open_today": int(st.get("open_today", 0) or 0),
+            "closed_today": int(st.get("closed_today", 0) or 0),
+            "realized_pnl_usd": float(st.get("realized_pnl_usd", 0.0) or 0.0),
+            "last_scan": st.get("last_scan_at"),
+            "candidates_count": len(st.get("last_candidates") or []),
+            "sample_candidates": [
+                {
+                    "ticker": c.get("ticker"),
+                    "strategy": c.get("strategy"),
+                    "approved": c.get("approved"),
+                    "reason": c.get("reason") or c.get("veto_reason"),
+                }
+                for c in (st.get("last_candidates") or [])[:5]
+            ],
+        }
+    except Exception:
+        pass
+
+    try:
+        from us_intraday_options_engine import OPTIONS_RUNNER, OptionsBacktrackingVault
+        ost = OPTIONS_RUNNER.get_status()
+        vault = OptionsBacktrackingVault()
+        try:
+            rows = vault.conn.execute(
+                """
+                SELECT trade_id, ticker, strategy_name, direction, contracts, allocated_usd,
+                       risk_reward, net_pnl_est_usd, status, CAST(timestamp AS VARCHAR)
+                FROM options_intraday_trades
+                ORDER BY timestamp DESC
+                LIMIT 8
+                """
+            ).fetchall()
+        finally:
+            vault.close()
+        recent = [
+            {
+                "ref": r[0], "ticker": r[1], "strategy": r[2], "direction": r[3],
+                "contracts": r[4], "allocated_usd": round(float(r[5] or 0), 2),
+                "rr": round(float(r[6] or 0), 2), "est_net_usd": round(float(r[7] or 0), 2),
+                "status": r[8], "ts": str(r[9])[:19],
+            }
+            for r in rows
+        ]
+        ctx["intraday_options"] = {
+            "running": bool(ost.get("running")),
+            "last_scan": ost.get("last_scan_at"),
+            "staged_total_recent": len(recent),
+            "recent_staged": recent[:5],
+            "execution_mode": "Toveis Opsjonsagent (CALL/PUT) logger godkjente signaler i DuckDB Backtracking Vault (options_intraday_trades.duckdb) for evaluering/shadow-tracking — den sender ikke live opsjonsordrer til Alpaca Paper-posisjoner (kun US-aksjer sendes til Alpaca Paper OCO).",
+        }
+    except Exception:
+        pass
+
+    try:
+        from tax_tracker_duckdb import NorwegianTaxTracker
+        tr = NorwegianTaxTracker()
+        try:
+            tsum = tr.get_annual_tax_summary(tax_year=datetime.now().year)
+        finally:
+            tr.close()
+        ctx["tax_2026"] = {
+            "total_trades": int(tsum.get("total_trades", 0) or 0),
+            "pnl_net_nok": float(tsum.get("taxable_gain_nok", tsum.get("pnl_net_nok", 0.0)) or 0.0),
+            "tax_due_nok": float(tsum.get("tax_due_nok", tsum.get("accumulated_tax_liability_nok", 0.0)) or 0.0),
+        }
+    except Exception:
+        pass
+    return ctx
+
+
+def _call_ollama_chat(system_prompt: str, history: list[dict[str, str]], user_msg: str) -> tuple[str | None, str | None]:
+    """Prøver lokal Ollama først (rask 1.5s tilkoblingssjekk)."""
+    import urllib.request
+    host = (os.getenv("OLLAMA_HOST") or "http://127.0.0.1:11434").strip()
+    if not host.startswith(("http://", "https://")):
+        host = f"http://{host}"
+    host = host.rstrip("/")
+    model = (os.getenv("OLLAMA_MODEL") or "llama3.1:8b").strip()
+    try:
+        urllib.request.urlopen(f"{host}/api/tags", timeout=1.2).read()
+    except Exception:
+        return None, None
+
+    messages = [{"role": "system", "content": system_prompt}]
+    for h in (history or [])[-6:]:
+        role = h.get("role")
+        content = str(h.get("content") or "").strip()
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content[:1200]})
+    if not messages or messages[-1].get("content") != user_msg:
+        messages.append({"role": "user", "content": user_msg})
+
+    req_body = json.dumps({
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "options": {"temperature": 0.25, "num_predict": 450},
+    }).encode("utf-8")
+    try:
+        req = urllib.request.Request(
+            f"{host}/api/chat",
+            data=req_body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=22) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            txt = ((data.get("message") or {}).get("content") or "").strip()
+            if txt:
+                return txt, f"Lokal Ollama ({model})"
+    except Exception:
+        pass
+    return None, None
+
+
+def _call_gemini_chat(system_prompt: str, history: list[dict[str, str]], user_msg: str) -> tuple[str | None, str | None]:
+    """Kaller Gemini 2.5 Flash via ren HTTPS REST (ingen ekstra avhengigheter)."""
+    import urllib.request
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except Exception:
+        pass
+    api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
+    if not api_key:
+        return None, None
+    model = (os.getenv("GEMINI_MODEL") or "gemini-2.5-flash").strip()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+    contents = []
+    for h in (history or [])[-6:]:
+        role = "model" if h.get("role") == "assistant" else "user"
+        text = str(h.get("content") or "").strip()
+        if text:
+            contents.append({"role": role, "parts": [{"text": text[:1200]}]})
+    if not contents or contents[-1]["parts"][0]["text"] != user_msg:
+        contents.append({"role": "user", "parts": [{"text": user_msg}]})
+
+    body = json.dumps({
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": contents,
+        "generationConfig": {"temperature": 0.25, "maxOutputTokens": 650},
+    }).encode("utf-8")
+    try:
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=18) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            cands = data.get("candidates") or []
+            if cands:
+                parts = ((cands[0].get("content") or {}).get("parts") or [])
+                txt = "".join(p.get("text", "") for p in parts).strip()
+                if txt:
+                    return txt, f"Gemini ({model})"
+    except Exception:
+        pass
+    return None, None
+
+
 def handle_ai_chat(payload: dict[str, Any], alpaca_snap: dict[str, Any], live_macro: dict[str, Any]) -> dict[str, Any]:
     msg = str(payload.get("message") or "").strip()
+    history = payload.get("history") if isinstance(payload.get("history"), list) else []
     m_low = msg.lower()
     eq = float(alpaca_snap.get("equity") or 100000.0)
     cash = float(alpaca_snap.get("cash") or 100000.0)
@@ -509,52 +685,125 @@ def handle_ai_chat(payload: dict[str, Any], alpaca_snap: dict[str, Any], live_ma
     pnl = float(alpaca_snap.get("today_pnl") or 0.0)
     pnl_pct = float(alpaca_snap.get("today_pnl_pct") or 0.0)
     vix = float(live_macro.get("vix_close") or 25.0)
-    obx = float(live_macro.get("obx_close") or 2068.75)
-    sma200 = float(live_macro.get("obx_sma200") or 2011.98)
     ctx_summary = f"VIX {vix:.1f} · ${round(eq):,} · {len(pos_list)} pos."
 
-    # Deterministic, live-grounded Norwegian financial responses
-    if any(k in m_low for k in ("portefølje", "status", "posisjon", "benchmark")):
-        top_syms = ", ".join(p["symbol"] for p in pos_list[:6]) or "ingen åpne posisjoner"
+    live_extra = _collect_live_intraday_and_tax_context()
+
+    compact_positions = [
+        {
+            "symbol": p.get("symbol"),
+            "qty": p.get("qty"),
+            "avg_entry": p.get("avg_entry_price"),
+            "price": p.get("current_price"),
+            "unrealized_pl": p.get("unrealized_pl"),
+            "unrealized_plpc": p.get("unrealized_plpc"),
+        }
+        for p in pos_list[:15]
+    ]
+    live_context_json = json.dumps(
+        {
+            "broker": "Alpaca Markets Paper v2 (Kun US-markedet)",
+            "equity_usd": round(eq, 2),
+            "cash_usd": round(cash, 2),
+            "today_pnl_usd": round(pnl, 2),
+            "today_pnl_pct": round(pnl_pct, 2),
+            "vix_sp500": round(vix, 2),
+            "open_positions_count": len(pos_list),
+            "open_positions": compact_positions,
+            "intraday_equity_agent": live_extra["intraday_equity"],
+            "intraday_options_agent": live_extra["intraday_options"],
+            "norwegian_tax_2026": live_extra["tax_2026"],
+        },
+        ensure_ascii=False,
+    )
+
+    system_prompt = (
+        "Du er en presis, kvantitativ AI Trading- & Finansassistent (CIO/Risk Officer) for en norsk bruker "
+        "som driver en demo-tradingdesk utelukkende mot Alpaca Markets (Paper v2) og det amerikanske markedet.\n"
+        "REGLER:\n"
+        "1. Svar alltid på konsist, profesjonelt norsk med punktlister og eksakte tall fra LIVE TELEMETRI under.\n"
+        "2. Ikke dikt opp tall, ordrer eller posisjoner som ikke finnes i telemetrien.\n"
+        "3. Hvis brukeren spør hvorfor det ikke er handlet opsjoner/intradag i dag, forklar eksakt ut fra "
+        "`intraday_options_agent` og `intraday_equity_agent` (f.eks. at Toveis Opsjonsagent logger/stager "
+        "godkjente CALL/PUT-signaler i DuckDB Backtracking Vault og ikke sender live opsjonsordrer til Alpaca Paper-kontoen, "
+        "eller hvorfor 15-min ORB/VWAP aksje-kandidater eventuelt ble avvist av Hurdle Rate ≥ 0,40 % / R/R ≥ 1,8x).\n"
+        "4. Bruk riktig menynavn fra appen: `01 Overview`, `02 Portfolio`, `03 Trading`, `04 US Intraday`, "
+        "`05 Markets`, `06 Analytics`, `07 Sikring & Derivater`, `08 Post-Mortem`, `09 Settings`.\n"
+        "5. Hold svarene korte (maks ~150–200 ord) og rett på sak.\n\n"
+        f"LIVE TELEMETRI:\n{live_context_json}"
+    )
+
+    # Tier 1: Lokal Ollama -> Tier 2: Gemini 2.5 Flash
+    llm_reply, provider = _call_ollama_chat(system_prompt, history, msg)
+    if not llm_reply:
+        llm_reply, provider = _call_gemini_chat(system_prompt, history, msg)
+
+    if llm_reply and provider:
+        return {
+            "success": True,
+            "reply": llm_reply,
+            "provider": provider,
+            "context_summary": ctx_summary,
+        }
+
+    # Tier 3: Smart, live-data-backed deterministic fallback
+    opt_info = live_extra["intraday_options"]
+    eq_info = live_extra["intraday_equity"]
+    tax_info = live_extra["tax_2026"]
+
+    if any(k in m_low for k in ("intradag", "intraday", "opsjon", "call", "put", "orb", "vwap", "hvorfor")) and not any(k in m_low for k in ("collar", "sikre", "hedge")):
+        recent_opt = opt_info.get("recent_staged") or []
+        opt_lines = ", ".join(f"{o['ticker']} {o['direction']} (R/R {o['rr']}x)" for o in recent_opt[:4]) or "ingen ennå"
         reply = (
-            f"**Live porteføljestatus (Alpaca Paper):**\n"
+            f"**Status for US Intradag & Opsjoner i dag (`04 US Intraday`):**\n"
+            f"• **Toveis Opsjonsagent (`OPTIONS_RUNNER`):** `{'AKTIV' if opt_info.get('running') else 'PAUSET'}` · "
+            f"Siste godkjente signaler i DuckDB Vault ({len(recent_opt)}): `{opt_lines}`.\n"
+            f"• **Hvorfor 0 opsjoner i Alpaca Paper-porteføljen:** Opsjonsagenten logger og backtracker godkjente Call/Put-signaler i **DuckDB Vault** (`options_intraday_trades.duckdb`) for papir-evaluering — den sender ikke live opsjonsordrer til Alpaca Paper-kontoen (kun US-aksjer rutes som OCO Bracket-ordrer til Alpaca).\n"
+            f"• **US Aksje-Intradag (`INTRADAY_RUNNER`):** `{'AKTIV' if eq_info.get('running') else 'PAUSET'}` · "
+            f"`{eq_info.get('open_today', 0)}` åpne / `{eq_info.get('closed_today', 0)}` lukkede i dag (Realisert: `${eq_info.get('realized_pnl_usd', 0.0):+,.2f}`). "
+            f"Aksjehandler krever netto avkastning `≥ 0,40 %` etter 37,84 % skatt og `R/R ≥ 1,8x`."
+        )
+    elif any(k in m_low for k in ("portefølje", "status", "posisjon", "benchmark")):
+        top_syms = ", ".join(p["symbol"] for p in pos_list[:8]) or "ingen åpne posisjoner"
+        reply = (
+            f"**Live porteføljestatus (Alpaca Paper · US):**\n"
             f"• **Egenkapital:** `${eq:,.2f}` (I dag: `{pnl:+,.2f} USD` / `{pnl_pct:+.2f} %`)\n"
             f"• **Kontantbuffer:** `${cash:,.2f}` ({(cash / eq * 100 if eq else 100):.1f} %) · **Åpne posisjoner ({len(pos_list)}):** `{top_syms}`\n"
-            f"• **Makroregime:** OBX `{obx:.1f}` vs. SMA200 `{sma200:.1f}` (`{'BULL' if obx >= sma200 else 'BEAR'}`), live VIX `{vix:.1f}`.\n\n"
-            f"{'⚠️ Siden VIX ligger over 25 anbefales stram risikokontroll og ingen nye høy-beta kjøp før volatiliteten roer seg.' if vix >= 25 else '✅ VIX er under 25 — normalt momentum-regime er aktivt.'}"
+            f"• **Volatilitetsregime:** Live VIX (S&P 500) er `{vix:.1f}`.\n\n"
+            f"{'⚠️ VIX ≥ 25 — stram risikokontroll og fokus på sikring/kontantbuffer anbefales.' if vix >= 25 else '✅ VIX < 25 — normalt US momentum-regime er aktivt.'}"
         )
-    elif any(k in m_low for k in ("collar", "sikre", "hedge", "put", "opsjon")):
+    elif any(k in m_low for k in ("collar", "sikre", "hedge")):
         reply = (
             f"**Sikring med Zero-Cost Collar (live VIX `{vix:.1f}`):**\n"
             f"• **Hvorfor nå:** Når VIX er forhøyet (`{vix:.1f}`), er rene Protective Puts dyre. En **Zero-Cost Collar** kjøper en OTM Put (f.eks. `-5 %` gulv) og finansierer den ved å selge en OTM Call (`+5 %` til `+8 %` tak).\n"
-            f"• **Test selv:** Åpne **`06 Sikring & Derivater`** i sidemenyen for å se live Black-Scholes Greeks (`Delta`, `Gamma`, `Theta`, `Vega`) og Hockey-Stick payoff-grafen for `NVDA` eller hele porteføljen."
+            f"• **Test selv:** Åpne **`07 Sikring & Derivater`** i sidemenyen for live Black-Scholes Greeks (`Delta`, `Gamma`, `Theta`, `Vega`) og Hockey-Stick payoff-graf."
         )
     elif any(k in m_low for k in ("calmar", "cvar", "slippage", "sharpe", "sortino", "nøkkeltall")):
         reply = (
             "**Sentrale risiko-nøkkeltall i systemet:**\n"
             "• **Calmar Ratio:** Årlig avkastning delt på maksimal drawdown (`CAGR / |MaxDD|`). Over `1.0` er sterkt.\n"
             "• **CVaR 95 % (Expected Shortfall):** Gjennomsnittlig tap på de 5 % verste handelsdagene — måler reell halerisiko bedre enn standardavvik.\n"
-            "• **Breakeven Slippage:** Hvor mye kurtasje, spread og prisglidning strategien tåler før netto alfa blir null (vårt mål er Cost Drag `< 20 %` av brutto)."
+            "• **Breakeven Slippage:** Hvor mye spread og prisglidning strategien tåler før netto alfa blir null (mål: Cost Drag `< 20 %`)."
         )
-    elif any(k in m_low for k in ("ask", "skatt", "tax", "nordnet", "alpaca")):
+    elif any(k in m_low for k in ("skatt", "tax", "ask", "alpaca")):
         reply = (
-            "**Norsk ASK-skatt vs. US-aksjer (AF-konto / Alpaca):**\n"
-            "• **ASK (Norge / EØS — f.eks. OBX 15 & OMXN40):** `0 %` løpende skatt ved kjøp/salg inne på kontoen (skatt utløses først ved uttak over innskutt beløp).\n"
-            "• **US-aksjer (Alpaca / AF-konto):** Gevinst realiseres skattemessig fortløpende med **37,84 %** (2026-sats), og valutasvingninger (`USDNOK`) påvirker netto avkastning.\n"
-            "• Bruk **`07 Multi-Broker`** for å kjøre deterministisk kostnads- og skatteruting per enkeltkandidat."
+            f"**Norsk skatt på US-handel (Alpaca Paper / AF-konto):**\n"
+            f"• **Skattesats:** Gevinst på amerikanske aksjer og opsjoner beskattes fortløpende ved realisering med **37,84 %** (inkl. USD/NOK-valutakursendring mellom kjøp og salg).\n"
+            f"• **Logget i DuckDB (2026):** `{tax_info['total_trades']}` lukkede handler · Skattepliktig gevinst: `{tax_info['pnl_net_nok']:,.0f} NOK` · Anbefalt skatteavsetning: `{tax_info['tax_due_nok']:,.0f} NOK`.\n"
+            f"• Se detaljer i skattejournalen nederst i **`04 US Intraday`**."
         )
     else:
         reply = (
-            f"Jeg har live kontekst for porteføljen din (**`${eq:,.2f}`**, **{len(pos_list)} posisjoner**, **VIX `{vix:.1f}`**, **OBX `{obx:.1f}`**).\n\n"
-            f"Spør meg gjerne konkret om:\n"
+            f"Jeg har live kontekst for US Alpaca Paper-porteføljen din (**`${eq:,.2f}`**, **{len(pos_list)} posisjoner**, **VIX `{vix:.1f}`**).\n\n"
+            f"Spør meg gjerne om:\n"
+            f"• *«Hvorfor er det ikke handlet opsjoner eller intradag i dag?»*\n"
             f"• *«Analyser porteføljen min akkurat nå»*\n"
-            f"• *«Hvordan sikre NVDA med Zero-Cost Collar?»*\n"
-            f"• *«Forklar Calmar Ratio, CVaR 95 % og ASK-skatt»*"
+            f"• *«Hvordan sikre NVDA med Zero-Cost Collar?»*"
         )
 
     return {
         "success": True,
         "reply": reply,
-        "provider": "Deterministisk Live CIO-Assistent",
+        "provider": "Live Telemetri-Assistent (Fallback)",
         "context_summary": ctx_summary,
     }

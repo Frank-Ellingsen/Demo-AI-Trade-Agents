@@ -7905,7 +7905,7 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
       const typing = document.createElement("div");
       typing.id = "globalChatTyping";
       typing.style.cssText = "align-self:flex-start; font-size:11.5px; color:var(--text-dim); padding:4px 6px;";
-      typing.textContent = "Analyserer med live porteføljedata (llama3.1:8b / Gemini 3.8 Flash)…";
+      typing.textContent = "Analyserer med live portefølje- & intradagdata (Ollama / Gemini 2.5 Flash)…";
       if (box) { box.appendChild(typing); box.scrollTop = box.scrollHeight; }
 
       try {
@@ -7950,15 +7950,15 @@ Klikk på et steg til venstre eller bruk navigasjonsfanene øverst for interakti
 
     <div style="display:flex; gap:5px; flex-wrap:wrap; padding:8px 12px; border-bottom:1px solid var(--border-strong); background:rgba(255,255,255,0.015);">
       <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Analyser porteføljen min akkurat nå mot S&P 500 og VIX')">📊 Portefølje nå</button>
+      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Hva har intradag- og opsjonsagenten gjort i dag?')">⚡ Intradag &amp; opsjoner</button>
       <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Hvordan bør jeg sikre NVDA med Zero-Cost Collar i dagens VIX?')">🛡️ Sikre NVDA</button>
-      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Forklar Calmar Ratio, CVaR 95 % og Breakeven Slippage')">🎓 Risiko-nøkkeltall</button>
-      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Hva er reglene for ASK-skatt vs. US-aksjer på Alpaca?')">💰 ASK &amp; skatt</button>
+      <button class="btn btn-outline btn-sm" style="font-size:10.5px; padding:3px 7px;" onclick="sendGlobalChat('Hvor mye skatt (37,84 %) er beregnet så langt i 2026?')">🧾 37,84 % skatt</button>
     </div>
 
     <div id="globalChatMessages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px;">
       <div style="align-self:flex-start; max-width:90%; padding:8px 11px; border-radius:8px; font-size:12.5px; line-height:1.5; background:rgba(255,255,255,0.04); border:1px solid var(--border-strong); color:var(--text-main);">
-        Hei! Spør meg om <strong>porteføljen din</strong> (posisjoner, VIX, benchmark, sikring) eller <strong>generelle finans- og trading-spørsmål</strong> (Calmar, CVaR, Zero-Cost Collar, ASK-skatt, RSI(2), osv.).
-        <div style="margin-top:4px; font-size:10px; color:var(--text-dim); font-family:var(--font-mono);">Klar · llama3.1:8b / Gemini 3.8 Flash</div>
+        Hei! Jeg er koblet direkte til <strong>Alpaca Paper</strong>, <strong>US Intradag &amp; Opsjons-Vault</strong> og <strong>Skattejournalen</strong>. Spør meg om porteføljen, hvorfor/hvordan agentene handler, sikring eller risiko!
+        <div style="margin-top:4px; font-size:10px; color:var(--text-dim); font-family:var(--font-mono);">Klar · Lokal Ollama / Gemini 2.5 Flash</div>
       </div>
     </div>
 
